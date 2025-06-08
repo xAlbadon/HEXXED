@@ -1,7 +1,9 @@
 import { Leaderboard } from './leaderboard.js';
+import { UpdateManager } from './updateManager.js';
 export class UIManager {
   constructor(gameInstance, loginCallback, signupCallback) {
     this.game = gameInstance; // Store the game instance
+    this.updateManager = new UpdateManager(this.game, this._showTitleScreenPostUpdate.bind(this)); // Instantiate UpdateManager
     this.loginCallback = loginCallback;
     this.signupCallback = signupCallback;
     // Title Screen Elements
@@ -103,6 +105,55 @@ export class UIManager {
     this.playerTwoAvailableBattleOrbs = []; // Stores the definitions of P2's 7 starting orbs
     this.currentBattleSessionData = null; // Stores data for the current multiplayer session
     this.localPlayerIsOne = null; // Will be set by showBattleModeScreen
+    // Initialize UpdateManager and manage title screen visibility
+    if (this.updateManager) {
+      try {
+        this.updateManager.initialize(); // UpdateManager configures itself and shows its UI if needed.
+        this._syncTitleScreenWithUpdateManager(false); // Sync based on initial state
+      } catch (error) {
+        console.error('[UIManager] Error during UpdateManager initialization or UI check:', error);
+        // Fallback: ensure title screen is visible and update manager UI (if any) is hidden.
+        if (this.titleScreen) {
+            this.titleScreen.style.display = 'flex';
+            console.log('[UIManager] Fallback: Ensuring title screen is visible after UpdateManager error.');
+        }
+        if (this.updateManager && typeof this.updateManager.hideUpdateUI === 'function') {
+            this.updateManager.hideUpdateUI(); // Attempt to hide updater UI if it got stuck
+        }
+      }
+    } else {
+      // No UpdateManager instance, ensure title screen is visible by calling sync.
+      this._syncTitleScreenWithUpdateManager(false);
+    }
+  }
+  _syncTitleScreenWithUpdateManager(isUpdateManagerCompleting = false) {
+    if (!this.titleScreen) {
+        console.warn('[UIManager] _syncTitleScreenWithUpdateManager: titleScreen element not available.');
+        return;
+    }
+    if (this.updateManager) {
+        // Check if UpdateManager is currently blocking UI AND not in the process of completing
+        if (!isUpdateManagerCompleting && this.updateManager.isBlockingUI()) {
+            this.titleScreen.style.display = 'none';
+            console.log('[UIManager] UpdateManager is active/blocking. Title screen hidden by sync.');
+        } else {
+            // UpdateManager is not blocking, OR it is completing.
+            // Title screen should be visible.
+            if (isUpdateManagerCompleting && typeof this.updateManager.hideUpdateUI === 'function') {
+                this.updateManager.hideUpdateUI(); // Hide UpdateManager's UI as it's completing.
+            }
+            this.titleScreen.style.display = 'flex';
+            console.log(`[UIManager] Title screen shown by sync. Update completing: ${isUpdateManagerCompleting}.`);
+            // Ensure gameArea is not blurred when title screen is primary.
+            if (this.gameArea) {
+                this.gameArea.style.filter = 'none';
+            }
+        }
+    } else {
+        // No UpdateManager, so title screen should be visible.
+        this.titleScreen.style.display = 'flex';
+        console.log('[UIManager] No UpdateManager. Title screen shown by sync.');
+    }
   }
   #calculateLuminance(rgb) {
     // Formula: (0.299*R + 0.587*G + 0.114*B) / 255
@@ -140,7 +191,11 @@ export class UIManager {
     this.authMessage.textContent = message;
     this.authMessage.style.color = isError ? '#ff6b6b' : '#6bff6b'; // Red for error, Green for success
   }
-  // Removed extra closing brace here
+  _showTitleScreenPostUpdate() {
+    // This method is the callback for when UpdateManager completes its process.
+    console.log('[UIManager] UpdateManager completion callback triggered. Syncing title screen.');
+    this._syncTitleScreenWithUpdateManager(true); // true indicates the update process is completing.
+  }
   setupEncyclopediaEventListeners() {
     if (this.encyclopediaToggleButton) {
         this.encyclopediaToggleButton.addEventListener('click', () => this.showEncyclopedia(true));

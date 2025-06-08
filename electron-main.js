@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require('electron'); // Added dialog
+const { app, BrowserWindow, dialog, ipcMain } = require('electron'); // Added dialog and ipcMain
 const path = require('path');
 const url = require('url');
 const { autoUpdater } = require('electron-updater');
@@ -27,54 +27,66 @@ function createWindow() {
 // Configure logging for autoUpdater - useful for debugging
 autoUpdater.logger = require("electron-log");
 autoUpdater.logger.transports.file.level = "info";
-autoUpdater.on('update-available', () => {
-  autoUpdater.logger.info('Update available.');
-  dialog.showMessageBox({
-    type: 'info',
-    title: 'Update Available',
-    message: 'A new version of #HEXXED is available. It will be downloaded in the background.',
-    buttons: ['OK']
-  });
+autoUpdater.on('update-available', (info) => {
+  autoUpdater.logger.info(`Update available: version ${info.version}`);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { status: 'update-available', version: info.version });
+  }
 });
 autoUpdater.on('update-not-available', () => {
   autoUpdater.logger.info('Update not available.');
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { status: 'update-not-available' });
+  }
 });
 autoUpdater.on('error', (err) => {
-  autoUpdater.logger.error('Error in auto-updater. ' + err);
-  dialog.showMessageBox({
-    type: 'error',
-    title: 'Update Error',
-    message: 'Error while checking for updates: ' + err.message,
-    buttons: ['OK']
-  });
+  const errorMessage = err.message || String(err);
+  autoUpdater.logger.error('Error in auto-updater. ' + errorMessage);
+  if (mainWindow) {
+    if (errorMessage.includes("No published versions on GitHub")) {
+      autoUpdater.logger.info("No published versions found on GitHub. This is normal if no releases have been published yet.");
+      mainWindow.webContents.send('update-status', { status: 'update-not-available', message: "No published versions found. Game is up to date." });
+    } else {
+      mainWindow.webContents.send('update-status', { status: 'error', message: `Error checking for updates: ${errorMessage}` });
+    }
+  }
 });
 autoUpdater.on('download-progress', (progressObj) => {
   let log_message = "Download speed: " + progressObj.bytesPerSecond;
   log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
   log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
   autoUpdater.logger.info(log_message);
-  // You could potentially update a progress bar in your UI here
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { status: 'downloading', progress: progressObj });
+  }
 });
-autoUpdater.on('update-downloaded', () => {
-  autoUpdater.logger.info('Update downloaded; will install now');
-  dialog.showMessageBox({
-    type: 'info',
-    title: 'Update Ready',
-    message: 'A new version of #HEXXED has been downloaded. Restart the application to apply the updates.',
-    buttons: ['Restart Now', 'Later']
-  }).then((buttonIndex) => {
-    if (buttonIndex.response === 0) { // "Restart Now" button
-      autoUpdater.quitAndInstall();
-    }
-  });
+autoUpdater.on('update-downloaded', (info) => {
+  autoUpdater.logger.info(`Update downloaded: version ${info.version}. Ready to install.`);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { status: 'downloaded', version: info.version });
+  }
+  // Main process will now wait for 'user-triggered-restart-for-update' IPC message from the renderer
+});
+// Listen for a message from renderer to quit and install the update
+ipcMain.on('user-triggered-restart-for-update', () => {
+  autoUpdater.logger.info('User triggered restart for update. Quitting and installing...');
+  autoUpdater.quitAndInstall();
 });
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {
   createWindow();
-  // Check for updates after window is created
-  // It's often better to check after a short delay or user action, but for simplicity, we start here.
-  autoUpdater.checkForUpdatesAndNotify();
+  if (mainWindow) {
+    mainWindow.webContents.on('did-finish-load', () => {
+      // Only check for updates once the window content is loaded and ready to receive IPC messages
+      if (mainWindow && !mainWindow.isDestroyed()) {
+         mainWindow.webContents.send('update-status', { status: 'checking' });
+      }
+      autoUpdater.checkForUpdates(); // Changed from checkForUpdatesAndNotify
+    });
+  } else {
+      autoUpdater.logger.error("mainWindow not initialized when app ready. Cannot check for updates.");
+  }
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
@@ -90,3 +102,5 @@ app.on('window-all-closed', function () {
     app.quit();
   }
 });
+
+// You can include other main process specific code below.

@@ -8,6 +8,7 @@ import { ParticleSystem } from './particleSystem.js';
 import { ChallengeManager } from './challengeManager.js';
 import { LinePreviewSystem } from './linePreviewSystem.js'; // Added
 import { supabase } from './supabaseClient.js';
+import { UpdateManager } from './updateManager.js'; // Added for Electron updates
 class ChromaLabGame {
   constructor() {
     this.container = document.getElementById('gameContainer');
@@ -52,6 +53,9 @@ class ChromaLabGame {
     this.playerOneReadyForBattle = false;
     this.playerTwoReadyForBattle = false;
     this.battleHasActuallyStarted = false; // NEW: Tracks if battle timer is running
+    // Initialize UpdateManager (for Electron environments)
+    // It will handle showing its UI if an update is in progress
+    this.updateManager = new UpdateManager(this._handleUpdateManagerCompletion.bind(this));
     // Defer full game init until after login/signup
     // this.init();
   }
@@ -96,6 +100,9 @@ class ChromaLabGame {
     
     // Setup event listeners (mix button etc.)
     this.setupGameEventListeners();
+    // Check if the UpdateManager is blocking UI (e.g. update in progress)
+    // If it is, the UIManager should keep the title screen visible
+    // This interaction will be handled by UIManager checking updateManager.isBlockingUI()
   }
   // Placeholder for login logic
   async handleLogin(username, password) {
@@ -163,7 +170,18 @@ class ChromaLabGame {
       this.uiManager.setAuthMessage(`Signup failed: ${error.message}`, true);
     }
   }
-
+  _handleUpdateManagerCompletion() {
+    console.log('[ChromaLabGame] UpdateManager has completed its process.');
+    // At this point, UpdateManager's UI will hide itself.
+    // The UIManager should then decide whether to show the title screen
+    // or proceed to game area if login has already occurred.
+    // This logic is now primarily handled by UIManager checking `updateManager.isBlockingUI()`.
+    // If UIManager was waiting for this, it can now proceed.
+    // For example, if game.uiManager.showTitleScreenPostUpdate was true:
+    if (this.uiManager && typeof this.uiManager.checkAndShowTitleScreen === 'function') {
+        this.uiManager.checkAndShowTitleScreen();
+    }
+  }
   createInitialOrbs() {
     // Filter for only primary colors for the initial setup
     const primaryColors = this.colorSystem.getDiscoveredColors().filter(c => c.isPrimary);
