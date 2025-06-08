@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>#HEXXED - Color Mixing Laboratory</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://esm.sh/three@0.160.0?dev",
+          "three/": "https://esm.sh/three@0.160.0&dev/",
+          "tween.js": "https://esm.sh/@tweenjs/tween.js@21.0.0",
+          "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.0"
+        }
+      }
+    </script>
+    <style>
+      #titleParticlesCanvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1; /* Above body background, below titleScreen */
+        pointer-events: none; /* Allows clicks to pass through */
+      }
+      body {
+        margin: 0;
+        padding: 0;
+    overflow: hidden;
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #2d1b69, #11001c, #4a0e67, #1f002e);
+    background-size: 400% 400%;
+    animation: animatedBackground 25s ease infinite;
+}
+@keyframes animatedBackground {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+* {
+        box-sizing: border-box; /* Ensures padding and border don't add to element's total width/height */
+      }
+      #gameContainer {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex; /* Added for centering title screen */
+        align-items: center; /* Added for centering title screen */
+        justify-content: center; /* Added for centering title screen */
+      }
+      #gameArea { /* Renamed from #ui to distinguish game UI from title screen */
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 100;
+        display: none; /* Initially hidden until player logs in */
+      }
+      #titleScreen {
+        background: rgba(17, 0, 28, 0.85); /* Darker, semi-transparent bg */
+        backdrop-filter: blur(5px);
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+    color: white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5), 
+                0 0 15px rgba(171, 112, 255, 0.3), /* Subtle violet glow */
+                0 0 30px rgba(0, 200, 255, 0.2); /* Subtle cyan glow for depth */
+    z-index: 200; /* Above game area */
+    width: 100%;
+    max-width: 450px; /* Control max width */
+    transition: box-shadow 0.5s ease-in-out; /* Smooth transition for shadow */
+}
+#titleScreen:hover { /* Optional: enhance glow on hover */
+    box-shadow: 0 12px 35px rgba(0,0,0,0.6), 
+                0 0 25px rgba(171, 112, 255, 0.45), 
+                0 0 40px rgba(0, 200, 255, 0.3);
+}
+@keyframes rainbowText {
+        0% { color: #ff0000; } /* Red */
+        16% { color: #ff7f00; } /* Orange */
+        33% { color: #ffff00; } /* Yellow */
+        50% { color: #00ff00; } /* Green */
+        67% { color: #0000ff; } /* Blue */
+        83% { color: #4b0082; } /* Indigo */
+        100% { color: #8f00ff; } /* Violet */
+    }
+    #titleScreen h1 {
+      font-size: 3.5em; /* Slightly larger */
+      font-weight: bold;
+      margin-bottom: 15px;
+      background: linear-gradient(90deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 200% 200%;
+      animation: gradientShift 5s ease infinite, subtlePulse 2s infinite alternate;
+      text-shadow: 0 0 5px rgba(255,255,255,0.3), 
+                   0 0 10px rgba(255,105,180,0.5), /* Hot pink glow */
+                   0 0 15px rgba(0,255,255,0.4); /* Cyan glow */
+    }
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    @keyframes subtlePulse {
+        from { opacity: 0.9; }
+        to { opacity: 1; }
+    }
+    #titleScreen p {
+      font-family: 'Luckiest Guy', cursive;
+      font-size: 1.5em; /* Adjusted for Luckiest Guy */
+      margin-bottom: 30px;
+      line-height: 1.3;
+      background: linear-gradient(90deg, #ff7e5f, #feb47b, #86a8e7, #91eae4, #ff9f80, #ff7e5f);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 400% 400%;
+      animation: gradientShift 12s ease infinite alternate; /* Slower and alternating animation */
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Adjusted shadow for Luckiest Guy */
+    }
+    .authForm input {
+        display: block;
+    width: calc(100% - 22px); /* Account for padding */
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1em;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transitions */
+    box-shadow: 0 0 5px rgba(255,255,255,0.1); /* Initial subtle glow */
+}
+.authForm input:focus {
+    outline: none;
+    border-color: #87CEFA; /* Light sky blue border on focus */
+    box-shadow: 0 0 10px rgba(135, 206, 250, 0.7), /* Stronger blue glow */
+                0 0 5px rgba(255, 105, 180, 0.4); /* Hint of pink glow */
+}
+.authForm input::placeholder {
+    color: #bbb;
+}
+.authForm button {
+      border: none;
+      border-radius: 10px; /* Slightly more rounded */
+      padding: 14px 24px; /* Larger padding */
+      color: white;
+      font-weight: bold;
+      font-size: 1.05em; /* Slightly larger font */
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother transition */
+      margin: 8px 5px; /* Adjusted margin */
+      min-width: 130px; /* Slightly larger min-width */
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    #loginButton {
+      background: linear-gradient(135deg, #6dd5ed, #2193b0); /* Blue-cyan gradient */
+      box-shadow: 0 4px 15px rgba(33, 147, 176, 0.4);
+    }
+    #loginButton:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 6px 20px rgba(33, 147, 176, 0.5);
+      background: linear-gradient(135deg, #79e0f5, #27a8c7); /* Lighter hover */
+    }
+    #signupButton {
+      background: linear-gradient(135deg, #ff9a9e, #fecfef); /* Pink-lilac gradient */
+      box-shadow: 0 4px 15px rgba(254, 207, 239, 0.4);
+    }
+    #signupButton:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 6px 20px rgba(254, 207, 239, 0.5);
+      background: linear-gradient(135deg, #ffacad, #fde3f7); /* Lighter hover */
+    }
+    #authMessage {
+        margin-top: 15px;
+        color: #ff6b6b;
+        min-height: 20px; /* Reserve space for messages */
+      }
+      #topBar {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        right: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        pointer-events: auto;
+        flex-wrap: wrap; 
+        gap: 8px; /* Add gap for wrapped items */
+      }
+      #encyclopediaToggleButton {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        padding: 8px 12px;
+        color: white;
+        font-size: 20px; /* For emoji */
+        cursor: pointer;
+        /* margin-left: 10px; Removed, using gap in #topBar */
+      }
+      #leaderboardToggleButton {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        padding: 8px 12px;
+        color: white;
+        font-size: 20px; /* For emoji */
+        cursor: pointer;
+      }
+      #battleModeButton { /* Style similar to other top bar buttons */
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        padding: 8px 12px;
+        color: white;
+        font-size: 20px; /* For emoji or icon text */
+        cursor: pointer;
+        /* margin-left: 10px; /* Optional: if not relying solely on gap */
+      }
+      #colorCounter {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        padding: 10px 20px;
+        color: white;
+        font-weight: bold;
+        font-size: 18px;
+      }
+      #instructions {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        padding: 10px 20px;
+        color: white;
+        font-size: 14px;
+        text-align: center;
+        /* flex-basis: 100%; Removed, let flexbox handle wrapping */
+        /* order: 1; Re-evaluating order for mobile */
+        margin: 0; /* Remove fixed margin, use gap */
+      }
+      #challengeDisplay {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        padding: 10px 20px;
+        color: #ffda77; /* Gold-ish color for challenge text */
+        font-size: 14px;
+        text-align: center;
+        /* margin-top: 10px; Removed, using gap in #topBar */
+      }
+      #selectedColors {
+        position: absolute;
+        top: 90px; /* Position below topBar */
+        right: 15px;
+        width: 220px; 
+        max-height: calc(100vh - 180px); /* Avoid overlap with top/bottom elements */
+        background: rgba(17, 0, 28, 0.75); /* Dark, thematic background */
+        backdrop-filter: blur(5px);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: auto;
+        overflow-y: auto;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      }
+      .selectedColor { /* Styles for each item in the new right panel */
+        display: flex;
+        align-items: center;
+        background-color: rgba(255, 255, 255, 0.05);
+        padding: 8px;
+        border-radius: 6px;
+        color: white;
+        height: auto; /* Auto height based on content */
+        width: 100%; /* Full width of parent */
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        transition: background-color 0.2s ease;
+      }
+      .selectedColor:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      .selectedColorSwatch {
+        width: 28px;
+        height: 28px;
+        border-radius: 5px;
+        margin-right: 10px;
+        border: 1px solid rgba(255,255,255,0.3);
+        flex-shrink: 0; /* Prevent shrinking */
+      }
+      .selectedColorName {
+        font-size: 0.9em;
+        flex-grow: 1; /* Take remaining space */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #mixButton {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+        border: none;
+        border-radius: 30px;
+        padding: 15px 30px;
+        color: white;
+        font-weight: bold;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+      }
+      #mixButton:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+      }
+      #mixButton:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+      /* #encyclopediaPanel styles removed, replaced by #fullscreenEncyclopedia */
+      #fullscreenEncyclopedia {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: radial-gradient(circle, rgba(45,27,105,1) 0%, rgba(17,0,28,1) 100%),
+                    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        background-color: #0a0010; /* Fallback if SVG fails */
+        color: white;
+        z-index: 500; /* High z-index to cover everything */
+        display: none; /* Hidden by default */
+        padding: 20px;
+        overflow-y: auto;
+        box-sizing: border-box;
+      }
+      #fsEncyclopediaHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0; /* Remove bottom margin as tabs will be directly below */
+        padding-bottom: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      #encyclopediaTabs {
+        display: flex;
+        margin-bottom: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .encyclopediaTabButton {
+        padding: 10px 20px;
+        cursor: pointer;
+        background: transparent;
+        border: none;
+        color: #ccc;
+        font-size: 1em;
+        border-bottom: 3px solid transparent;
+        transition: color 0.2s, border-bottom-color 0.2s;
+      }
+      .encyclopediaTabButton:hover {
+        color: white;
+      }
+      .encyclopediaTabButton.active {
+        color: #ffda77;
+        border-bottom-color: #ffda77;
+        font-weight: bold;
+      }
+      .encyclopediaTabPanel {
+        display: none; /* Hidden by default */
+      }
+      .encyclopediaTabPanel.active {
+        display: block; /* Show active panel */
+      }
+      #fsEncyclopediaTitle {
+        font-size: 2em; /* Larger title */
+        color: #ffda77; /* Goldenrod for title */
+        text-shadow: 0 0 10px #ffda77, 0 0 5px #ff8c00;
+        font-family: 'Georgia', serif; /* More thematic font */
+        margin-left: 10px; /* Add some space if tabs are next to it, or adjust header structure */
+      }
+      #closeEncyclopediaButton {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        color: #ffda77;
+        font-size: 20px;
+        width: 36px;
+        height: 36px;
+        cursor: pointer;
+        line-height: 34px;
+        text-align: center;
+        transition: background-color 0.2s, box-shadow 0.2s;
+      }
+      #closeEncyclopediaButton:hover {
+        background-color: rgba(255,218,119,0.2);
+        box-shadow: 0 0 8px #ffda77;
+      }
+      /* #encyclopediaControls will be inside a tab panel now */
+      /* #encyclopediaControls {
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      } */
+      #encyclopediaControls label {
+        font-size: 0.9em;
+        color: #ccc;
+      }
+      #sortColorsDropdown {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        color: white;
+        padding: 8px 12px;
+        font-size: 0.9em;
+        outline: none;
+      }
+      #sortColorsDropdown option {
+        background: #1e1247;
+        color: white;
+      }
+      #colorGrid { /* Styles for colorGrid within the new page */
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); /* Slightly larger, more prominent swatches */
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .colorSwatch {
+        width: 100%; 
+        padding-bottom: 100%; 
+        border-radius: 10px; /* Softer radius */
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        position: relative;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      }
+      .colorSwatch:hover {
+        transform: scale(1.08);
+        box-shadow: 0 0 20px rgba(255,255,255,0.6);
+        border-color: #ffda77;
+      }
+      #colorInfo { /* Styles for colorInfo within the new page */
+        margin-top: 20px;
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+        font-size: 1em;
+        min-height: 80px; 
+        line-height: 1.6;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+      }
+      #colorInfo strong {
+        color: #ffda77;
+        font-size: 1.2em;
+      }
+      #leaderboardPanel {
+        position: absolute;
+        top: 70px; /* Adjusted dynamically or for mobile below */
+        left: 20px;
+        width: 280px; /* Slightly wider */
+        max-height: calc(100vh - 140px); /* More dynamic height */
+        background: rgba(10, 0, 20, 0.85); /* Darker, more aligned with encyclopedia */
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 15px;
+        padding: 15px;
+        color: white;
+        pointer-events: auto;
+        overflow-y: auto;
+        font-size: 14px;
+        display: none; /* Hidden by default, toggled by JS */
+        z-index: 400; /* Below encyclopedia but above other game UI */
+        box-shadow: 0 5px 25px rgba(0,0,0,0.4);
+      }
+      #leaderboardTitle {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        text-align: center;
+        color: #ffd700; /* Gold color for title */
+      }
+      #leaderboardList {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      #leaderboardList li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 5px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        transition: background-color 0.2s ease;
+      }
+      #leaderboardList li:last-child {
+        border-bottom: none;
+      }
+      #leaderboardList li:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      .rank {
+        font-weight: bold;
+        min-width: 30px;
+        color: #aaa;
+      }
+      .playerName {
+        flex-grow: 1;
+        margin-left: 10px;
+        color: #e0e0e0;
+      }
+      .score {
+        font-weight: bold;
+        color: #87CEFA; /* Light sky blue for scores */
+      }
+      @media (max-width: 768px) {
+        #titleScreen {
+          padding: 25px;
+          max-width: 90%;
+        }
+        #titleScreen h1 {
+          font-size: 2.5em;
+        }
+        #titleScreen p {
+          font-size: 1.2em; /* Adjusted for Luckiest Guy on mobile */
+          margin-bottom: 25px;
+        }
+        .authForm input {
+          padding: 10px;
+          font-size: 0.9em;
+        }
+        .authForm button {
+          padding: 10px 15px;
+          font-size: 0.9em;
+        }
+        #topBar {
+          flex-direction: row; 
+          flex-wrap: wrap; /* Ensure wrapping */
+          gap: 5px; /* Tighter gap for mobile top bar items */
+          align-items: center;
+          justify-content: space-between; /* Space between main groups */
+          top: 10px; 
+          left: 10px;
+          right: 10px;
+        }
+        #encyclopediaToggleButton, #leaderboardToggleButton, #battleModeButton {
+            padding: 6px 10px;
+            font-size: 18px;
+            /* order: 0; default order is fine with flex-wrap */
+        }
+        #colorCounter {
+            font-size: 14px; /* Slightly smaller for mobile */
+            padding: 8px 12px;
+            /* order: 1; */
+        }
+        #instructions {
+          font-size: 9px; 
+          padding: 6px 8px; 
+          text-align: left; /* More readable for instructions */
+          flex-basis: 100%; /* Takes full width when wraps */
+          order: 3; /* Display below primary buttons and counter */
+          margin-top: 5px;
+        }
+        #challengeDisplay {
+            order: 4; 
+            flex-basis: 100%;
+            font-size: 10px;
+            padding: 6px 8px;
+            margin-top: 5px;
+        }
+        #selectedColors { /* Adjustments for the new right panel on mobile */
+          top: 80px; /* Below top bar on mobile */
+          right: 10px;
+          width: 180px; /* Narrower for mobile */
+          max-height: calc(100vh - 200px); /* Adjusted max height */
+          padding: 10px;
+          gap: 6px;
+        }
+        .selectedColor { /* Mobile adjustments for items in the panel */
+          padding: 6px;
+        }
+        .selectedColorSwatch {
+          width: 24px;
+          height: 24px;
+          margin-right: 8px;
+        }
+        .selectedColorName {
+          font-size: 0.85em;
+        }
+        #mixButton { 
+          padding: 12px 25px;
+          font-size: 14px;
+        }
+        /* #encyclopediaPanel related mobile styles removed */
+        #leaderboardPanel {
+            /* display: none; Now handled by JS and default style */
+            width: calc(100% - 30px); /* Full width on mobile, with padding */
+            left: 15px;
+            top: 60px; /* Position below topBar */
+            max-height: calc(100vh - 150px); /* Ensure it doesn't overlap bottom UI */
+        }
+        #fullscreenEncyclopedia {
+            padding: 15px;
+        }
+        #fsEncyclopediaTitle {
+            font-size: 1.5em;
+        }
+        #closeEncyclopediaButton {
+            font-size: 20px;
+            width: 35px;
+            height: 35px;
+            line-height: 35px;
+        }
+        .encyclopediaTabButton {
+            padding: 8px 12px;
+            font-size: 0.9em;
+        }
+        #colorGrid {
+          grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); /* Slightly larger tap targets for mobile */
+          gap: 8px;
+        }
+        #colorInfo {
+          font-size: 0.9em;
+          padding: 10px;
+        }
+      }
+      .ringManagementSection {
+        margin-bottom: 30px; /* Increased margin */
+        padding: 20px; /* Increased padding */
+        background-color: rgba(255, 255, 255, 0.04); /* Slightly adjusted background */
+        border-radius: 15px; /* Softer radius */
+        border: 1px solid rgba(255, 255, 255, 0.1); /* Slightly more visible border */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25); /* Enhanced shadow */
+      }
+      .ringManagementSectionHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .ringManagementSection h4 { /* Changed from h3 for better hierarchy if main tab title is h3 */
+        margin-top: 0;
+        margin-bottom: 0; /* Remove bottom margin from h4 itself */
+        color: #ffda77;
+        font-size: 1.3em; /* Adjusted size */
+        font-family: 'Georgia', serif;
+      }
+      .manageRingOrbsButton {
+        background-color: rgba(255, 218, 119, 0.15); /* Gold-ish accent */
+        border: 1px solid rgba(255, 218, 119, 0.3);
+        color: #ffda77;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 0.9em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s, box-shadow 0.2s;
+      }
+      .manageRingOrbsButton:hover {
+        background-color: rgba(255, 218, 119, 0.25);
+        box-shadow: 0 0 10px rgba(255, 218, 119, 0.3);
+      }
+       .manageRingOrbsButton .plusIcon { /* For the plus icon */
+        font-weight: bold;
+        margin-right: 5px;
+      }
+      .ringCapacityInfo {
+        font-size: 0.9em; /* Slightly smaller */
+        color: #ccc; /* Lighter gray */
+        margin-bottom: 15px;
+      }
+      .ringOrbList { /* Common style for active and available lists */
+        list-style: none;
+        padding-left: 0;
+        margin-bottom: 20px; /* Space before available section or next ring */
+      }
+      .ringOrbList.activeOrbsGrid { /* Specific grid for active orbs */
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Responsive grid */
+        gap: 10px;
+      }
+      .ringOrbListItem {
+        display: flex;
+        align-items: center;
+        padding: 10px 12px; /* Adjusted padding */
+        background-color: rgba(0,0,0,0.3); /* Darker item background */
+        border-radius: 10px; /* Softer radius */
+        border: 1px solid rgba(255,255,255,0.15);
+        transition: background-color 0.2s, transform 0.15s ease-out;
+      }
+      .ringOrbListItem:hover {
+        background-color: rgba(255,255,255,0.12);
+        transform: translateY(-2px);
+      }
+      .ringOrbSwatch {
+        width: 30px; /* Slightly larger */
+        height: 30px;
+        border-radius: 50%;
+        margin-right: 15px; /* More space */
+        border: 2px solid rgba(255,255,255,0.6); /* More prominent border */
+        flex-shrink: 0;
+      }
+      .ringOrbName {
+        font-size: 1em;
+        color: #f5f5f5; /* Slightly brighter white */
+        flex-grow: 1;
+      }
+      .unsummonOrbButton, .summonOrbButton { /* Shared style for action buttons */
+        background-color: #ff6b6b; /* Default unsummon color */
+        color: white;
+        border: none;
+        border-radius: 6px; /* Slightly softer radius */
+        padding: 7px 14px; /* Adjusted padding */
+        font-size: 0.85em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+        margin-left: 10px; /* Keep some space */
+      }
+      .summonOrbButton {
+        background-color: #4CAF50; /* Green for summon */
+      }
+      .unsummonOrbButton:hover, .summonOrbButton:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      }
+      .unsummonOrbButton:hover { background-color: #ee5a5a; }
+      .summonOrbButton:hover { background-color: #45a049; }
+      .unsummonOrbButton:active, .summonOrbButton:active {
+        transform: scale(0.98);
+      }
+      .availableOrbsSection {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+      }
+      .availableOrbsSection h5 {
+        color: #e0e0e0;
+        font-size: 1.1em;
+        margin-bottom: 10px;
+      }
+      #availableOrbsControls { /* For sort dropdown in available orbs */
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      #availableOrbsControls label {
+        font-size: 0.9em;
+        color: #ccc;
+      }
+      #availableOrbsSortDropdown { /* Style like other dropdowns */
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        color: white;
+        padding: 8px 12px;
+        font-size: 0.9em;
+        outline: none;
+      }
+      #availableOrbsSortDropdown option {
+        background: #1e1247;
+        color: white;
+      }
+      .availableOrbListItem { /* Can reuse .ringOrbListItem or make specific */
+         /* Uses .ringOrbListItem, but with .summonOrbButton */
+      }
+      /* Additional breakpoint for very small screens */
+      @media (max-width: 480px) {
+        #topBar {
+            gap: 5px; /* Tighter gap for very small screens */
+        }
+        #encyclopediaToggleButton, #leaderboardToggleButton, #battleModeButton {
+            font-size: 16px;
+            padding: 5px 8px;
+        }
+        #titleScreen h1 {
+          font-size: 2em;
+        }
+        #titleScreen p {
+          font-size: 0.9em;
+        }
+        #instructions, #challengeDisplay {
+          font-size: 9px; /* Even smaller */
+        }
+        .selectedColor { /* Further adjustments for very small screens */
+            padding: 5px;
+        }
+        .selectedColorSwatch {
+          width: 20px;
+          height: 20px;
+        }
+        .selectedColorName {
+          font-size: 0.8em;
+        }
+         #mixButton {
+            padding: 10px 20px;
+            font-size: 13px;
+        }
+        .ringOrbList {
+            grid-template-columns: 1fr; /* Single column on very small screens */
+        }
+        .ringManagementSection h4 {
+            font-size: 1.15em;
+        }
+        .manageRingOrbsButton {
+            padding: 6px 10px;
+            font-size: 0.8em;
+        }
+        .ringOrbListItem {
+            padding: 8px 10px;
+        }
+        .ringOrbSwatch {
+            width: 25px;
+            height: 25px;
+            margin-right: 10px;
+        }
+        .ringOrbName {
+            font-size: 0.9em;
+        }
+        .unsummonOrbButton, .summonOrbButton {
+            padding: 5px 10px;
+            font-size: 0.8em;
+        }
+        #availableOrbsControls {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        #availableOrbsSortDropdown {
+            width: 100%;
+        }
+        /* #encyclopediaPanel styles removed */
+      }
+      /* Achievement Card Styles */
+      .achievements-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Responsive grid */
+        gap: 20px;
+        padding-top: 10px; /* Space from the intro text */
+      }
+      .achievement-card {
+        background-color: rgba(255, 255, 255, 0.03); /* Very subtle background */
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+      .achievement-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      }
+      .achievement-card.all-tiers-completed { /* Special style if all tiers are done */
+        border-left: 5px solid #ffd700; /* Gold accent for fully completed */
+        background-color: rgba(255, 218, 119, 0.05); /* Faint gold glow */
+      }
+      .achievement-card-header {
+        /* This is primarily a structural container for the title.
+           The parent .achievement-card's flex properties and gap handle its spacing. */
+      }
+      .achievement-card-header h3 {
+        font-size: 1.3em; /* Title font size */
+        color: #ffda77; /* Consistent gold for titles */
+        margin: 0; /* Remove default h3 margins; spacing is handled by card's padding/gap */
+        font-family: 'Georgia', serif; /* Thematic font */
+        line-height: 1.3; /* Good readability for the title */
+      }
+      .achievement-card-body {
+        /* This is primarily a structural container for description and tiers.
+           The parent .achievement-card's flex properties and gap handle its spacing relative to the header.
+           Its children (.achievement-description, .achievement-tiers) manage their own internal spacing. */
+      }
+      .achievement-title {
+        font-size: 1.25em;
+        color: #ffda77; /* Consistent gold for titles */
+        margin: 0 0 5px 0;
+        font-family: 'Georgia', serif;
+      }
+      .achievement-description {
+        font-size: 0.9em;
+        color: #ccc;
+        margin: 0 0 15px 0;
+        line-height: 1.5;
+      }
+      .achievement-tiers {
+        display: flex;
+        flex-direction: column;
+        gap: 12px; /* Increased gap for better separation */
+      }
+      .achievement-tier {
+        background-color: rgba(0,0,0,0.2);
+        padding: 10px;
+        border-radius: 8px;
+        border-left: 4px solid transparent; /* Placeholder for tier color */
+        transition: background-color 0.2s;
+        position: relative; /* Needed for absolute positioning of the tooltip */
+      }
+      .achievement-tier.completed {
+        /* border-left-color will be set by tier type */
+        background-color: rgba(0,0,0,0.1); /* Slightly different background for completed tiers */
+      }
+      .achievement-tier .tier-icon {
+        margin-right: 8px;
+        font-size: 1.1em;
+      }
+      .achievement-tier .tier-name {
+        font-weight: bold;
+        color: #f0f0f0;
+      }
+      .achievement-tier .tier-progress {
+        font-size: 0.9em;
+        color: #aaa;
+        margin-left: 5px;
+      }
+      /* Tier-specific coloring for the left border and potentially text */
+      .achievement-tier.bronze.completed { border-left-color: #CD7F32; }
+      .achievement-tier.silver.completed { border-left-color: #C0C0C0; }
+      .achievement-tier.gold.completed { border-left-color: #FFD700; }
+      .achievement-tier.bronze .tier-name { color: #CD7F32; }
+      .achievement-tier.silver .tier-name { color: #C0C0C0; }
+      .achievement-tier.gold .tier-name { color: #FFD700; }
+      
+      .progress-bar-container {
+        background-color: rgba(255,255,255,0.1);
+        border-radius: 4px;
+        height: 8px;
+        margin-top: 8px;
+        overflow: hidden; /* Ensures progress bar stays within rounded corners */
+      }
+      .progress-bar {
+        height: 100%;
+        background-color: #6c5ce7; /* Default progress color (purple-ish) */
+        border-radius: 4px;
+        transition: width 0.3s ease-in-out;
+      }
+      .achievement-tier.completed .progress-bar {
+        background-color: #4CAF50; /* Green for completed */
+      }
+      /* Responsive adjustments for achievement cards if needed */
+      @media (max-width: 768px) {
+        .achievements-grid {
+          grid-template-columns: 1fr; /* Single column on smaller screens */
+        }
+        .achievement-title {
+            font-size: 1.1em;
+        }
+      }
+      /* Tier Stats Tooltip Styles */
+      .tier-stats-tooltip {
+        display: block; /* Changed to block for opacity transition */
+        opacity: 0; /* Start fully transparent */
+        visibility: hidden; /* Start hidden */
+        position: absolute;
+        bottom: calc(100% + 8px); /* Position above the tier with a slightly larger gap */
+        left: 50%;
+        transform: translateX(-50%) translateY(5px); /* Initial slight downward offset for animation */
+        background: linear-gradient(145deg, #3a2a60, #2a1a50); /* Rich purple gradient */
+        color: #f0f0f0; /* Brighter text */
+        padding: 8px 14px; /* More spacious padding */
+        border-radius: 8px; /* Softer radius */
+        font-size: 0.85em; /* Slightly larger font */
+        white-space: nowrap;
+        z-index: 20;
+        box-shadow: 0 5px 18px rgba(0,0,0,0.6); /* More pronounced shadow */
+        pointer-events: none;
+        border: 1px solid rgba(255, 218, 119, 0.3); /* Subtle gold border */
+        transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s ease-out; /* Smooth transitions */
+      }
+      .achievement-tier:hover .tier-stats-tooltip {
+        opacity: 1; /* Fade in */
+        visibility: visible; /* Make visible */
+        transform: translateX(-50%) translateY(0); /* Animate upwards to final position */
+      }
+      
+      /* Ensure tier itself is clearly hoverable - already has some hover but this can enhance */
+      .achievement-tier:hover {
+          background-color: rgba(255,255,255,0.08); /* Slightly lighten tier background on hover */
+      }
+      /* Rare Achievement Tier Styling */
+      .achievement-tier.rare-achievement-tier {
+        /* A subtle but distinct look for very rare achievements */
+        border-left-color: #ff4dff !important; /* A vibrant magenta, override other tier colors */
+        box-shadow: 0 0 15px rgba(255, 77, 255, 0.5), inset 0 0 5px rgba(255, 77, 255, 0.3);
+        background-color: rgba(50, 0, 50, 0.3); /* Faint magenta background */
+      }
+      .achievement-tier.rare-achievement-tier .tier-name {
+        color: #ffafff; /* Lighter magenta for the name to stand out */
+        text-shadow: 0 0 5px #ff4dff;
+      }
+      .achievement-tier.rare-achievement-tier.completed {
+         /* Ensure completed rare achievements still look distinct */
+        border-left-color: #ff4dff !important; 
+      }
+      /* Undiscovered Rare Achievement Tier Styling */
+      .achievement-tier.undiscovered-rare-achievement-tier {
+        /* A hint of rarity for tiers not yet achieved by the player */
+        border-left: 4px dashed #8c008c !important; /* Darker, dashed magenta border */
+        box-shadow: 0 0 10px rgba(140, 0, 140, 0.3), inset 0 0 3px rgba(140, 0, 140, 0.2);
+        background-color: rgba(30, 0, 30, 0.2); /* Very faint dark magenta background */
+      }
+      .achievement-tier.undiscovered-rare-achievement-tier .tier-name {
+        color: #e0a0e0; /* Muted magenta for the name */
+        text-shadow: 0 0 3px #8c008c;
+      }
+      /* Ensure it doesn't clash with regular completed styles if something goes wrong */
+      .achievement-tier.undiscovered-rare-achievement-tier.completed {
+        border-left-color: #ff4dff !important; /* If somehow it gets 'completed' class, use the full rare style */
+      }
+      /* Battle Mode Screen Styles */
+      #battleModeScreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: linear-gradient(145deg, #1a0a30, #0a001c); /* Dark, intense battle theme */
+        color: white;
+        z-index: 600; /* Above encyclopedia */
+        display: none; /* Hidden by default */
+        padding: 10px; /* Reduced padding */
+        box-sizing: border-box;
+        overflow-y: auto;
+        /* display: flex; <- This was causing it to show up immediately, removed. It's set to 'none' initially. */
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start; /* Align content to the top */
+      }
+      #battleModeHeader {
+        width: 100%;
+        max-width: 1000px; /* Max width for content area */
+        display: flex;
+        /* justify-content: flex-end; No longer needed as child is removed */
+        align-items: center;
+        min-height: 40px; /* Ensure header has some height for the border and potential future elements */
+        margin-bottom: 10px; /* Reduced margin */
+        padding-bottom: 10px; /* Reduced padding */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        position: relative; 
+      }
+      #battleModeTimerDisplay {
+        font-size: 2em;
+        color: #ffda77; /* Gold to match target color emphasis */
+        font-weight: bold;
+        text-shadow: 0 0 8px #ffda77;
+        font-family: 'Courier New', Courier, monospace; /* Monospaced for consistent digit width */
+        min-width: 80px; /* Ensure space for MM:SS */
+        text-align: center;
+        width: 100%; /* Center text within its column */
+        margin-top: 15px; /* Space below target color display */
+      }
+      /* Styles for #closeBattleModeButton are removed as the button is removed */
+      .battle-action-button { /* New button for Cancel/Forfeit */
+        background: linear-gradient(135deg, #ff7675, #d63031); /* Reddish */
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px; /* Adjusted padding to be consistent with other buttons */
+        font-size: 1em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 3px 10px rgba(214, 48, 49, 0.3);
+        margin-top: 15px; /* Space below timer or other central content */
+        width: auto; 
+        min-width: 160px; /* Good minimum width for text */
+        text-align: center;
+      }
+      .battle-action-button:hover:not(:disabled) {
+        background: linear-gradient(135deg, #e55e5d, #c22b2b);
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 4px 12px rgba(214, 48, 49, 0.4);
+      }
+      .battle-action-button:disabled {
+        background: linear-gradient(135deg, #aaa, #888);
+        cursor: not-allowed;
+        opacity: 0.7;
+        transform: none;
+        box-shadow: none;
+      }
+      #battleModeContentPlaceholder {
+        width: 100%;
+        max-width: 1200px; /* Increased max-width to accommodate target color area better */
+        /* text-align: center; Will be managed by flex */
+        font-size: 1.2em;
+        color: #ccc;
+        padding: 10px; /* Reduced padding */
+        background: rgba(255,255,255,0.03); /* Slightly more subtle background */
+        border-radius: 15px;
+        border: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        justify-content: space-between; /* Changed to space-between for target in middle */
+        align-items: flex-start; /* Align items to the top of their container */
+        gap: 20px;
+        flex-wrap: wrap; /* Allow wrapping for responsiveness */
+      }
+      .playerBattleArea {
+        flex-basis: calc(35% - 20px); /* Reduced basis to make space for target area */
+        min-width: 280px; /* Minimum width before stacking, slightly reduced */
+        background: rgba(40, 20, 60, 0.5); /* Darker, thematic background for player area */
+        border: 1px solid rgba(255, 107, 107, 0.4); /* Fiery red accent border */
+        border-radius: 12px;
+        padding: 15px; /* Reduced padding */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px; /* Reduced gap */
+        box-shadow: 0 0 15px rgba(255, 107, 107, 0.2);
+        position: relative; /* For positioning ready button */
+      }
+      .playerBattleTitle {
+        color: #ff8b8b; /* Slightly lighter fiery red for titles */
+        font-size: 1.2em; /* Further reduced font size */
+        margin-bottom: 3px; /* Reduced margin */
+        text-shadow: 0 0 8px #ff6b6b;
+        font-family: 'Georgia', serif;
+      }
+      .local-player-label { /* Style for the "You (Player X)" label */
+        color: #ffda77 !important; /* Gold to stand out, important to override if needed */
+        text-shadow: 0 0 5px #ffda77, 0 0 10px #ff8000 !important; /* Gold shadow */
+      }
+      .playerBattleScore { /* New style for score display - now hidden */
+        display: none; /* Hide the score display */
+        /* font-size: 1.2em;
+        color: #e0e0e0;
+        font-weight: bold;
+        margin-bottom: 3px; 
+        text-align: center; */
+      }
+      #playerOneBattleScoreDisplay, #playerTwoBattleScoreDisplay { /* Style for the score numbers */
+        color: #ffda77; /* Gold to match target color emphasis */
+      }
+      .playerBattleColorDisplay {
+        width: 80px; /* Further reduced size */
+        height: 80px; /* Further reduced size */
+        background-color: rgba(0,0,0,0.3); /* Placeholder for color */
+        border: 3px dashed rgba(255, 107, 107, 0.5);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255,255,255,0.4);
+        font-style: italic;
+        font-size: 0.9em;
+        margin-bottom: 5px; /* Reduced margin */
+      }
+      .playerBattleColorResultInfo { /* Styles for the div showing mix results */
+        min-height: 50px; /* Reduced min-height */
+        width: 100%;
+        max-width: 220px; /* Consistent with other elements if needed */
+        text-align: center;
+        font-size: 0.85em; /* Reduced font size */
+        color: #ddd;
+        padding: 6px; /* Reduced padding */
+        background-color: rgba(0,0,0,0.15);
+        border-radius: 6px;
+        line-height: 1.4;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+      }
+      .playerBattleColorResultInfo strong {
+        color: #ffda77;
+        font-size: 1.05em;
+      }
+      .playerBattleColorResultInfo small {
+        display: block;
+        font-size: 0.85em;
+        color: #aaa;
+        margin-top: 3px;
+      }
+      .playerBattleMixingZone {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px; /* Reduced gap */
+        padding: 8px; /* Reduced padding */
+        background-color: rgba(0,0,0,0.2);
+        border-radius: 8px;
+      }
+      .playerBattleMixingZone h4 { /* General title for sections within mixing zone */
+        margin: 2px 0 5px 0; /* Further reduced top margin */
+        color: #f0f0f0;
+        font-size: 1.1em;
+      }
+      .playerBattleSourceOrbs {
+        display: grid;
+        grid-template-columns: repeat(5, 28px); /* 5 columns, slightly smaller orbs */
+        grid-auto-rows: 28px; /* Row height matches orb size */
+        gap: 6px; /* Reduced gap */
+        width: 184px; /* Accommodates 5 orbs (164px content) + tooltip space */
+        /* min-height: 90px; approx 3 rows (3*28px orbs + 2*6px gaps) */
+        max-height: 90px; /* Approx 3 rows */
+        overflow-y: auto;
+        height: auto; /* Allow container to grow vertically up to max-height */
+        scrollbar-width: thin; /* For Firefox */
+        scrollbar-color: rgba(255,255,255,0.3) rgba(0,0,0,0.15); /* For Firefox thumb and track */
+        margin-bottom: 5px; /* Further reduced margin */
+        position: relative;
+      }
+      .playerBattleSourceOrbs::-webkit-scrollbar {
+        width: 8px;
+      }
+      .playerBattleSourceOrbs::-webkit-scrollbar-track {
+        background: rgba(0,0,0,0.15);
+        border-radius: 4px;
+      }
+      .playerBattleSourceOrbs::-webkit-scrollbar-thumb {
+        background-color: rgba(255,255,255,0.3);
+        border-radius: 4px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+      }
+      .playerBattleSourceOrbs::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255,255,255,0.5);
+      }
+      .battle-source-orb {
+        width: 28px; /* Adjusted to new grid orb size */
+        height: 28px; /* Adjusted to new grid orb size */
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid rgba(255,255,255,0.7);
+        box-shadow: 0 0 8px rgba(255,255,255,0.5);
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px; /* Further reduced font size for smaller orbs */
+        font-weight: bold;
+        color: black; 
+      }
+      .dynamic-battle-orb {
+        /* Style for orbs created during battle */
+        border: 2px dashed #ffda77 !important; /* Gold dashed border to make them stand out */
+        box-shadow: 0 0 8px rgba(255, 218, 119, 0.7) !important; /* Subtle gold glow */
+      }
+      .battle-source-orb:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 12px rgba(255,255,255,0.8);
+      }
+      /* 5-column grid positions. Example: row / column / end-row / end-column */
+      .battle-source-orb.orb-pos-r1-c1 { grid-area: 1 / 1 / 2 / 2; } /* Row 1, Col 1 */
+      .battle-source-orb.orb-pos-r1-c2 { grid-area: 1 / 2 / 2 / 3; } /* Row 1, Col 2 */
+      .battle-source-orb.orb-pos-r1-c3 { grid-area: 1 / 3 / 2 / 4; } /* Row 1, Col 3 */
+      .battle-source-orb.orb-pos-r1-c4 { grid-area: 1 / 4 / 2 / 5; } /* Row 1, Col 4 */
+      .battle-source-orb.orb-pos-r1-c5 { grid-area: 1 / 5 / 2 / 6; } /* Row 1, Col 5 */
+      .battle-source-orb.orb-pos-r2-c1 { grid-area: 2 / 1 / 3 / 2; } /* Row 2, Col 1 */
+      /* .battle-source-orb.orb-pos-r2-c2 ... etc. */
+      .battle-source-orb.orb-pos-r2-c5 { grid-area: 2 / 5 / 3 / 6; } /* Row 2, Col 5 */
+      /* Add more as needed up to r3-c5 for a 3x5 grid */
+      .playerBattleSelectedOrbs {
+        display: flex;
+        justify-content: center;
+        gap: 8px; /* Reduced gap */
+        min-height: 35px; /* Reduced min-height */
+        align-items: center;
+      }
+      .orb-placeholder {
+        width: 30px; /* Reduced size */
+        height: 30px; /* Reduced size */
+        background-color: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 50%;
+        box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+        display: flex; /* For centering the selected orb swatch */
+        align-items: center;
+        justify-content: center;
+      }
+      .orb-placeholder.has-orb {
+        border: 1px solid #ffda77; 
+        background-color: transparent;
+      }
+      .selected-battle-orb { /* Style for the actual color swatch inside the placeholder */
+        width: 25px; /* Adjusted to be smaller than new placeholder */
+        height: 25px; /* Adjusted to be smaller than new placeholder */
+        border-radius: 50%;
+        border: 1px solid rgba(0,0,0,0.2); /* Inner border for definition */
+      }
+      .playerBattleControls {
+        margin-top: 5px; /* Reduced margin */
+      }
+      .battleMixButton {
+        background: linear-gradient(135deg, #ff6b6b, #e04b4b);
+        border: none;
+        border-radius: 20px; /* Slightly smaller radius */
+        padding: 10px 20px; /* Reduced padding */
+        color: white;
+        font-weight: bold;
+        font-size: 1em; /* Slightly reduced font size */
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+      }
+      .battleMixButton:hover {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
+      }
+      #battleModeCentralColumn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-basis: calc(25% - 20px); /* Sizing for desktop */
+        min-width: 250px; /* Sizing for desktop */
+      }
+      .battleTargetColorArea {
+        width: 100%; /* Fill the central column */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px; /* Reduced gap */
+        padding: 10px; /* Reduced padding */
+        background: rgba(0,0,0,0.2);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .battleTargetColorTitle {
+        font-size: 1.1em; /* Reduced font size */
+        color: #ffda77; /* Gold for emphasis */
+        margin-bottom: 3px; /* Reduced margin */
+        text-shadow: 0 0 8px #ffda77;
+        font-family: 'Georgia', serif;
+      }
+      .battleTargetColorDisplay {
+        width: 80px; /* Reduced size */
+        height: 80px; /* Reduced size */
+        background-color: rgba(50,50,50,0.8); /* Placeholder for target color */
+        border: 3px solid #ffda77; /* Gold border */
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255,255,255,0.5);
+        font-style: italic;
+      }
+      .battleTargetColorInfo {
+        font-size: 0.85em;
+        color: #bbb;
+        text-align: center;
+      }
+      .battleVersusIndicator {
+        /* This can be removed or repurposed if the layout changes significantly */
+        /* For now, let's keep its styling but it might not be used in the HTML directly */
+        font-size: 3.5em;
+        color: #ff6b6b;
+        align-self: center;
+        font-weight: bold;
+        text-shadow: 0 0 10px #ff3b3b;
+        display: none; /* Hidden by default, may not be needed */
+      }
+      .player-ready-button {
+        background: linear-gradient(135deg, #4CAF50, #388E3C); /* Green gradient */
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-size: 1em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        margin-top: 10px; /* Space above mixing zone */
+        width: 80%;
+        max-width: 200px;
+      }
+      .player-ready-button:hover:not(:disabled) {
+        background: linear-gradient(135deg, #5cb85c, #4CAF50);
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+      }
+      .player-ready-button:disabled {
+        background: linear-gradient(135deg, #777, #555);
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+      .player-ready-status { /* Optional, if you use separate status text elements */
+        font-size: 0.9em;
+        color: #ccc;
+        margin-top: 5px;
+        text-align: center;
+        min-height: 1.2em; /* Reserve space */
+      }
+      .player-ready-status.player-ready {
+        color: #4CAF50; /* Green text when ready */
+        font-weight: bold;
+      }
+      @media (min-width: 769px) { /* Desktop layout adjustments */
+         #battleModeContentPlaceholder {
+            padding: 15px; /* Reduced padding for desktop */
+            justify-content: space-around; /* Ensure good spacing with target in middle */
+        }
+        .playerBattleArea {
+            order: 1; /* Player 1 */
+        }
+        #playerTwoBattleArea {
+            order: 3; /* Player 2 */
+        }
+        #battleModeCentralColumn { /* New central column for target and timer */
+            order: 2; /* Target color and timer group in the middle */
+        }
+      }
+      @media (max-width: 768px) {
+        #battleModeContentPlaceholder {
+          flex-direction: column; /* Stack areas */
+          align-items: center; /* Center them when stacked */
+        }
+        .playerBattleArea {
+          flex-basis: 100%; /* Full width when stacked */
+          width: 90%;
+          max-width: 400px; /* Max width for stacked items */
+          order: 1 !important; /* Player areas come after central column (target/timer) on mobile */
+        }
+        #battleModeCentralColumn { /* New central column for target and timer */
+            width: 90%;
+            max-width: 350px;
+            order: 0 !important; /* Target color and timer group appears first on mobile */
+            margin-bottom: 20px; /* Space below this group on mobile */
+        }
+        /* .battleTargetColorArea no longer needs specific mobile width, max-width, order, or margin-bottom
+           as its parent #battleModeCentralColumn handles these. It will take 100% width of its parent. */
+        .playerBattleColorDisplay {
+          width: 60px; /* Further reduced size for mobile */
+          height: 60px; /* Further reduced size for mobile */
+        }
+         .battleMixButton {
+            font-size: 1em;
+            padding: 10px 20px;
+        }
+        #battleModeTimerDisplay {
+            font-size: 1.4em; /* Further reduced font size on mobile */
+            /* Removed position, transform, order, margin-bottom, width as they are now base or not needed for new position */
+        }
+        #battleModeHeader {
+            /* flex-wrap and justify-content might not be strictly necessary now as only
+               the absolutely positioned close button remains, but harmless to keep. */
+            flex-wrap: wrap; 
+            justify-content: center; 
+        }
+        /* #battleModeTitle and its mobile styles are removed */
+        /* #closeBattleModeButton mobile styles removed */
+        .battle-action-button { /* Mobile adjustments for the new action button */
+            padding: 10px 18px;
+            font-size: 0.9em;
+            min-width: 140px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="titleParticlesCanvas"></canvas>
+    <div id="gameContainer">
+      <div id="titleScreen">
+        <h1>#HEXXED</h1>
+        <p>Mix colors, discover new hues, and master the spectrum!</p>
+        <div class="authForm">
+          <input type="text" id="usernameInput" placeholder="Username">
+          <input type="password" id="passwordInput" placeholder="Password">
+          <button id="loginButton">Log In</button>
+          <button id="signupButton">Sign Up</button>
+        </div>
+        <div id="authMessage"></div>
+      </div>
+      <div id="gameArea"> 
+        <div id="topBar">
+          <button id="encyclopediaToggleButton" title="Open Encyclopedia">📖</button>
+          <button id="leaderboardToggleButton" title="Toggle Leaderboard">🏆</button>
+          <button id="battleModeButton" title="Enter Battle Mode">⚔️</button> <!-- Battle Mode Button -->
+          <div id="colorCounter">Colors: <span id="colorCount">3</span></div>
+          <div id="instructions">Click orbs to select • Mix colors to discover new ones</div>
+          <div id="challengeDisplay">Current Challenge: Find a specific color!</div>
+        </div>
+        <div id="selectedColors"></div>
+        <div id="leaderboardPanel">
+          <!-- Leaderboard content will be injected by leaderboard.js -->
+        </div>
+      </div>
+      <div id="fullscreenEncyclopedia">
+        <div id="fsEncyclopediaHeader">
+          <h2 id="fsEncyclopediaTitle">#HEXXED Codex</h2>
+          <button id="closeEncyclopediaButton">&times;</button>
+        </div>
+        <div id="encyclopediaTabs">
+          <button class="encyclopediaTabButton active" data-tab="colorGridTab">Color Grid</button>
+          <button class="encyclopediaTabButton" data-tab="colorRingsTab">Color Rings</button>
+          <button class="encyclopediaTabButton" data-tab="achievementsTab">Achievements</button>
+        </div>
+        <div id="encyclopediaTabContent">
+          <div id="colorGridTab" class="encyclopediaTabPanel active">
+            <div id="encyclopediaControls">
+              <label for="sortColorsDropdown">Sort by:</label>
+              <select id="sortColorsDropdown">
+                <option value="name_asc">Name (A-Z)</option>
+                <option value="name_desc">Name (Z-A)</option>
+                <option value="discovered_asc">Oldest Discovered</option>
+                <option value="discovered_desc">Newest Discovered</option>
+                <option value="hue_asc">Hue (Ascending)</option>
+                <option value="hue_desc">Hue (Descending)</option>
+                <option value="saturation_asc">Saturation (Low-High)</option>
+                <option value="saturation_desc">Saturation (High-Low)</option>
+                <option value="lightness_asc">Lightness (Dark-Light)</option>
+                <option value="lightness_desc">Lightness (Light-Dark)</option>
+                <option value="mix_arity_asc">Complexity (Low-High)</option>
+                <option value="mix_arity_desc">Complexity (High-Low)</option>
+              </select>
+            </div>
+            <div id="colorGrid"></div>
+            <div id="colorInfo">Select a color to see details.</div>
+          </div>
+          <div id="colorRingsTab" class="encyclopediaTabPanel">
+            <!-- This content will be dynamically populated by UIManager.js -->
+            <!-- Example Structure for one ring type (e.g., 2-Color Mix Ring) -->
+            <!-- UIManager will create these sections for 2, 3, and 4-color mixes -->
+            
+            <!-- Section for 2-Color Mix Ring -->
+            <div class="ringManagementSection" id="ringSection-2">
+              <div class="ringManagementSectionHeader">
+                <h4>2-Color Mix Ring</h4>
+                <button class="manageRingOrbsButton" data-arity="2"><span class="plusIcon">+</span> Manage Orbs</button>
+              </div>
+              <p class="ringCapacityInfo">Active Orbs: <span id="activeOrbsCount-2">0</span> / <span id="maxOrbsCount-2">9</span></p>
+              <h5>Active Orbs:</h5>
+              <ul class="ringOrbList activeOrbsGrid" id="activeOrbsList-2">
+                <!-- Populated by JS: e.g. -->
+                <!-- 
+                <li class="ringOrbListItem">
+                  <div class="ringOrbSwatch" style="background-color: #FF5733;"></div>
+                  <span class="ringOrbName">Fiery Orange</span>
+                  <button class="unsummonOrbButton" data-orb-hex="#FF5733">Unsummon</button>
+                </li>
+                -->
+              </ul>
+              <div class="availableOrbsSection" id="availableOrbsSection-2" style="display: none;"> <!-- Initially hidden, shown by "Manage Orbs" -->
+                <h5>Available to Summon:</h5>
+                <div id="availableOrbsControls-2">
+                  <label for="availableOrbsSortDropdown-2">Sort by:</label>
+                  <select id="availableOrbsSortDropdown-2" class="availableOrbsSortDropdown" data-arity="2">
+                    <!-- Options similar to #sortColorsDropdown -->
+                    <option value="name_asc">Name (A-Z)</option>
+                    <option value="name_desc">Name (Z-A)</option>
+                    <option value="discovered_asc">Oldest Discovered</option>
+                    <option value="discovered_desc">Newest Discovered</option>
+                    <option value="hue_asc">Hue</option>
+                    <!-- Add other relevant sort options -->
+                  </select>
+                </div>
+                <ul class="ringOrbList" id="availableOrbsList-2">
+                  <!-- Populated by JS: e.g. -->
+                  <!--
+                  <li class="ringOrbListItem availableOrbListItem">
+                    <div class="ringOrbSwatch" style="background-color: #33FF57;"></div>
+                    <span class="ringOrbName">Bright Lime</span>
+                    <button class="summonOrbButton" data-orb-hex="#33FF57">Summon</button>
+                  </li>
+                  -->
+                </ul>
+              </div>
+            </div>
+            <!-- Section for 3-Color Mix Ring (similar structure) -->
+            <div class="ringManagementSection" id="ringSection-3">
+              <div class="ringManagementSectionHeader">
+                <h4>3-Color Mix Ring</h4>
+                <button class="manageRingOrbsButton" data-arity="3"><span class="plusIcon">+</span> Manage Orbs</button>
+              </div>
+              <p class="ringCapacityInfo">Active Orbs: <span id="activeOrbsCount-3">0</span> / <span id="maxOrbsCount-3">18</span></p>
+              <h5>Active Orbs:</h5>
+              <ul class="ringOrbList activeOrbsGrid" id="activeOrbsList-3"></ul>
+              <div class="availableOrbsSection" id="availableOrbsSection-3" style="display: none;">
+                <h5>Available to Summon:</h5>
+                <div id="availableOrbsControls-3">
+                  <label for="availableOrbsSortDropdown-3">Sort by:</label>
+                  <select id="availableOrbsSortDropdown-3" class="availableOrbsSortDropdown" data-arity="3">
+                     <option value="name_asc">Name (A-Z)</option>
+                     <!-- other options -->
+                  </select>
+                </div>
+                <ul class="ringOrbList" id="availableOrbsList-3"></ul>
+              </div>
+            </div>
+            <!-- Section for 4-Color Mix Ring (similar structure) -->
+            <div class="ringManagementSection" id="ringSection-4">
+              <div class="ringManagementSectionHeader">
+                <h4>4-Color Mix Ring</h4>
+                <button class="manageRingOrbsButton" data-arity="4"><span class="plusIcon">+</span> Manage Orbs</button>
+              </div>
+              <p class="ringCapacityInfo">Active Orbs: <span id="activeOrbsCount-4">0</span> / <span id="maxOrbsCount-4">30</span></p>
+              <h5>Active Orbs:</h5>
+              <ul class="ringOrbList activeOrbsGrid" id="activeOrbsList-4"></ul>
+              <div class="availableOrbsSection" id="availableOrbsSection-4" style="display: none;">
+                <h5>Available to Summon:</h5>
+                 <div id="availableOrbsControls-4">
+                  <label for="availableOrbsSortDropdown-4">Sort by:</label>
+                  <select id="availableOrbsSortDropdown-4" class="availableOrbsSortDropdown" data-arity="4">
+                     <option value="name_asc">Name (A-Z)</option>
+                     <!-- other options -->
+                  </select>
+                </div>
+                <ul class="ringOrbList" id="availableOrbsList-4"></ul>
+              </div>
+            </div>
+          </div>
+          <div id="achievementsTab" class="encyclopediaTabPanel">
+            <!-- Achievements content will be populated by UIManager.js -->
+            <h4>Achievements</h4>
+            <p>Track your progress and unlock special rewards!</p>
+            <div id="achievementsList">
+              <!-- UIManager will populate this list -->
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="battleModeScreen"> <!-- Battle Mode Screen Container -->
+        <div id="battleModeHeader">
+          <!-- Close button removed from here -->
+        </div>
+        <div id="battleModeContentPlaceholder">
+          <div class="playerBattleArea" id="playerOneBattleArea">
+            <h3 id="playerOneBattleLabel" class="playerBattleTitle">Player 1</h3>
+            <div class="playerBattleScore">Score: <span id="playerOneBattleScoreDisplay">0</span></div>
+            <button id="playerOneReadyButton" class="player-ready-button">Ready?</button>
+            <div id="playerOneReadyStatus" class="player-ready-status">Not Ready</div>
+            <div class="playerBattleColorDisplay" id="playerOneColorDisplay">
+              <p>Your Color</p>
+            </div>
+            <div id="playerOneColorResultInfo" class="playerBattleColorResultInfo">
+              <!-- Opponent/Player 1 mix details will appear here -->
+            </div>
+            <div class="playerBattleMixingZone">
+              <h4>Available Orbs</h4>
+              <div class="playerBattleSourceOrbs" id="playerOneSourceOrbs">
+                <!-- Player 1's 7 starting orbs will be rendered here by UIManager.js -->
+              </div>
+              <h4>Selected for Mix</h4>
+              <div class="playerBattleSelectedOrbs" id="playerOneSelectedOrbs">
+                <div class="orb-placeholder"></div>
+                <div class="orb-placeholder"></div>
+                <div class="orb-placeholder"></div>
+                <div class="orb-placeholder"></div>
+              </div>
+              <div class="playerBattleControls" id="playerOneControls">
+                <button class="battleMixButton" id="playerOneMixButton">Mix!</button>
+              </div>
+            </div>
+          </div>
+          <div id="battleModeCentralColumn">
+            <div class="battleTargetColorArea">
+              <h3 class="battleTargetColorTitle">Target Color</h3>
+              <div class="battleTargetColorDisplay" id="targetBattleColorDisplay">
+                <p>?</p>
+              </div>
+              <div class="battleTargetColorInfo" id="targetBattleColorInfo">
+                <!-- RGB/HSL info will go here -->
+              </div>
+            </div>
+            <div id="battleModeTimerDisplay">00:00</div>
+            <button id="battleModeActionButton" class="battle-action-button">Cancel Match</button>
+          </div>
+          <div class="playerBattleArea" id="playerTwoBattleArea">
+            <h3 id="playerTwoBattleLabel" class="playerBattleTitle">Player 2</h3>
+            <div class="playerBattleScore">Score: <span id="playerTwoBattleScoreDisplay">0</span></div> <!-- Also added for P2 for consistency -->
+            <button id="playerTwoReadyButton" class="player-ready-button">Ready?</button>
+            <div id="playerTwoReadyStatus" class="player-ready-status">Not Ready</div>
+            <div class="playerBattleColorDisplay" id="playerTwoColorDisplay">
+              <p>Your Color</p>
+            </div>
+            <div id="playerTwoColorResultInfo" class="playerBattleColorResultInfo">
+              <!-- Opponent/Player 2 mix details will appear here -->
+            </div>
+            <div class="playerBattleMixingZone">
+              <h4>Available Orbs</h4> <!-- Changed from "Select Orbs" for consistency -->
+              <div class="playerBattleSourceOrbs" id="playerTwoSourceOrbs">
+                <!-- Player 2's starting orbs will be rendered here by UIManager.js -->
+              </div>
+              <h4>Selected for Mix</h4> <!-- Added for consistency -->
+              <div class="playerBattleSelectedOrbs" id="playerTwoSelectedOrbs">
+                <div class="orb-placeholder"></div>
+                <div class="orb-placeholder"></div>
+                <div class="orb-placeholder"></div>
+                <div class="orb-placeholder"></div>
+              </div>
+              <div class="playerBattleControls" id="playerTwoControls">
+                <button class="battleMixButton" id="playerTwoMixButton">Mix!</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Battle Results Screen -->
+      <div id="battleResultsScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.75); z-index: 1001; justify-content: center; align-items: center;">
+        <div id="battleResultsContent" style="background: linear-gradient(145deg, #2c2c54, #1a1a3a); padding: 30px; border-radius: 15px; text-align: center; color: white; box-shadow: 0 0 25px rgba(0,0,0,0.6); min-width: 400px; max-width: 90%; max-height: 90vh; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1);">
+            <h2 style="color: #ffda77; font-family: 'Georgia', serif; font-size: 2em; margin-bottom: 15px; text-shadow: 0 0 8px #ffda77;">Battle Results</h2>
+            <p id="battleWinnerMessage" style="font-size: 1.6em; font-weight: bold; margin-bottom: 25px; color: #ff6b6b;"></p>
+            
+            <div style="margin-bottom: 25px; padding: 15px; background-color: rgba(255,255,255,0.05); border-radius: 10px;">
+                <h3 style="color: #ccc; margin-bottom: 8px; font-size: 1.2em;">Target Color</h3>
+                <div id="targetColorResultSwatch" style="width: 90px; height: 90px; margin: 0 auto 12px auto; border: 3px solid #ffda77; border-radius: 8px; box-shadow: 0 0 10px rgba(255,218,119,0.5);"></div>
+                <p id="targetColorResultInfo" style="font-size: 0.95em; line-height: 1.5;"></p>
+            </div>
+            <div style="display: flex; justify-content: space-around; margin-bottom: 25px; flex-wrap: wrap; gap: 20px;">
+                <div class="player-result-container" style="flex-basis: calc(50% - 10px); min-width: 280px; padding: 15px; background-color: rgba(255,255,255,0.05); border-radius: 10px;">
+                    <h4 id="playerOneResultLabel" style="color: #ccc; margin-bottom: 8px; font-size: 1.2em;">Player 1</h4> <!-- Changed to h4 and added ID -->
+                    <div id="playerOneResultSwatch" style="width: 90px; height: 90px; margin: 0 auto 12px auto; border: 3px solid #fff; border-radius: 8px; background-color: #333; box-shadow: 0 0 8px rgba(255,255,255,0.3);"></div>
+                    <p id="playerOneResultInfo" style="font-size: 0.95em; line-height: 1.5;"></p>
+                </div>
+                <div class="player-result-container" style="flex-basis: calc(50% - 10px); min-width: 280px; padding: 15px; background-color: rgba(255,255,255,0.05); border-radius: 10px;">
+                    <h4 id="playerTwoResultLabel" style="color: #ccc; margin-bottom: 8px; font-size: 1.2em;">Player 2</h4> <!-- Changed to h4 and added ID -->
+                    <div id="playerTwoResultSwatch" style="width: 90px; height: 90px; margin: 0 auto 12px auto; border: 3px solid #fff; border-radius: 8px; background-color: #333; box-shadow: 0 0 8px rgba(255,255,255,0.3);"></div>
+                    <p id="playerTwoResultInfo" style="font-size: 0.95em; line-height: 1.5;"></p>
+                </div>
+            </div>
+            <button id="closeBattleResultsButton" style="padding: 12px 25px; font-size: 1.1em; background: linear-gradient(135deg, #ff8b8b, #ff6b6b); color: white; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.2s, transform 0.2s; box-shadow: 0 3px 10px rgba(255,107,107,0.3);">Close</button>
+        </div>
+      </div>
+      <!-- Lobby Screen -->
+      <div id="lobbyScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); z-index: 1002; justify-content: center; align-items: center; flex-direction: column; color: white; font-family: 'Arial', sans-serif;">
+        <div style="background: linear-gradient(145deg, #3a3a7e, #2a2a5a); padding: 40px; border-radius: 15px; text-align: center; box-shadow: 0 0 30px rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.1);">
+            <h2 style="color: #a29bfe; font-size: 2.2em; margin-bottom: 25px; text-shadow: 0 0 10px #a29bfe;">Game Lobby</h2>
+            <p id="lobbyStatusMessage" style="font-size: 1.4em; margin-bottom: 30px; min-height: 30px;">Initializing...</p>
+            <div class="spinner" style="width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #a29bfe; animation: spin 1s ease-in-out infinite; margin: 0 auto 30px auto;"></div>
+            <button id="cancelLobbyButton" style="padding: 12px 30px; font-size: 1.1em; background: linear-gradient(135deg, #ff7675, #d63031); color: white; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.2s, transform 0.2s; box-shadow: 0 3px 10px rgba(255,118,117,0.3);">Cancel</button>
+        </div>
+      </div>
+    </div>
+    
+    <script type="module" src="./main.js"></script>
+    <script type="module" src="./titleParticles.js"></script>
+    <script src="https://storage.googleapis.com/rosebud_staticfiles/ScriptsLoader-Universal.js"></script>
+    <script src="https://storage.googleapis.com/rosebud_staticfiles/ChatManager.js"></script>
+    <script src="https://storage.googleapis.com/rosebud_staticfiles/ImageGenerator.js"></script>
+    <script src="https://storage.googleapis.com/rosebud_staticfiles/ProgressLogger.js"></script>
+    <script src="https://storage.googleapis.com/rosebud_staticfiles/OGP.js"></script>
+  </body>
+</html>
