@@ -257,8 +257,13 @@ export class UIManager {
         // gameArea should generally allow clicks to pass through to the canvas.
         // Its children (buttons, etc.) will have `pointer-events: auto` if they need to be interactive.
         // When the encyclopedia is shown, it overlays everything anyway.
-        this.gameArea.style.pointerEvents = 'none';
-        this.gameArea.style.filter = show ? 'blur(5px)' : 'none'; // Optional visual cue
+        if (show) {
+            this.gameArea.style.pointerEvents = 'none';
+            this.gameArea.style.filter = 'blur(5px)'; // Optional visual cue
+        } else {
+            this.gameArea.style.pointerEvents = ''; // Revert to CSS default
+            this.gameArea.style.filter = 'none';
+        }
     }
     // When encyclopedia opens, ensure leaderboard is hidden to prevent overlap
     if (show && this.gameLeaderboardPanelEl && this.gameLeaderboardPanelEl.style.display === 'block') {
@@ -953,6 +958,7 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
         this.localPlayerIsOne = null; // Reset flag
         if (this.gameArea) {
            this.gameArea.style.filter = 'none';
+           this.gameArea.style.pointerEvents = ''; // Revert to CSS default
         }
          this.stopBattleTimer();
          this.playerOneBattleSelection = []; 
@@ -1612,7 +1618,7 @@ displayRandomTargetColor(discoveredColors) {
         // Restore game area
         if (this.gameArea) {
            this.gameArea.style.filter = 'none';
-           // gameArea pointerEvents should revert to its default which allows canvas interaction
+           this.gameArea.style.pointerEvents = ''; // Revert to CSS default
         }
       }
     }
@@ -1897,6 +1903,15 @@ displayRandomTargetColor(discoveredColors) {
     }
     if (this.playerOneReadyStatus) this.playerOneReadyStatus.style.display = 'none';
     if (this.playerTwoReadyStatus) this.playerTwoReadyStatus.style.display = 'none';
+    // Reset main game mix button state and selected colors display as well
+    if (this.mixButton) {
+        this.mixButton.disabled = true;
+        console.log("[UIManager] Main game mixButton disabled as part of battle UI reset.");
+    }
+    if (this.gameSelectedColors) {
+        this.gameSelectedColors.innerHTML = ''; // Clear main game selected colors display
+        console.log("[UIManager] Main game selected colors display cleared.");
+    }
     console.log("[UIManager] Battle Mode UI elements reset.");
   }
 }

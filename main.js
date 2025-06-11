@@ -1402,6 +1402,13 @@ class ChromaLabGame {
     } else {
       console.warn('[ChromaLabGame] UIManager.showBattleResultsScreen() method is not available. Battle results screen might not be hidden as expected during reset.');
     }
+    // Ensure the main game area is interactive.
+    // UIManager's showGameArea should handle making it visible.
+    // Explicitly ensure pointer events are re-enabled for the game area.
+    if (this.uiManager && this.uiManager.gameArea) {
+        this.uiManager.gameArea.style.pointerEvents = ''; // Revert to CSS default
+        this.uiManager.gameArea.style.filter = 'none'; // Ensure blur is removed
+    }
     this.uiManager.showGameArea(); // Show the main game area (discovery mode)
     // Reset game state variables related to battle
     this.currentBattleTargetColor = null;
@@ -1441,6 +1448,15 @@ class ChromaLabGame {
     // Explicitly update the color count display for discovery mode
     const totalDiscovered = this.colorSystem.getDiscoveredColors().length;
     this.uiManager.updateColorCount(totalDiscovered);
+    // Explicitly re-initialize the mix button click handler in case it was lost during UI transitions.
+    // This assumes this.uiManager.onMixButtonClick can be safely called multiple times
+    // or handles re-binding appropriately.
+    if (this.uiManager && typeof this.uiManager.onMixButtonClick === 'function') {
+        this.uiManager.onMixButtonClick(() => {
+            this.mixSelectedColors();
+        });
+        console.log('[ChromaLabGame] Mix button click handler re-initialized.');
+    }
     console.log('[ChromaLabGame] State reset for Main Menu complete.');
   }
   async cancelBattleMatch() {
