@@ -2,55 +2,52 @@ import { Leaderboard } from './leaderboard.js';
 import { UpdateManager } from './updateManager.js';
 export class UIManager {
   constructor(gameInstance, loginCallback, signupCallback) {
-    this.game = gameInstance; // Store the game instance
+    this.game = gameInstance;
     this.updateManager = new UpdateManager(this.game, this._showTitleScreenPostUpdate.bind(this)); // Instantiate UpdateManager
     this.loginCallback = loginCallback;
     this.signupCallback = signupCallback;
-    // Title Screen Elements
+
     this.titleScreen = document.getElementById('titleScreen');
     this.usernameInput = document.getElementById('usernameInput');
     this.passwordInput = document.getElementById('passwordInput');
     this.loginButton = document.getElementById('loginButton');
     this.signupButton = document.getElementById('signupButton');
     this.authMessage = document.getElementById('authMessage');
-    // Game Area UI Elements (prefixed with game for clarity)
+
     this.gameArea = document.getElementById('gameArea'); // Was #ui
     this.gameColorCount = document.getElementById('colorCount');
     this.gameSelectedColors = document.getElementById('selectedColors');
-    // Elements for the new fullscreen encyclopedia
+
     this.fullscreenEncyclopedia = document.getElementById('fullscreenEncyclopedia');
     this.encyclopediaToggleButton = document.getElementById('encyclopediaToggleButton');
     this.closeEncyclopediaButton = document.getElementById('closeEncyclopediaButton');
     this.leaderboardToggleButton = document.getElementById('leaderboardToggleButton'); // New button
-    this.battleModeButton = document.getElementById('battleModeButton'); // Battle Mode Button
-    this.battleModeScreen = document.getElementById('battleModeScreen'); // Battle Mode Screen
-    // this.closeBattleModeButton = document.getElementById('closeBattleModeButton'); // Removed
-    this.battleModeActionButton = document.getElementById('battleModeActionButton'); // New Cancel/Forfeit button
-    this.battleModeTimerDisplay = document.getElementById('battleModeTimerDisplay'); // Timer display
-    this.targetBattleColorDisplay = document.getElementById('targetBattleColorDisplay'); // Battle mode target color display
-    this.targetBattleColorInfo = document.getElementById('targetBattleColorInfo'); // Battle mode target color info
-    this.playerOneBattleOrbsContainer = document.getElementById('playerOneSourceOrbs'); // For P1 source orbs
-    this.playerOneSelectedOrbsContainer = document.getElementById('playerOneSelectedOrbs'); // For P1 selected orbs display
-    this.playerOneMixButton = null; // Will be initialized in showBattleModeScreen
-    this.playerOneColorDisplay = document.getElementById('playerOneColorDisplay'); // P1's mixed color swatch
-    this.playerOneColorResultInfo = document.getElementById('playerOneColorResultInfo'); // P1's mixed color details
-    this.playerOneBattleScoreDisplay = document.getElementById('playerOneBattleScoreDisplay'); // P1's score display
-    // Player 2 Battle Mode Elements
+    this.battleModeButton = document.getElementById('battleModeButton'); 
+    this.battleModeScreen = document.getElementById('battleModeScreen'); 
+
+    this.battleModeActionButton = document.getElementById('battleModeActionButton'); 
+    this.battleModeTimerDisplay = document.getElementById('battleModeTimerDisplay');
+    this.targetBattleColorDisplay = document.getElementById('targetBattleColorDisplay'); 
+    this.targetBattleColorInfo = document.getElementById('targetBattleColorInfo'); 
+    this.playerOneBattleOrbsContainer = document.getElementById('playerOneSourceOrbs'); 
+    this.playerOneSelectedOrbsContainer = document.getElementById('playerOneSelectedOrbs'); 
+    this.playerOneMixButton = null; 
+    this.playerOneColorDisplay = document.getElementById('playerOneColorDisplay'); 
+    this.playerOneColorResultInfo = document.getElementById('playerOneColorResultInfo'); 
+    this.playerOneBattleScoreDisplay = document.getElementById('playerOneBattleScoreDisplay'); 
+
     this.playerTwoBattleOrbsContainer = document.getElementById('playerTwoSourceOrbs');
     this.playerTwoSelectedOrbsContainer = document.getElementById('playerTwoSelectedOrbs');
-    this.playerTwoMixButton = null; // Will be initialized in showBattleModeScreen
+    this.playerTwoMixButton = null; 
     this.playerTwoColorDisplay = document.getElementById('playerTwoColorDisplay');
     this.playerTwoColorResultInfo = document.getElementById('playerTwoColorResultInfo');
-    this.playerTwoBattleScoreDisplay = document.getElementById('playerTwoBattleScoreDisplay'); // Assign P2 score display
-    console.log('[UIManager Constructor] Player One Mix Button initialized (deferring query):', this.playerOneMixButton);
-    console.log('[UIManager Constructor] Player Two Mix Button initialized (deferring query):', this.playerTwoMixButton);
-    this._playerMixButtonListenersAttached = false; // Flag for P1/P2 mix button listeners
-    // Player Ready Buttons and Status
+    this.playerTwoBattleScoreDisplay = document.getElementById('playerTwoBattleScoreDisplay');
+    this._playerMixButtonListenersAttached = false;
     this.playerOneReadyButton = document.getElementById('playerOneReadyButton');
     this.playerTwoReadyButton = document.getElementById('playerTwoReadyButton');
-    this.playerOneReadyStatus = document.getElementById('playerOneReadyStatus'); // Optional status text
-    this.playerTwoReadyStatus = document.getElementById('playerTwoReadyStatus'); // Optional status text
-    // Battle Results Screen Elements
+    this.playerOneReadyStatus = document.getElementById('playerOneReadyStatus'); 
+    this.playerTwoReadyStatus = document.getElementById('playerTwoReadyStatus'); 
+
     this.battleResultsScreen = document.getElementById('battleResultsScreen');
     this.battleWinnerMessage = document.getElementById('battleWinnerMessage');
     this.targetColorResultSwatch = document.getElementById('targetColorResultSwatch');
@@ -72,97 +69,113 @@ export class UIManager {
                                   this.encyclopediaTabsContainer.querySelectorAll('.encyclopediaTabButton') : [];
     this.encyclopediaTabPanels = document.getElementById('encyclopediaTabContent') ?
                                  document.getElementById('encyclopediaTabContent').querySelectorAll('.encyclopediaTabPanel') : [];
-    // Content elements within the "Color Grid" tab
-    this.gameColorGrid = document.getElementById('colorGrid'); // This is inside #colorGridTab
-    this.gameColorInfo = document.getElementById('colorInfo'); // This is inside #colorGridTab
-    this.sortColorsDropdown = document.getElementById('sortColorsDropdown'); // This is inside #colorGridTab
-    this.gameChallengeDisplay = document.getElementById('challengeDisplay'); // May be repurposed or removed
+
+    this.gameColorGrid = document.getElementById('colorGrid'); 
+    this.gameColorInfo = document.getElementById('colorInfo'); 
+    this.sortColorsDropdown = document.getElementById('sortColorsDropdown');
+    this.encyclopediaColorFilterInput = document.getElementById('encyclopediaColorFilterInput'); 
+
+    this.encyclopediaHueMinSlider = document.getElementById('encyclopediaHueMinSlider');
+    this.encyclopediaHueMaxSlider = document.getElementById('encyclopediaHueMaxSlider');
+    this.encyclopediaSaturationMinSlider = document.getElementById('encyclopediaSaturationMinSlider');
+    this.encyclopediaSaturationMaxSlider = document.getElementById('encyclopediaSaturationMaxSlider');
+    this.encyclopediaLightnessMinSlider = document.getElementById('encyclopediaLightnessMinSlider');
+    this.encyclopediaLightnessMaxSlider = document.getElementById('encyclopediaLightnessMaxSlider');
+    this.encyclopediaRedMinSlider = document.getElementById('encyclopediaRedMinSlider');
+    this.encyclopediaRedMaxSlider = document.getElementById('encyclopediaRedMaxSlider');
+    this.encyclopediaGreenMinSlider = document.getElementById('encyclopediaGreenMinSlider');
+    this.encyclopediaGreenMaxSlider = document.getElementById('encyclopediaGreenMaxSlider');
+    this.encyclopediaBlueMinSlider = document.getElementById('encyclopediaBlueMinSlider');
+    this.encyclopediaBlueMaxSlider = document.getElementById('encyclopediaBlueMaxSlider');
+
+    this.encyclopediaHueMinValue = document.getElementById('encyclopediaHueMinValue');
+    this.encyclopediaHueMaxValue = document.getElementById('encyclopediaHueMaxValue');
+    this.encyclopediaSaturationMinValue = document.getElementById('encyclopediaSaturationMinValue');
+    this.encyclopediaSaturationMaxValue = document.getElementById('encyclopediaSaturationMaxValue');
+    this.encyclopediaLightnessMinValue = document.getElementById('encyclopediaLightnessMinValue');
+    this.encyclopediaLightnessMaxValue = document.getElementById('encyclopediaLightnessMaxValue');
+    this.encyclopediaRedMinValue = document.getElementById('encyclopediaRedMinValue');
+    this.encyclopediaRedMaxValue = document.getElementById('encyclopediaRedMaxValue');
+    this.encyclopediaGreenMinValue = document.getElementById('encyclopediaGreenMinValue');
+    this.encyclopediaGreenMaxValue = document.getElementById('encyclopediaGreenMaxValue');
+    this.encyclopediaBlueMinValue = document.getElementById('encyclopediaBlueMinValue');
+    this.encyclopediaBlueMaxValue = document.getElementById('encyclopediaBlueMaxValue');
+    // Reset Filters Button
+    this.resetFiltersButton = document.getElementById('resetFiltersButton');
+    this.advancedFiltersToggle = document.getElementById('advancedFiltersToggle'); 
+    this.advancedFiltersContainer = document.getElementById('advanced-filters-container'); 
+    this.gameChallengeDisplay = document.getElementById('challengeDisplay'); 
     this.gameLeaderboardPanelEl = document.getElementById('leaderboardPanel');
-    // Achievements Tab Elements (assuming IDs are present in index.html as per instructions)
+
     this.achievementsListContainer = document.getElementById('achievementsList');
     this.setupAuthEventListeners();
-    // Mix button and other game UI elements are created after login
-    // this.createMixButton(); // Moved
-    // this.updateColorCount(3); // Initial count, now handled after login
-    
-    // Leaderboard is initialized after game area is shown
     this.leaderboard = null;
     this.mixButtonContainer = null;
-    
+    this.colorGridPaginationControls = document.getElementById('colorGridPagination');
+    this.colorGridCurrentPage = 1;
+    this.COLOR_GRID_PAGE_SIZE = 100;
+    this.summonableListPage = { 2: 1, 3: 1, 4: 1 };
+    this.SUMMONABLE_LIST_PAGE_SIZE = 12;
     this.setupEncyclopediaEventListeners();
     window.addEventListener('resize', this.handleResize.bind(this));
     this.setupLeaderboardToggleListener();
-    this.setupBattleModeButtonListener(); // Setup listener for battle mode entry and new action button
-    this.setupBattleResultsListeners(); // Listener for results screen close button
-    this.setupLobbyEventListeners(); // Listener for lobby screen buttons
-    this._setupReadyButtonListeners(); // Setup for the new ready buttons
+    this.setupBattleModeButtonListener();
+    this.setupBattleResultsListeners();
+    this.setupLobbyEventListeners();
+    this._setupReadyButtonListeners();
     this.battleTimerInterval = null;
     this.battleTimerSeconds = 0;
-    this.playerOneBattleSelection = []; // Stores P1's current orb selection for battle
-    this.MAX_BATTLE_SELECTION = 4; // Max orbs P1 can select for a mix (shared for P2)
-    this.playerOneAvailableBattleOrbs = []; // Stores the definitions of P1's 7 starting orbs
-    this.playerTwoBattleSelection = []; // Stores P2's current orb selection for battle
-    this.playerTwoAvailableBattleOrbs = []; // Stores the definitions of P2's 7 starting orbs
-    this.currentBattleSessionData = null; // Stores data for the current multiplayer session
-    this.localPlayerIsOne = null; // Will be set by showBattleModeScreen
-    // Initialize UpdateManager and manage title screen visibility
+    this.playerOneBattleSelection = [];
+    this.MAX_BATTLE_SELECTION = 4;
+    this.playerOneAvailableBattleOrbs = [];
+    this.playerTwoBattleSelection = [];
+    this.playerTwoAvailableBattleOrbs = [];
+    this.currentBattleSessionData = null;
+    this.localPlayerIsOne = null;
+    this.pinnedColorSwatch = null;
     if (this.updateManager) {
       try {
-        this.updateManager.initialize(); // UpdateManager configures itself and shows its UI if needed.
-        this._syncTitleScreenWithUpdateManager(false); // Sync based on initial state
+        this.updateManager.initialize();
+        this._syncTitleScreenWithUpdateManager(false);
       } catch (error) {
-        console.error('[UIManager] Error during UpdateManager initialization or UI check:', error);
-        // Fallback: ensure title screen is visible and update manager UI (if any) is hidden.
         if (this.titleScreen) {
             this.titleScreen.style.display = 'flex';
-            console.log('[UIManager] Fallback: Ensuring title screen is visible after UpdateManager error.');
         }
         if (this.updateManager && typeof this.updateManager.hideUpdateUI === 'function') {
-            this.updateManager.hideUpdateUI(); // Attempt to hide updater UI if it got stuck
+            this.updateManager.hideUpdateUI();
         }
       }
     } else {
-      // No UpdateManager instance, ensure title screen is visible by calling sync.
       this._syncTitleScreenWithUpdateManager(false);
     }
   }
   _syncTitleScreenWithUpdateManager(isUpdateManagerCompleting = false) {
     if (!this.titleScreen) {
-        console.warn('[UIManager] _syncTitleScreenWithUpdateManager: titleScreen element not available.');
         return;
     }
     if (this.updateManager) {
-        // Check if UpdateManager is currently blocking UI AND not in the process of completing
         if (!isUpdateManagerCompleting && this.updateManager.isBlockingUI()) {
             this.titleScreen.style.display = 'none';
-            console.log('[UIManager] UpdateManager is active/blocking. Title screen hidden by sync.');
         } else {
-            // UpdateManager is not blocking, OR it is completing.
-            // Title screen should be visible.
             if (isUpdateManagerCompleting && typeof this.updateManager.hideUpdateUI === 'function') {
-                this.updateManager.hideUpdateUI(); // Hide UpdateManager's UI as it's completing.
+                this.updateManager.hideUpdateUI();
             }
             this.titleScreen.style.display = 'flex';
-            console.log(`[UIManager] Title screen shown by sync. Update completing: ${isUpdateManagerCompleting}.`);
-            // Ensure gameArea is not blurred when title screen is primary.
             if (this.gameArea) {
                 this.gameArea.style.filter = 'none';
             }
         }
     } else {
-        // No UpdateManager, so title screen should be visible.
         this.titleScreen.style.display = 'flex';
-        console.log('[UIManager] No UpdateManager. Title screen shown by sync.');
     }
   }
   #calculateLuminance(rgb) {
-    // Formula: (0.299*R + 0.587*G + 0.114*B) / 255
-    // Assumes RGB values are 0-255
+
     if (!rgb || rgb.length < 3) return 0; // Default to dark (0) if invalid input
     const r = rgb[0];
     const g = rgb[1];
     const b = rgb[2];
-    // Calculate luminance (0-255 scale)
+
     const lum = 0.299 * r + 0.587 * g + 0.114 * b;
     // Normalize to 0-1 scale
     return lum / 255;
@@ -189,32 +202,57 @@ export class UIManager {
   }
   setAuthMessage(message, isError = true) {
     this.authMessage.textContent = message;
-    this.authMessage.style.color = isError ? '#ff6b6b' : '#6bff6b'; // Red for error, Green for success
+    this.authMessage.style.color = isError ? '#ff6b6b' : '#6bff6b'; 
   }
   _showTitleScreenPostUpdate() {
-    // This method is the callback for when UpdateManager completes its process.
-    console.log('[UIManager] UpdateManager completion callback triggered. Syncing title screen.');
-    this._syncTitleScreenWithUpdateManager(true); // true indicates the update process is completing.
+    this._syncTitleScreenWithUpdateManager(true);
   }
   setupEncyclopediaEventListeners() {
     if (this.encyclopediaToggleButton) {
         this.encyclopediaToggleButton.addEventListener('click', () => this.showEncyclopedia(true));
     }
     if (this.closeEncyclopediaButton) {
-        this.closeEncyclopediaButton.addEventListener('click', () => this.showEncyclopedia(false));
+        this.closeEncyclopediaButton.addEventListener('click', () => {
+            this.showEncyclopedia(false);
+            this.hideColorInfo(true); 
+        });
     }
     if (this.sortColorsDropdown) {
         this.sortColorsDropdown.addEventListener('change', () => {
-            // This assumes `this.currentDiscoveredColors` is maintained or passed to updateEncyclopedia
-            // For now, let's assume `updateEncyclopedia` will fetch fresh or use a stored list.
-            // A better approach might be to store the last fetched colors in UIManager
-            // and pass them to updateEncyclopedia, or have game.js call updateEncyclopedia
-            // with the current list and the new sort order.
-            // For simplicity, we'll make updateEncyclopedia accept the list.
-            if (this.lastKnownDiscoveredColors) { // We'll need to set this variable
+
+            if (this.lastKnownDiscoveredColors) {
+                this.colorGridCurrentPage = 1; 
                 this.updateEncyclopedia(this.lastKnownDiscoveredColors);
             }
         });
+    }
+    if (this.encyclopediaColorFilterInput) {
+        this.encyclopediaColorFilterInput.addEventListener('input', () => {
+            if (this.lastKnownDiscoveredColors) {
+                this.colorGridCurrentPage = 1; 
+                this.updateEncyclopedia(this.lastKnownDiscoveredColors);
+            }
+        });
+    }
+
+    this._setupRangeSliderListener(this.encyclopediaHueMinSlider, this.encyclopediaHueMaxSlider, this.encyclopediaHueMinValue, this.encyclopediaHueMaxValue, '°');
+    this._setupRangeSliderListener(this.encyclopediaSaturationMinSlider, this.encyclopediaSaturationMaxSlider, this.encyclopediaSaturationMinValue, this.encyclopediaSaturationMaxValue, '%');
+    this._setupRangeSliderListener(this.encyclopediaLightnessMinSlider, this.encyclopediaLightnessMaxSlider, this.encyclopediaLightnessMinValue, this.encyclopediaLightnessMaxValue, '%');
+    this._setupRangeSliderListener(this.encyclopediaRedMinSlider, this.encyclopediaRedMaxSlider, this.encyclopediaRedMinValue, this.encyclopediaRedMaxValue);
+    this._setupRangeSliderListener(this.encyclopediaGreenMinSlider, this.encyclopediaGreenMaxSlider, this.encyclopediaGreenMinValue, this.encyclopediaGreenMaxValue);
+    this._setupRangeSliderListener(this.encyclopediaBlueMinSlider, this.encyclopediaBlueMaxSlider, this.encyclopediaBlueMinValue, this.encyclopediaBlueMaxValue);
+    this._setupSummonableListPaginationListeners();
+    this._setupColorGridPaginationListeners();
+    if (this.resetFiltersButton) {
+      this.resetFiltersButton.addEventListener('click', () => this.resetAllFilters());
+    }
+
+    if (this.advancedFiltersToggle && this.advancedFiltersContainer) {
+      this.advancedFiltersToggle.addEventListener('change', () => {
+        this.advancedFiltersContainer.style.display = this.advancedFiltersToggle.checked ? 'block' : 'none';
+      });
+
+      this.advancedFiltersContainer.style.display = this.advancedFiltersToggle.checked ? 'block' : 'none';
     }
     this.encyclopediaTabButtons.forEach(button => {
       button.addEventListener('click', () => {
@@ -222,6 +260,60 @@ export class UIManager {
         this.setActiveEncyclopediaTab(targetTabId);
       });
     });
+  }
+  _setupRangeSliderListener(minSlider, maxSlider, minValueDisplay, maxValueDisplay, unit = '') {
+    if (!minSlider || !maxSlider || !minValueDisplay || !maxValueDisplay) return;
+    const updateDisplays = () => {
+      minValueDisplay.textContent = minSlider.value + unit;
+      maxValueDisplay.textContent = maxSlider.value + unit;
+      if (this.lastKnownDiscoveredColors) {
+        this.colorGridCurrentPage = 1; 
+        this.updateEncyclopedia(this.lastKnownDiscoveredColors);
+      }
+    };
+    minSlider.addEventListener('input', () => {
+      if (parseInt(minSlider.value) > parseInt(maxSlider.value)) {
+        maxSlider.value = minSlider.value;
+      }
+      updateDisplays();
+    });
+    maxSlider.addEventListener('input', () => {
+      if (parseInt(maxSlider.value) < parseInt(minSlider.value)) {
+        minSlider.value = maxSlider.value;
+      }
+      updateDisplays();
+    });
+
+    updateDisplays();
+  }
+  resetAllFilters() {
+    if (this.encyclopediaColorFilterInput) this.encyclopediaColorFilterInput.value = '';
+
+    if (this.advancedFiltersToggle) {
+        this.advancedFiltersToggle.checked = false;
+    }
+    if (this.advancedFiltersContainer) {
+        this.advancedFiltersContainer.style.display = 'none';
+    }
+
+    if (this.encyclopediaHueMinSlider) this.encyclopediaHueMinSlider.value = 0;
+    if (this.encyclopediaHueMaxSlider) this.encyclopediaHueMaxSlider.value = 360;
+    if (this.encyclopediaSaturationMinSlider) this.encyclopediaSaturationMinSlider.value = 0;
+    if (this.encyclopediaSaturationMaxSlider) this.encyclopediaSaturationMaxSlider.value = 100;
+    if (this.encyclopediaLightnessMinSlider) this.encyclopediaLightnessMinSlider.value = 0;
+    if (this.encyclopediaLightnessMaxSlider) this.encyclopediaLightnessMaxSlider.value = 100;
+
+    if (this.encyclopediaRedMinSlider) this.encyclopediaRedMinSlider.value = 0;
+    if (this.encyclopediaRedMaxSlider) this.encyclopediaRedMaxSlider.value = 255;
+    if (this.encyclopediaGreenMinSlider) this.encyclopediaGreenMinSlider.value = 0;
+    if (this.encyclopediaGreenMaxSlider) this.encyclopediaGreenMaxSlider.value = 255;
+    if (this.encyclopediaBlueMinSlider) this.encyclopediaBlueMinSlider.value = 0;
+    if (this.encyclopediaBlueMaxSlider) this.encyclopediaBlueMaxSlider.value = 255;
+
+    if (this.lastKnownDiscoveredColors) {
+      this.colorGridCurrentPage = 1; // Reset to first page on filter reset
+      this.updateEncyclopedia(this.lastKnownDiscoveredColors);
+    }
   }
   setActiveEncyclopediaTab(tabId) {
     this.encyclopediaTabButtons.forEach(button => {
@@ -231,12 +323,11 @@ export class UIManager {
       panel.classList.toggle('active', panel.id === tabId);
     });
     if (tabId === 'colorGridTab' && this.lastKnownDiscoveredColors) {
-      // Re-populate or ensure color grid is up-to-date
+
       this.updateEncyclopedia(this.lastKnownDiscoveredColors);
     } else if (tabId === 'colorRingsTab') {
       this.populateRingsManagementTab();
     } else if (tabId === 'achievementsTab') {
-      console.log('[UIManager] setActiveEncyclopediaTab: Switching to Achievements Tab. Attempting to populate...');
       this.populateAchievementsTab();
     }
   }
@@ -244,28 +335,23 @@ export class UIManager {
     if (this.fullscreenEncyclopedia) {
         this.fullscreenEncyclopedia.style.display = show ? 'block' : 'none';
         if (show) {
-            // Default to the color grid tab when opening, or the last active one
-            // For now, let's ensure color grid is active and populated.
+
             this.setActiveEncyclopediaTab('colorGridTab'); 
-            // if (this.lastKnownDiscoveredColors) {
-            //    this.updateEncyclopedia(this.lastKnownDiscoveredColors);
-            // } // updateEncyclopedia is called within setActiveEncyclopediaTab
+
         }
     }
-    // Optionally, pause game or disable gameArea interactions when encyclopedia is open
+
     if (this.gameArea) {
-        // gameArea should generally allow clicks to pass through to the canvas.
-        // Its children (buttons, etc.) will have `pointer-events: auto` if they need to be interactive.
-        // When the encyclopedia is shown, it overlays everything anyway.
+  
         if (show) {
             this.gameArea.style.pointerEvents = 'none';
-            this.gameArea.style.filter = 'blur(5px)'; // Optional visual cue
+            this.gameArea.style.filter = 'blur(5px)'; 
         } else {
-            this.gameArea.style.pointerEvents = ''; // Revert to CSS default
+            this.gameArea.style.pointerEvents = ''; 
             this.gameArea.style.filter = 'none';
         }
     }
-    // When encyclopedia opens, ensure leaderboard is hidden to prevent overlap
+
     if (show && this.gameLeaderboardPanelEl && this.gameLeaderboardPanelEl.style.display === 'block') {
         this.gameLeaderboardPanelEl.style.display = 'none';
     }
@@ -273,19 +359,15 @@ export class UIManager {
   showGameArea() {
     this.titleScreen.style.display = 'none';
     this.gameArea.style.display = 'block';
-    // this.gameArea.style.pointerEvents = 'auto'; // This was causing gameArea to block clicks to the canvas.
-                                                 // The default CSS `pointer-events: none;` for gameArea is correct.
+
     this.gameArea.style.filter = 'none';
-    // Initialize game-specific UI components now
+
     this.createMixButton();
-    // this.updateColorCount(3); // Set initial or loaded count - This will now be handled by main.js after data load
+
     if (this.gameLeaderboardPanelEl) {
         this.leaderboard = new Leaderboard(this.gameLeaderboardPanelEl);
-        // displayLeaderboard might be called by main.js after data load
-    } else {
-        console.warn("Leaderboard panel element ('leaderboardPanel') not found in the DOM.");
+
     }
-    // this.updateEncyclopediaPosition(); // No longer needed for panel
   }
   createMixButton() {
     this.mixButton = document.createElement('button');
@@ -328,26 +410,28 @@ export class UIManager {
       const nameSpan = document.createElement('span');
       nameSpan.className = 'selectedColorName';
       nameSpan.textContent = orb.colorData.name;
-      nameSpan.title = orb.colorData.name; // Show full name on hover if truncated
+      nameSpan.title = orb.colorData.name; 
       selectedColorItem.appendChild(swatch);
       selectedColorItem.appendChild(nameSpan);
       this.gameSelectedColors.appendChild(selectedColorItem);
     });
   }
-  updateEncyclopedia(discoveredColors, currentSortOrder = null) {
+  updateEncyclopedia(discoveredColors, currentSortOrder = null, preserveScroll = false) {
     if (!this.gameColorGrid) return;
-    this.lastKnownDiscoveredColors = [...discoveredColors]; // Store for re-sorting
-    let sortedColors = [...discoveredColors]; // Create a copy to sort
-    // Ensure HSL values are present on color objects for HSL sorting
+    let scrollPosition = 0;
+    const encyclopediaContent = document.getElementById('encyclopediaContent');
+    if (preserveScroll && encyclopediaContent) {
+        scrollPosition = encyclopediaContent.scrollTop;
+    }
+    this.lastKnownDiscoveredColors = [...discoveredColors]; 
+    let sortedColors = [...discoveredColors]; 
+
     sortedColors.forEach(color => {
       if (!color.hsl && color.rgb && this.game && this.game.colorSystem && typeof this.game.colorSystem.rgbToHsl === 'function') {
         color.hsl = this.game.colorSystem.rgbToHsl(...color.rgb);
       } else if (!color.hsl) {
-        // Fallback or default HSL if calculation is not possible (e.g., missing rgb or game context)
+
         color.hsl = { h: 0, s: 0, l: 0 };
-        if (this.game && this.game.colorSystem) { // Only warn if context suggests it should work
-            console.warn(`[UIManager] Color ${color.name} (HEX: ${color.hex}) missing RGB data or HSL could not be computed.`);
-        }
       }
     });
     const sortOrder = currentSortOrder || (this.sortColorsDropdown ? this.sortColorsDropdown.value : 'name_asc');
@@ -389,8 +473,60 @@ export class UIManager {
         sortedColors.sort((a, b) => (b.mixArity || 0) - (a.mixArity || 0));
         break;
     }
+    const filterText = this.encyclopediaColorFilterInput ? this.encyclopediaColorFilterInput.value.toLowerCase().trim() : '';
+    if (filterText) {
+      sortedColors = sortedColors.filter(color => {
+        const lowerName = color.name.toLowerCase();
+        const lowerHex = color.hex.toLowerCase();
+
+        if (filterText.startsWith('#')) {
+          return lowerHex.includes(filterText);
+        } else {
+          return lowerName.includes(filterText) || lowerHex.substring(1).includes(filterText);
+        }
+      });
+    }
+
+    const hueMin = this.encyclopediaHueMinSlider ? parseInt(this.encyclopediaHueMinSlider.value, 10) : 0;
+    const hueMax = this.encyclopediaHueMaxSlider ? parseInt(this.encyclopediaHueMaxSlider.value, 10) : 360;
+    const satMin = this.encyclopediaSaturationMinSlider ? parseInt(this.encyclopediaSaturationMinSlider.value, 10) / 100 : 0;
+    const satMax = this.encyclopediaSaturationMaxSlider ? parseInt(this.encyclopediaSaturationMaxSlider.value, 10) / 100 : 1;
+    const lightMin = this.encyclopediaLightnessMinSlider ? parseInt(this.encyclopediaLightnessMinSlider.value, 10) / 100 : 0;
+    const lightMax = this.encyclopediaLightnessMaxSlider ? parseInt(this.encyclopediaLightnessMaxSlider.value, 10) / 100 : 1;
+    const redMin = this.encyclopediaRedMinSlider ? parseInt(this.encyclopediaRedMinSlider.value, 10) : 0;
+    const redMax = this.encyclopediaRedMaxSlider ? parseInt(this.encyclopediaRedMaxSlider.value, 10) : 255;
+    const greenMin = this.encyclopediaGreenMinSlider ? parseInt(this.encyclopediaGreenMinSlider.value, 10) : 0;
+    const greenMax = this.encyclopediaGreenMaxSlider ? parseInt(this.encyclopediaGreenMaxSlider.value, 10) : 255;
+    const blueMin = this.encyclopediaBlueMinSlider ? parseInt(this.encyclopediaBlueMinSlider.value, 10) : 0;
+    const blueMax = this.encyclopediaBlueMaxSlider ? parseInt(this.encyclopediaBlueMaxSlider.value, 10) : 255;
+    const filteredColors = sortedColors.filter(color => {
+      const nameMatch = filterText ? color.name.toLowerCase().includes(filterText) : true;
+      if (!nameMatch) return false;
+      // HSL checks
+      const hueMatch = (color.hsl.h || 0) >= hueMin && (color.hsl.h || 0) <= hueMax;
+      const saturationMatch = (color.hsl.s || 0) >= satMin && (color.hsl.s || 0) <= satMax;
+      const lightnessMatch = (color.hsl.l || 0) >= lightMin && (color.hsl.l || 0) <= lightMax;
+      if (!hueMatch || !saturationMatch || !lightnessMatch) return false;
+      // RGB checks
+      const redMatch = (color.rgb[0] || 0) >= redMin && (color.rgb[0] || 0) <= redMax;
+      const greenMatch = (color.rgb[1] || 0) >= greenMin && (color.rgb[1] || 0) <= greenMax;
+      const blueMatch = (color.rgb[2] || 0) >= blueMin && (color.rgb[2] || 0) <= blueMax;
+      if (!redMatch || !greenMatch || !blueMatch) return false;
+      return true; // All filters passed
+    });
+    this.lastKnownFilteredColorCount = filteredColors.length;
+    const totalPages = Math.ceil(this.lastKnownFilteredColorCount / this.COLOR_GRID_PAGE_SIZE);
+    this.colorGridCurrentPage = Math.max(1, Math.min(this.colorGridCurrentPage, totalPages));
+    const startIndex = (this.colorGridCurrentPage - 1) * this.COLOR_GRID_PAGE_SIZE;
+    const endIndex = startIndex + this.COLOR_GRID_PAGE_SIZE;
+    const paginatedColors = filteredColors.slice(startIndex, endIndex);
     this.gameColorGrid.innerHTML = ''; // Clear previous swatches
-    sortedColors.forEach(color => {
+    this._updateColorGridPaginationControls(filteredColors.length);
+    if (paginatedColors.length === 0) {
+        this.gameColorGrid.innerHTML = `<p class="no-results-message">No colors found matching the current filters.</p>`;
+        return;
+    }
+    paginatedColors.forEach(color => {
       const swatch = document.createElement('div');
       swatch.className = 'colorSwatch';
       swatch.style.backgroundColor = color.hex;
@@ -399,33 +535,187 @@ export class UIManager {
       if (color.discoveredTimestamp && (sortOrder === 'discovered_asc' || sortOrder === 'discovered_desc')) {
         swatch.title += `\nDiscovered: ${new Date(color.discoveredTimestamp).toLocaleDateString()}`;
       }
-      swatch.addEventListener('mouseenter', () => {
-        this.showColorInfo(color);
+
+      swatch.addEventListener('mouseenter', (event) => {
+
+        if (!this.pinnedColorSwatch) {
+            this.showColorInfo(color, event);
+        }
       });
-      
+      swatch.addEventListener('mouseleave', () => {
+        this.hideColorInfo(); 
+      });
+      swatch.addEventListener('click', (event) => {
+        event.stopPropagation(); 
+        if (this.pinnedColorSwatch === swatch) {
+
+          swatch.classList.remove('pinned'); 
+          this.pinnedColorSwatch = null;
+          this.hideColorInfo(true);
+        } else {
+
+          if (this.pinnedColorSwatch) {
+            this.pinnedColorSwatch.classList.remove('pinned');
+          }
+
+          this.pinnedColorSwatch = swatch;
+          this.pinnedColorSwatch.classList.add('pinned');
+          this.showColorInfo(color, event, true); // Show and pin it
+        }
+      });
       this.gameColorGrid.appendChild(swatch);
     });
+
+    this.gameColorGrid.addEventListener('click', () => {
+        if (this.pinnedColorSwatch) {
+            this.pinnedColorSwatch.classList.remove('pinned');
+            this.pinnedColorSwatch = null;
+            this.hideColorInfo(true);
+        }
+    });
+    if (preserveScroll && encyclopediaContent) {
+        // Use requestAnimationFrame to ensure the content is rendered before scrolling
+        requestAnimationFrame(() => {
+            encyclopediaContent.scrollTop = scrollPosition;
+        });
+    }
   }
-  showColorInfo(colorData) {
+  _setupColorGridPaginationListeners() {
+      const prevButton = document.getElementById('colorGridPrevPage');
+      const nextButton = document.getElementById('colorGridNextPage');
+      if (prevButton && !prevButton.dataset.listenerAttached) {
+          prevButton.addEventListener('click', () => {
+              if (this.colorGridCurrentPage > 1) {
+                  this.colorGridCurrentPage--;
+                  this.updateEncyclopedia(this.lastKnownDiscoveredColors, null, true);
+              }
+          });
+          prevButton.dataset.listenerAttached = 'true';
+      }
+      if (nextButton && !nextButton.dataset.listenerAttached) {
+          nextButton.addEventListener('click', () => {
+              const totalPages = Math.ceil(this.lastKnownFilteredColorCount / this.COLOR_GRID_PAGE_SIZE);
+              if (this.colorGridCurrentPage < totalPages) {
+                  this.colorGridCurrentPage++;
+                  this.updateEncyclopedia(this.lastKnownDiscoveredColors, null, true);
+              }
+          });
+          nextButton.dataset.listenerAttached = 'true';
+      }
+  }
+  _updateColorGridPaginationControls(totalItems) {
+      if (!this.colorGridPaginationControls) return;
+      
+    const totalPages = Math.ceil(totalItems / this.COLOR_GRID_PAGE_SIZE);
+    const prevButton = document.getElementById('colorGridPrevPage');
+    const nextButton = document.getElementById('colorGridNextPage');
+    const pageInfo = document.getElementById('colorGridPageInfo');
+      if (totalPages <= 1) {
+          this.colorGridPaginationControls.style.display = 'none';
+          return;
+      }
+      this.colorGridPaginationControls.style.display = 'flex';
+      if (prevButton) {
+        prevButton.disabled = this.colorGridCurrentPage === 1;
+        // Event listeners are now attached once, so no need to clone and replace
+      }
+      
+      if (pageInfo) {
+        pageInfo.textContent = `Page ${this.colorGridCurrentPage} / ${totalPages}`;
+      }
+      
+      if (nextButton) {
+        nextButton.disabled = this.colorGridCurrentPage === totalPages;
+        // Event listeners are now attached once, so no need to clone and replace
+      }
+  }
+  showColorInfo(colorData, event, isPinned = false) {
     if(!this.gameColorInfo) return;
+
+    if (this.pinnedColorSwatch && !isPinned) {
+        return;
+    }
+    this.gameColorInfo.style.display = 'block'; // Make it visible first
+    if (isPinned) {
+      this.gameColorInfo.classList.add('pinned');
+    } else {
+
+      this.gameColorInfo.classList.remove('pinned');
+    }
     let hslString = 'HSL: N/A';
     if (colorData.rgb && this.game && this.game.colorSystem && typeof this.game.colorSystem.rgbToHsl === 'function') {
-      const hsl = this.game.colorSystem.rgbToHsl(...colorData.rgb);
-      hslString = `HSL: ${Math.round(hsl.h)}, ${Math.round(hsl.s * 100)}%, ${Math.round(hsl.l * 100)}%`;
-    } else if (colorData.hsl) { // If HSL is pre-calculated and stored
-      hslString = `HSL: ${Math.round(colorData.hsl.h)}, ${Math.round(colorData.hsl.s * 100)}%, ${Math.round(colorData.hsl.l * 100)}%`;
+        const hsl = this.game.colorSystem.rgbToHsl(...colorData.rgb);
+        hslString = `HSL: ${Math.round(hsl.h)}, ${Math.round(hsl.s * 100)}%, ${Math.round(hsl.l * 100)}%`;
+    } else if (colorData.hsl) { 
+        hslString = `HSL: ${Math.round(colorData.hsl.h)}, ${Math.round(colorData.hsl.s * 100)}%, ${Math.round(colorData.hsl.l * 100)}%`;
     }
     this.gameColorInfo.innerHTML = `
       <strong>${colorData.name}</strong><br>
       HEX: ${colorData.hex}<br>
-      RGB: (${colorData.rgb.join(', ')})<br>
+      RGB: (${colorData.rgb ? colorData.rgb.join(', ') : 'N/A'})<br>
       ${hslString}<br>
       Mixed from ${colorData.mixArity || 'N/A'} colors.
       ${colorData.mixedFrom ? `<br><small>Parents: ${colorData.mixedFrom.join(', ')}</small>` : ''}
+      <button class="copy-hex-button" data-hex="${colorData.hex}">Copy Hex</button>
     `;
+    const copyButton = this.gameColorInfo.querySelector('.copy-hex-button');
+    if (copyButton) {
+      copyButton.addEventListener('click', (e) => {
+        e.stopPropagation(); 
+        const hexToCopy = e.target.dataset.hex;
+        navigator.clipboard.writeText(hexToCopy).then(() => {
+          e.target.textContent = 'Copied!';
+          setTimeout(() => {
+            e.target.textContent = 'Copy Hex';
+          }, 1500);
+        }).catch(err => {
+          console.error('Failed to copy hex code:', err);
+          e.target.textContent = 'Error!';
+           setTimeout(() => {
+            e.target.textContent = 'Copy Hex';
+          }, 1500);
+        });
+      });
+    }
+    if (event) {
+        const swatchEl = event.currentTarget;
+        const swatchRect = swatchEl.getBoundingClientRect();
+        const tooltipRect = this.gameColorInfo.getBoundingClientRect();
+        const containerRect = this.fullscreenEncyclopedia.getBoundingClientRect();
+        let top = swatchRect.top - tooltipRect.height - 10; // Default above
+        let left = swatchRect.left + (swatchRect.width / 2) - (tooltipRect.width / 2); // Default centered
+
+        if (top < containerRect.top) {
+            top = swatchRect.bottom + 10;
+        }
+
+        if (left < containerRect.left) {
+            left = containerRect.left + 5;
+        }
+
+        if (left + tooltipRect.width > containerRect.right) {
+            left = containerRect.right - tooltipRect.width - 5;
+        }
+        
+        this.gameColorInfo.style.top = `${top}px`;
+        this.gameColorInfo.style.left = `${left}px`;
+    }
+}
+  hideColorInfo(force = false) {
+    if (this.gameColorInfo) {
+
+        if (force || !this.gameColorInfo.classList.contains('pinned')) {
+            this.gameColorInfo.style.display = 'none';
+            this.gameColorInfo.classList.remove('pinned');
+            if (force && this.pinnedColorSwatch) {
+                this.pinnedColorSwatch.classList.remove('pinned');
+                this.pinnedColorSwatch = null;
+            }
+        }
+    }
   }
   showColorDiscovered(colorData) {
-    // Create discovery notification
+
     const notification = document.createElement('div');
     notification.style.cssText = `
       position: fixed;
@@ -490,8 +780,7 @@ export class UIManager {
   }
   updateChallengeDisplay(challenge) {
     if(!this.gameChallengeDisplay) return;
-    // This display is now less central. It might show a "next suggested" achievement or be removed.
-    // For now, let's update it with info from ChallengeManager's getLegacyChallengeDisplayInfo.
+
     let challengeInfo = null;
     if (this.game && this.game.challengeManager && typeof this.game.challengeManager.getLegacyChallengeDisplayInfo === 'function') {
         challengeInfo = this.game.challengeManager.getLegacyChallengeDisplayInfo();
@@ -506,8 +795,6 @@ export class UIManager {
   async displayLeaderboard() {
     if (this.leaderboard) {
         await this.leaderboard.loadAndDisplay();
-    } else {
-        console.warn("Leaderboard instance not available in UIManager or called too early.");
     }
   }
   setupLeaderboardToggleListener() {
@@ -516,23 +803,22 @@ export class UIManager {
         const isVisible = this.gameLeaderboardPanelEl.style.display === 'block';
         this.gameLeaderboardPanelEl.style.display = isVisible ? 'none' : 'block';
         if (!isVisible) {
-            // If opening leaderboard, ensure encyclopedia is closed
+
             if (this.fullscreenEncyclopedia && this.fullscreenEncyclopedia.style.display === 'block') {
                 this.showEncyclopedia(false);
             }
-            this.displayLeaderboard(); // Refresh data when shown
+            this.displayLeaderboard(); 
         }
       });
     }
   }
   updateMixButtonPosition() {
     if (!this.mixButtonContainer) return;
-    // The Mix button is now at a fixed position at the bottom center,
-    // independent of the new selected colors panel on the right.
-    let bottomOffset = 20; // Default bottom offset in pixels
-    // Adjust for mobile view if needed (using a simple check for window width)
+
+    let bottomOffset = 20; 
+
     if (window.innerWidth <= 768) {
-      bottomOffset = 10; // Slightly less offset on smaller screens
+      bottomOffset = 10; 
     }
     if (window.innerWidth <= 480) {
       bottomOffset = 8; 
@@ -542,38 +828,44 @@ export class UIManager {
   }
   handleResize() {
     this.updateMixButtonPosition();
-    // Potentially other UI adjustments on resize can go here
+
   }
 populateRingsManagementTab() {
     const ringsTabPanel = document.getElementById('colorRingsTab');
     if (!ringsTabPanel || !this.game || !this.game.orbManager || !this.game.orbRingCapacities || !this.game.colorSystem) {
       if (ringsTabPanel) ringsTabPanel.innerHTML = '<p>Ring data system is not fully initialized. Please ensure game is running.</p>';
-      console.warn("[UIManager] Ring management tab cannot be populated: Game systems not ready.");
       return;
     }
     const allGameOrbs = this.game.orbManager.orbs;
     const ringCapacities = this.game.orbRingCapacities;
-    // Iterate through the predefined ring sections in HTML (2, 3, 4)
+
     [2, 3, 4].forEach(mixArity => {
       const capacity = ringCapacities[mixArity];
-      if (capacity === Infinity || !capacity) return; // Skip primary or unconfigured rings
+      if (capacity === Infinity || !capacity) return; 
       const activeOrbsCountSpan = document.getElementById(`activeOrbsCount-${mixArity}`);
       const maxOrbsCountSpan = document.getElementById(`maxOrbsCount-${mixArity}`);
       const activeOrbsListUl = document.getElementById(`activeOrbsList-${mixArity}`);
       const manageOrbsButton = ringsTabPanel.querySelector(`.manageRingOrbsButton[data-arity="${mixArity}"]`);
       const availableOrbsSectionDiv = document.getElementById(`availableOrbsSection-${mixArity}`);
       const availableOrbsSortDropdown = document.getElementById(`availableOrbsSortDropdown-${mixArity}`);
-      if (!activeOrbsCountSpan || !maxOrbsCountSpan || !activeOrbsListUl || !manageOrbsButton || !availableOrbsSectionDiv || !availableOrbsSortDropdown) {
-        console.warn(`[UIManager] Missing HTML elements for ring arity ${mixArity}. Skipping.`);
+      const availableOrbsFilterInput = document.getElementById(`availableOrbsFilterInput-${mixArity}`);
+      if (!activeOrbsCountSpan || !maxOrbsCountSpan || !activeOrbsListUl || !manageOrbsButton || !availableOrbsSectionDiv || !availableOrbsSortDropdown || !availableOrbsFilterInput) {
         return;
+      }
+      // Ensure pagination is hidden only if its corresponding section is also hidden.
+      if (availableOrbsSectionDiv.style.display === 'none' || availableOrbsSectionDiv.style.display === '') {
+        const paginationControlsContainer = document.getElementById(`summonablePagination-${mixArity}`);
+        if (paginationControlsContainer) {
+            paginationControlsContainer.style.display = 'none';
+        }
       }
       const activeOrbsInThisRing = allGameOrbs.filter(
         orb => orb.colorData.mixArity === mixArity && !orb.colorData.isPrimary
       );
-      // Update counts
+
       activeOrbsCountSpan.textContent = activeOrbsInThisRing.length;
       maxOrbsCountSpan.textContent = capacity;
-      // Populate active orbs list
+
       activeOrbsListUl.innerHTML = ''; // Clear previous
       if (activeOrbsInThisRing.length > 0) {
         activeOrbsInThisRing.forEach(orb => {
@@ -592,8 +884,6 @@ populateRingsManagementTab() {
           unsummonButton.addEventListener('click', () => {
             if (this.game && typeof this.game.handleUnsummonOrbRequest === 'function') {
               this.game.handleUnsummonOrbRequest(orb);
-            } else {
-              console.error('Unsummon function not available on game instance.');
             }
           });
           listItem.appendChild(swatch);
@@ -604,52 +894,77 @@ populateRingsManagementTab() {
       } else {
         activeOrbsListUl.innerHTML = '<li class="noOrbsMessage">No colors currently active in this ring.</li>';
       }
-      // "Manage Orbs" button event listener (ensure it's only added once or is idempotent)
-      // A simple way is to replace the node, or use a flag, or check for existing listener.
-      // For simplicity here, we'll rely on the tab being re-rendered on show, which re-adds listeners.
-      // A more robust solution would be to manage listeners more carefully if this function is called frequently without full tab re-render.
-      
-      // Remove previous listener if any, before adding a new one to prevent duplicates if this func is called multiple times.
-      // Cloning and replacing the button is a common trick.
-      const newManageOrbsButton = manageOrbsButton.cloneNode(true);
-      manageOrbsButton.parentNode.replaceChild(newManageOrbsButton, manageOrbsButton);
-      
-      newManageOrbsButton.addEventListener('click', () => {
-        const isHidden = availableOrbsSectionDiv.style.display === 'none' || availableOrbsSectionDiv.style.display === '';
-        availableOrbsSectionDiv.style.display = isHidden ? 'block' : 'none';
-        newManageOrbsButton.innerHTML = isHidden ? '<span class="plusIcon">-</span> Hide Summonable' : '<span class="plusIcon">+</span> Manage Orbs';
-        if (isHidden) {
-          this.populateAvailableOrbsList(mixArity, availableOrbsSortDropdown.value);
-        }
-      });
-      
-      // Sort dropdown listener for available orbs
-      const newAvailableOrbsSortDropdown = availableOrbsSortDropdown.cloneNode(true);
-      availableOrbsSortDropdown.parentNode.replaceChild(newAvailableOrbsSortDropdown, availableOrbsSortDropdown);
-      
-      newAvailableOrbsSortDropdown.addEventListener('change', (event) => {
-        if (availableOrbsSectionDiv.style.display === 'block') {
-          this.populateAvailableOrbsList(mixArity, event.target.value);
-        }
-      });
+      // Re-bind listeners without cloning to prevent issues
+      if (!manageOrbsButton.dataset.listenerAttached) {
+          manageOrbsButton.addEventListener('click', () => {
+              const isHidden = availableOrbsSectionDiv.style.display === 'none' || availableOrbsSectionDiv.style.display === '';
+              availableOrbsSectionDiv.style.display = isHidden ? 'block' : 'none';
+              manageOrbsButton.innerHTML = isHidden ? '<span class="plusIcon">-</span> Hide Summonable' : '<span class="plusIcon">+</span> Manage Orbs';
+              if (isHidden) {
+                  this.populateAvailableOrbsList(mixArity);
+              } else {
+                  // If we are hiding the section, also hide its pagination.
+                  const paginationControlsContainer = document.getElementById(`summonablePagination-${mixArity}`);
+                  if (paginationControlsContainer) {
+                      paginationControlsContainer.style.display = 'none';
+                  }
+              }
+          });
+          manageOrbsButton.dataset.listenerAttached = 'true';
+      }
+      if (!availableOrbsSortDropdown.dataset.listenerAttached) {
+          availableOrbsSortDropdown.addEventListener('change', () => {
+              if (availableOrbsSectionDiv.style.display === 'block') {
+                  this.populateAvailableOrbsList(mixArity);
+              }
+          });
+          availableOrbsSortDropdown.dataset.listenerAttached = 'true';
+      }
+      if (!availableOrbsFilterInput.dataset.listenerAttached) {
+          availableOrbsFilterInput.addEventListener('input', () => {
+              if (availableOrbsSectionDiv.style.display === 'block') {
+                  this.summonableListPage[mixArity] = 1; // Reset to page 1 on filter/sort change
+                  this.populateAvailableOrbsList(mixArity);
+              }
+          });
+          availableOrbsFilterInput.dataset.listenerAttached = 'true';
+      }
     });
   }
-  // New placeholder method for populating the "Available Orbs to Summon" list
-populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
+  populateAvailableOrbsList(mixArity, preserveScroll = false) {
     const availableOrbsListUl = document.getElementById(`availableOrbsList-${mixArity}`);
-    if (!availableOrbsListUl || !this.game || !this.game.colorSystem || !this.game.orbManager) {
-      console.warn(`[UIManager] Cannot populate available orbs list for arity ${mixArity}: Missing elements or game systems.`);
+    const availableOrbsSectionDiv = document.getElementById(`availableOrbsSection-${mixArity}`);
+    const sortDropdown = document.getElementById(`availableOrbsSortDropdown-${mixArity}`);
+    const filterInput = document.getElementById(`availableOrbsFilterInput-${mixArity}`);
+    
+    let scrollPosition = 0;
+    if (preserveScroll && availableOrbsSectionDiv) {
+        scrollPosition = availableOrbsSectionDiv.scrollTop;
+    }
+    if (!availableOrbsListUl || !sortDropdown || !filterInput || !this.game || !this.game.colorSystem || !this.game.orbManager) {
       if(availableOrbsListUl) availableOrbsListUl.innerHTML = '<li>Error loading summonable colors.</li>';
       return;
     }
+    const sortOrder = sortDropdown.value;
+    const filterText = filterInput.value.toLowerCase().trim();
     const allDiscoveredColors = this.game.colorSystem.getDiscoveredColors();
     const activeOrbHexes = new Set(this.game.orbManager.orbs.map(orb => orb.colorData.hex));
     let summonableColors = allDiscoveredColors.filter(color => {
-      return color.mixArity === mixArity && // Matches the ring's arity
-             !color.isPrimary &&            // Not a primary color
-             !activeOrbHexes.has(color.hex); // Not already an active orb in any ring
+      const matchesArity = color.mixArity === mixArity;
+      const isNotPrimary = !color.isPrimary;
+      const isNotActive = !activeOrbHexes.has(color.hex);
+      const matchesFilter = (() => {
+          if (filterText === '') return true;
+          const lowerName = color.name.toLowerCase();
+          const lowerHex = color.hex.toLowerCase();
+          if (filterText.startsWith('#')) {
+              return lowerHex.includes(filterText);
+          } else {
+              return lowerName.includes(filterText) || lowerHex.substring(1).includes(filterText);
+          }
+      })();
+      return matchesArity && isNotPrimary && isNotActive && matchesFilter;
     });
-    // Sort summonableColors (reusing logic from updateEncyclopedia for sorting)
     summonableColors.forEach(color => {
         if (!color.hsl && color.rgb && this.game.colorSystem && typeof this.game.colorSystem.rgbToHsl === 'function') {
             color.hsl = this.game.colorSystem.rgbToHsl(...color.rgb);
@@ -664,17 +979,26 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
         case 'discovered_desc': summonableColors.sort((a, b) => (b.discoveredTimestamp || 0) - (a.discoveredTimestamp || 0)); break;
         case 'hue_asc': summonableColors.sort((a, b) => (a.hsl.h || 0) - (b.hsl.h || 0)); break;
         case 'hue_desc': summonableColors.sort((a, b) => (b.hsl.h || 0) - (a.hsl.h || 0)); break;
-        // Add other sort cases if needed, like saturation, lightness, etc.
         default: summonableColors.sort((a, b) => a.name.localeCompare(b.name));
     }
-    availableOrbsListUl.innerHTML = ''; // Clear previous list
+    this._updateSummonableListPaginationControls(mixArity, summonableColors.length);
+    availableOrbsListUl.innerHTML = '';
+    availableOrbsListUl.className = 'availableOrbsGrid'; // Apply the new grid layout class
     if (summonableColors.length === 0) {
-      availableOrbsListUl.innerHTML = '<li class="noOrbsMessage">No new colors of this type available to summon. Discover more!</li>';
-      return;
+        if (filterText) {
+            availableOrbsListUl.innerHTML = `<li class="noOrbsMessage">No colors found matching "${filterInput.value}".</li>`;
+        } else {
+            availableOrbsListUl.innerHTML = '<li class="noOrbsMessage">No new colors of this type available to summon. Discover more!</li>';
+        }
+        return;
     }
-    summonableColors.forEach(colorData => {
+    const currentPage = this.summonableListPage[mixArity] || 1;
+    const startIndex = (currentPage - 1) * this.SUMMONABLE_LIST_PAGE_SIZE;
+    const endIndex = startIndex + this.SUMMONABLE_LIST_PAGE_SIZE;
+    const paginatedColors = summonableColors.slice(startIndex, endIndex);
+    paginatedColors.forEach(colorData => {
       const listItem = document.createElement('li');
-      listItem.className = 'ringOrbListItem availableOrbListItem'; // Use existing class
+      listItem.className = 'ringOrbListItem availableOrbListItem';
       const swatch = document.createElement('div');
       swatch.className = 'ringOrbSwatch';
       swatch.style.backgroundColor = colorData.hex;
@@ -685,12 +1009,10 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
       summonButton.className = 'summonOrbButton';
       summonButton.textContent = 'Summon';
       summonButton.title = `Summon ${colorData.name} to this ring`;
-      summonButton.dataset.orbHex = colorData.hex; // Store hex for identification
+      summonButton.dataset.orbHex = colorData.hex;
       summonButton.addEventListener('click', () => {
         if (this.game && typeof this.game.handleSummonOrbRequest === 'function') {
-          this.game.handleSummonOrbRequest(colorData, mixArity); // Pass color data and target arity
-        } else {
-          console.error('Summon function not available on game instance.');
+          this.game.handleSummonOrbRequest(colorData, mixArity);
         }
       });
       listItem.appendChild(swatch);
@@ -698,28 +1020,74 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
       listItem.appendChild(summonButton);
       availableOrbsListUl.appendChild(listItem);
     });
+    if (preserveScroll && availableOrbsSectionDiv) {
+        availableOrbsSectionDiv.scrollTop = scrollPosition;
+    }
   }
-  // updateEncyclopediaPosition() method removed
+  _setupSummonableListPaginationListeners() {
+    [2, 3, 4].forEach(mixArity => {
+      const prevButton = document.getElementById(`summonablePrevPage-${mixArity}`);
+      const nextButton = document.getElementById(`summonableNextPage-${mixArity}`);
+      if (prevButton) {
+        prevButton.addEventListener('click', () => {
+          if ((this.summonableListPage[mixArity] || 1) > 1) {
+            this.summonableListPage[mixArity]--;
+            this.populateAvailableOrbsList(mixArity, true);
+          }
+        });
+      }
+      if (nextButton) {
+        nextButton.addEventListener('click', () => {
+          const totalPages = nextButton.dataset.totalPages ? parseInt(nextButton.dataset.totalPages, 10) : 1;
+          if ((this.summonableListPage[mixArity] || 1) < totalPages) {
+            this.summonableListPage[mixArity]++;
+            this.populateAvailableOrbsList(mixArity, true);
+          }
+        });
+      }
+    });
+  }
+  _updateSummonableListPaginationControls(mixArity, totalItems) {
+    const paginationControlsContainer = document.getElementById(`summonablePagination-${mixArity}`);
+    if (!paginationControlsContainer) return;
+    const totalPages = Math.ceil(totalItems / this.SUMMONABLE_LIST_PAGE_SIZE);
+    const currentPage = this.summonableListPage[mixArity] || 1;
+    if (totalPages <= 1) {
+      paginationControlsContainer.style.display = 'none';
+      return;
+    }
+    paginationControlsContainer.style.display = 'flex';
+    const prevButton = document.getElementById(`summonablePrevPage-${mixArity}`);
+    const nextButton = document.getElementById(`summonableNextPage-${mixArity}`);
+    const pageInfo = document.getElementById(`summonablePageInfo-${mixArity}`);
+    if (prevButton) {
+      prevButton.disabled = currentPage === 1;
+    }
+    if (pageInfo) {
+      pageInfo.textContent = `Page ${currentPage} / ${totalPages}`;
+    }
+    if (nextButton) {
+      nextButton.disabled = currentPage === totalPages;
+      nextButton.dataset.totalPages = totalPages;
+    }
+  }
   async populateAchievementsTab() {
     if (!this.achievementsListContainer || !this.game || !this.game.challengeManager) {
       if (this.achievementsListContainer) this.achievementsListContainer.innerHTML = '<p>Achievements system not ready.</p>';
-      console.warn("[UIManager] Achievements tab cannot be populated: Game systems or container not ready.");
       return;
     }
     this.achievementsListContainer.innerHTML = '<p class="loading-message">Loading achievements...</p>'; // Loading state
     try {
-      // Fetch comprehensive data including global stats AND total player count
-      await this.game.challengeManager.fetchTotalPlayerCount(); // Fetch total player count first
+
+      await this.game.challengeManager.fetchTotalPlayerCount(); 
       const achievementsData = await this.game.challengeManager.fetchAllAchievementData();
       const totalPlayers = this.game.challengeManager.totalPlayerCount;
       
-      this.achievementsListContainer.innerHTML = ''; // Clear loading message or previous content
+      this.achievementsListContainer.innerHTML = ''; 
       if (!achievementsData || achievementsData.length === 0) {
         this.achievementsListContainer.innerHTML = '<p>No achievements defined or loaded.</p>';
         return;
       }
-      console.log(`[UIManager] Populating achievements tab with ${achievementsData.length} achievements (with full stats).`);
-      
       const listElement = document.createElement('ul');
       listElement.className = 'achievements-ul';
       achievementsData.forEach(ach => {
@@ -739,26 +1107,23 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
         cardBody.appendChild(descriptionEl);
         const tiersContainer = document.createElement('div');
         tiersContainer.className = 'achievement-tiers';
-        // The `ach.tiers` here should now be the `defined_tiers` from RPC, 
-        // merged by fetchAllAchievementData to include static definitions and global_completion_count.
+
         ach.tiers.forEach((tier, index) => {
           const tierDiv = document.createElement('div');
           tierDiv.className = 'achievement-tier';
-          
-          // Use player_current_tier_index from the fetched achievement data
+
           if (ach.player_current_tier_index >= index) {
             tierDiv.classList.add('completed');
           }
           const tierIcon = document.createElement('span');
           tierIcon.className = 'tier-icon';
-          tierIcon.textContent = tier.icon; // Static data like icon should be preserved
+          tierIcon.textContent = tier.icon; 
           const tierName = document.createElement('span');
           tierName.className = 'tier-name';
           tierName.textContent = tier.tierName;
           const tierProgressText = document.createElement('span');
           tierProgressText.className = 'tier-progress-text';
-          
-          // Use player_progress_count from the fetched achievement data
+
           let currentAmount = ach.player_progress_count || 0;
           let requirementForDisplay = tier.requirement;
           let displayAmount = currentAmount;
@@ -766,24 +1131,24 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
             tierProgressText.textContent = ` (${requirementForDisplay}/${requirementForDisplay} - Complete!)`;
           } else if (ach.player_current_tier_index === index - 1) { // Current tier target
             tierProgressText.textContent = ` (${Math.min(displayAmount, requirementForDisplay)}/${requirementForDisplay})`;
-          } else { // Future tier or not yet started
+          } else { 
             tierProgressText.textContent = ` (0/${requirementForDisplay})`;
           }
           
           tierDiv.appendChild(tierIcon);
           tierDiv.appendChild(tierName);
           tierDiv.appendChild(tierProgressText);
-          // Display global completion stats
+
           const tierStatsTooltip = document.createElement('div');
           tierStatsTooltip.className = 'tier-stats-tooltip';
           const globalCompletions = tier.global_completion_count !== undefined ? tier.global_completion_count : 0;
           
           let tooltipText = `Achieved by ${globalCompletions} players globally.`;
           if (totalPlayers !== null && totalPlayers > 0 && globalCompletions !== 'N/A') {
-            const percentage = (globalCompletions / totalPlayers) * 100; // Keep as number for comparison
+            const percentage = (globalCompletions / totalPlayers) * 100; 
             tooltipText = `Achieved by ${globalCompletions} (${percentage.toFixed(1)}%) of players globally.`;
-            // Check for rarity and if player completed this tier
-            if (percentage < 1.0 && percentage > 0) { // Ensure percentage is not 0 to avoid applying to unachieved rare tiers
+
+            if (percentage < 1.0 && percentage > 0) { 
               if (tierDiv.classList.contains('completed')) {
                 tierDiv.classList.add('rare-achievement-tier');
               } else {
@@ -797,8 +1162,7 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
           }
           tierStatsTooltip.textContent = tooltipText;
           tierDiv.appendChild(tierStatsTooltip);
-          
-          // tierDiv.title attribute removed to prevent double tooltip
+
           tiersContainer.appendChild(tierDiv);
         });
         cardBody.appendChild(tiersContainer);
@@ -807,23 +1171,20 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
       });
       this.achievementsListContainer.appendChild(listElement);
     } catch (error) {
-      console.error('[UIManager] Error populating achievements tab:', error);
       this.achievementsListContainer.innerHTML = '<p class="error-message">Could not load achievements. Please try again later.</p>';
     }
   }
   setupBattleModeButtonListener() {
     if (this.battleModeButton) {
       this.battleModeButton.addEventListener('click', () => {
-        // console.log('Battle Mode button clicked! Transitioning to Lobby.');
+
         this.showLobbyScreen(true); 
       });
     }
-    // The old closeBattleModeButton listener is removed.
-    // The new battleModeActionButton listener is setup here:
     if (this.battleModeActionButton) {
         this.battleModeActionButton.addEventListener('click', () => this.handleBattleActionClick());
     }
-    // Player One and Player Two mix button listeners are now set up in _initializeAndBindPlayerMixButtons
+
   }
   _initializeAndBindPlayerMixButtons() {
     if (this._playerMixButtonListenersAttached) {
@@ -831,42 +1192,24 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
     }
     if (!this.playerOneMixButton) {
         this.playerOneMixButton = document.getElementById('playerOneMixButton');
-        console.log('[UIManager _initializeAndBindPlayerMixButtons] P1 Mix Button DOM Element:', this.playerOneMixButton);
     }
     if (!this.playerTwoMixButton) {
         this.playerTwoMixButton = document.getElementById('playerTwoMixButton');
-        console.log('[UIManager _initializeAndBindPlayerMixButtons] P2 Mix Button DOM Element:', this.playerTwoMixButton);
     }
     let listenersAttachedThisCall = false;
     if (this.playerOneMixButton) {
         this.playerOneMixButton.addEventListener('click', () => {
-            console.log('[UIManager] Player ONE Battle Mix Button CLICKED');
             this.handlePlayerOneMixAttempt();
         });
         listenersAttachedThisCall = true;
-    } else {
-        console.warn('[UIManager _initializeAndBindPlayerMixButtons] Player ONE Mix Button not found in DOM. Listener not attached.');
-        if (this.battleModeScreen) {
-            console.log('[UIManager _initializeAndBindPlayerMixButtons] Current innerHTML of this.battleModeScreen (P1 button search failed):', this.battleModeScreen.innerHTML);
-        } else {
-            console.warn('[UIManager _initializeAndBindPlayerMixButtons] this.battleModeScreen is ALSO null or undefined when P1 button search failed.');
-        }
     }
     if (this.playerTwoMixButton) {
         this.playerTwoMixButton.addEventListener('click', () => {
-            console.log('[UIManager] Player TWO Battle Mix Button CLICKED');
             this.handlePlayerTwoMixAttempt();
         });
         listenersAttachedThisCall = true;
-    } else {
-        console.warn('[UIManager _initializeAndBindPlayerMixButtons] Player TWO Mix Button not found in DOM. Listener not attached.');
-        if (this.battleModeScreen) {
-            // No need to log innerHTML again if P1 already logged it, but good to have the check
-        } else {
-            console.warn('[UIManager _initializeAndBindPlayerMixButtons] this.battleModeScreen is ALSO null or undefined when P2 button search failed.');
-        }
     }
-    if (listenersAttachedThisCall) { // Mark as attached if at least one was attempted (even if one button was null, we don't want to re-attempt infinitely)
+    if (listenersAttachedThisCall) {
         this._playerMixButtonListenersAttached = true;
     }
   }
@@ -877,16 +1220,14 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
       this.battleModeScreen.style.display = show ? 'flex' : 'none'; // Use flex due to new CSS
       if (show) {
         this._initializeAndBindPlayerMixButtons(); // Ensure buttons are initialized and listeners attached
-        
-        // When showing battle mode, hide other major overlays
+
         if (this.fullscreenEncyclopedia && this.fullscreenEncyclopedia.style.display !== 'none') {
           this.showEncyclopedia(false);
         }
         if (this.gameLeaderboardPanelEl && this.gameLeaderboardPanelEl.style.display !== 'none') {
           this.gameLeaderboardPanelEl.style.display = 'none';
         }
-        
-        // Optionally blur or hide the main gameArea if battle mode takes full focus
+
         if (this.gameArea) {
            this.gameArea.style.filter = 'blur(8px)';
            this.gameArea.style.pointerEvents = 'none';
@@ -907,13 +1248,11 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
                 if (!this.localPlayerIsOne) playerTwoLabelEl.classList.add('local-player-label');
                 else playerTwoLabelEl.classList.remove('local-player-label');
             }
-        } else { // Fallback (e.g. local mode not explicitly passing the flag, main.js defaults to true)
+        } else { 
             if (playerOneLabelEl) playerOneLabelEl.textContent = "Player 1";
             if (playerTwoLabelEl) playerTwoLabelEl.textContent = "Player 2";
         }
-        console.log(`[UIManager] Showing Battle Screen. Session: ${sessionData ? sessionData.id : 'Local'}. Local is P1: ${this.localPlayerIsOne}`);
-        // Timer is now started by enableBattleModeInteractionsAndStartTimer after readiness check
-        // this.startBattleTimer(60); 
+
         
         if (this.game) {
             if (typeof this.game.prepareForBattle === 'function') {
@@ -933,32 +1272,28 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
             this.updatePlayerTwoSelectedOrbsDisplay();
             this.clearPlayerTwoMixedColorDisplay();
             this.updatePlayerTwoBattleScoreDisplay(Infinity);
-            // Enable/Disable controls based on localPlayerIsOne
+
             if (this.playerOneMixButton) {
                 this.playerOneMixButton.disabled = this.localPlayerIsOne ? true : true; // Initially true, enabled by orb selection
-                 console.log(`[UIManager Battle] P1 Mix Button. Local is P1: ${this.localPlayerIsOne}. Disabled initially: ${this.playerOneMixButton.disabled}`);
             }
             if (this.playerTwoMixButton) {
                 this.playerTwoMixButton.disabled = !this.localPlayerIsOne ? true : true; // Initially true, enabled by orb selection
-                console.log(`[UIManager Battle] P2 Mix Button. Local is P1: ${this.localPlayerIsOne}. Disabled initially: ${this.playerTwoMixButton.disabled}`);
             }
             if (this.playerOneBattleOrbsContainer) {
                 this.playerOneBattleOrbsContainer.style.pointerEvents = this.localPlayerIsOne ? 'auto' : 'none';
                 this.playerOneBattleOrbsContainer.style.opacity = this.localPlayerIsOne ? '1' : '0.5';
-                 console.log(`[UIManager Battle] P1 Orbs. Local is P1: ${this.localPlayerIsOne}. Interactive: ${this.playerOneBattleOrbsContainer.style.pointerEvents === 'auto'}`);
             }
             if (this.playerTwoBattleOrbsContainer) {
                 this.playerTwoBattleOrbsContainer.style.pointerEvents = !this.localPlayerIsOne ? 'auto' : 'none';
                 this.playerTwoBattleOrbsContainer.style.opacity = !this.localPlayerIsOne ? '1' : '0.5';
-                 console.log(`[UIManager Battle] P2 Orbs. Local is P1: ${this.localPlayerIsOne}. Interactive: ${this.playerTwoBattleOrbsContainer.style.pointerEvents === 'auto'}`);
             }
         }
-      } else { // Hiding battle screen
+      } else { 
         this.currentBattleSessionData = null;
         this.localPlayerIsOne = null; // Reset flag
         if (this.gameArea) {
            this.gameArea.style.filter = 'none';
-           this.gameArea.style.pointerEvents = ''; // Revert to CSS default
+           this.gameArea.style.pointerEvents = ''; 
         }
          this.stopBattleTimer();
          this.playerOneBattleSelection = []; 
@@ -972,7 +1307,7 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
     }
   }
   startBattleTimer(durationSeconds) {
-    this.stopBattleTimer(); // Clear any existing timer
+    this.stopBattleTimer(); 
     this.battleTimerSeconds = durationSeconds;
     this.updateBattleTimerDisplay();
     this.battleTimerInterval = setInterval(() => {
@@ -980,9 +1315,6 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
       this.updateBattleTimerDisplay();
       if (this.battleTimerSeconds <= 0) {
         this.stopBattleTimer();
-        // TODO: Implement end-of-battle logic (e.g., show results)
-        console.log("Battle Timer Expired!");
-        // Potentially emit an event or call a game manager function
         if (this.game && typeof this.game.handleBattleEnd === 'function') {
            this.game.handleBattleEnd('timer_expired');
         }
@@ -1003,74 +1335,34 @@ populateAvailableOrbsList(mixArity, sortOrder = 'name_asc') {
         `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }
   }
-// DEPRECATED for multiplayer battle mode. Target color must be shared.
-// This function should NOT be called by game.prepareForBattle for multiplayer.
-// Game logic (main.js/game.js) should generate/fetch ONE target color for the session
-// and then call displaySpecificTargetColor on UIManager for both players.
-displayRandomTargetColor(discoveredColors) {
-    console.warn("[UIManager] DEPRECATED displayRandomTargetColor was called. This is problematic for shared Battle Mode. The game logic should provide a specific target color for the session.");
-    if (!this.targetBattleColorDisplay || !this.targetBattleColorInfo) {
-        console.warn("Target color display elements not found.");
-        return null;
-    }
-    // Fallback behavior if called directly (e.g. for a non-networked test or single player mode if that existed)
-    // This part remains largely the same but it's usage in battle mode context is now incorrect.
-    if (!this.game || !this.game.colorSystem) {
-        console.warn("Game/ColorSystem not available for random target color generation in UIManager.");
-        this.targetBattleColorDisplay.style.backgroundColor = '#333';
-        this.targetBattleColorInfo.textContent = 'Error setting target (system issue).';
-        return null;
-    }
-    const r = Math.floor(Math.random() * 256);
-    const g = Math.floor(Math.random() * 256);
-    const b = Math.floor(Math.random() * 256);
-    const randomRGB = [r, g, b];
-    let hexString = this.game.colorSystem.rgbToHex(r, g, b);
-    const hsl = this.game.colorSystem.rgbToHsl(...randomRGB);
-    const targetColor = { name: "Mystery Target", hex: hexString, rgb: randomRGB, hsl: hsl };
-    
-    this.targetBattleColorDisplay.style.backgroundColor = targetColor.hex;
-    this.targetBattleColorDisplay.textContent = ''; 
-    this.targetBattleColorInfo.innerHTML = `<strong>${targetColor.name}</strong><br>Try to match this color!`;
-    
-    this.currentGameBattleTargetColor = targetColor; 
-    console.log("[UIManager] DEPRECATED Battle Mode Random (local only) HEX Target Color Set:", targetColor.hex);
-    return targetColor;
-}
+
   displaySpecificTargetColor(targetColor) {
     if (!this.targetBattleColorDisplay || !this.targetBattleColorInfo || !targetColor || !this.game || !this.game.colorSystem) {
-        console.warn("[UIManager] Cannot display specific target color: Critical elements missing or no targetColor provided.");
         if (this.targetBattleColorDisplay) this.targetBattleColorDisplay.style.backgroundColor = '#333';
         if (this.targetBattleColorInfo) this.targetBattleColorInfo.textContent = 'Target color not set.';
         return null;
     }
     this.targetBattleColorDisplay.style.backgroundColor = targetColor.hex;
     this.targetBattleColorDisplay.textContent = ''; // Clear placeholder text
-    // For specific target colors (e.g., if a challenge mode uses this), we might still show details,
-    // but for consistency with the random target, let's hide RGB/HSL here too.
-    // The results screen will always show the full details.
+
     this.targetBattleColorInfo.innerHTML = `
         <strong>${targetColor.name}</strong><br>
         Match this specific color!
     `;
     
-    this.currentGameBattleTargetColor = targetColor; 
-    console.log("[UIManager] Battle Mode Target Color Set (Specific, RGB/HSL hidden):", targetColor.name);
+    this.currentGameBattleTargetColor = targetColor;
     return targetColor; // Return the chosen color
-}
+  }
   initializePlayerOneBattleOrbs() {
     if (!this.game || !this.game.colorSystem) {
-        console.warn("[UIManager] Color system not available for Player 1 battle orbs initialization.");
         this.playerOneAvailableBattleOrbs = [];
         return;
     }
     if (!this.playerOneBattleOrbsContainer) {
-        console.warn("[UIManager] Player 1 battle orbs container not found.");
         return;
     }
     const cs = this.game.colorSystem;
-    // Define the 7 starting orbs for Player 1 with their grid positions and symbols
-    // Define the 7 starting orbs for Player 1 with their 5-column grid positions and symbols
+  
     const baseOrbSetups = [
         { name: 'White',       position: 'orb-pos-r1-c1', symbol: null }, // Row 1, Col 1
         { name: 'Red',         position: 'orb-pos-r1-c2', symbol: null }, // Row 1, Col 2
@@ -1083,27 +1375,26 @@ displayRandomTargetColor(discoveredColors) {
     this.playerOneAvailableBattleOrbs = baseOrbSetups.map(orbInfo => {
         const colorData = cs.getDiscoveredColors().find(c => c.name === orbInfo.name);
         if (!colorData) {
-            console.warn(`[UIManager] Player 1 battle orb color not found in ColorSystem: ${orbInfo.name}`);
-            return { 
+            return {
                 colorData: { name: orbInfo.name, hex: '#808080', isFallback: true }, // Fallback visual
                 position: orbInfo.position,
-                symbol: orbInfo.symbol 
+                symbol: orbInfo.symbol
             };
         }
         return { colorData, position: orbInfo.position, symbol: orbInfo.symbol };
-    }).filter(Boolean); // Filter out any null/undefined entries if a color was critically missing and returned null
+    }).filter(Boolean);
     this.renderPlayerOneBattleOrbs();
   }
   renderPlayerOneBattleOrbs() {
     if (!this.playerOneBattleOrbsContainer) return;
-    this.playerOneBattleOrbsContainer.innerHTML = ''; // Clear previous orbs
+    this.playerOneBattleOrbsContainer.innerHTML = '';
     this.playerOneAvailableBattleOrbs.forEach(orbSetup => {
         if (!orbSetup || !orbSetup.colorData) return;
         const orbEl = document.createElement('div');
         orbEl.classList.add('battle-source-orb');
-        if (orbSetup.position) { // Starting orbs have fixed positions
+        if (orbSetup.position) {
             orbEl.classList.add(orbSetup.position);
-        } else { // Dynamically added orbs might need a different class or rely on flexbox flow
+        } else { 
             orbEl.classList.add('dynamic-battle-orb'); 
         }
         orbEl.style.backgroundColor = orbSetup.colorData.hex;
@@ -1112,9 +1403,8 @@ displayRandomTargetColor(discoveredColors) {
             orbEl.textContent = orbSetup.symbol;
             const luminance = this.#calculateLuminance(orbSetup.colorData.rgb || [0,0,0]); // Ensure rgb exists
             orbEl.style.color = luminance > 0.5 ? 'black' : 'white';
-        } else if (!orbSetup.position) { // For dynamic orbs without a symbol, maybe a small dot or icon
-            // Example: add a small inner circle or just rely on color
-            // orbEl.innerHTML = '<span class="dynamic-orb-indicator">●</span>';
+        } else if (!orbSetup.position) { 
+
         }
         
         orbEl.addEventListener('click', () => this.handlePlayerOneBattleOrbClick(orbSetup.colorData));
@@ -1122,41 +1412,26 @@ displayRandomTargetColor(discoveredColors) {
     });
 }
   handlePlayerOneBattleOrbClick(colorData) {
-    console.log('[UIManager] P1 Orb Click. Local is P1:', this.localPlayerIsOne, 'Color:', colorData ? colorData.name : 'undefined');
     if (!this.localPlayerIsOne) {
-        console.log("[UIManager] Ignoring P1 orb click because local player is P2.");
-        return; 
+        return;
     }
     if (this.playerOneBattleSelection.length >= this.MAX_BATTLE_SELECTION) {
-        console.log("Player 1: Maximum orb selection reached.");
         return;
     }
     const selectedIndex = this.playerOneBattleSelection.findIndex(selectedOrb => selectedOrb.hex === colorData.hex);
     if (selectedIndex > -1) {
-        // Orb is already selected, so remove it (deselect)
         this.playerOneBattleSelection.splice(selectedIndex, 1);
-        console.log(`Player 1: Orb ${colorData.name} deselected.`);
     } else {
-        // Orb is not selected, add it if max not reached
         if (this.playerOneBattleSelection.length >= this.MAX_BATTLE_SELECTION) {
-            console.log("Player 1: Maximum orb selection reached. Cannot add new orb.");
             return;
         }
         this.playerOneBattleSelection.push(colorData);
-        console.log(`Player 1: Orb ${colorData.name} selected.`);
     }
     this.updatePlayerOneSelectedOrbsDisplay();
     if (this.playerOneMixButton) {
         const canMix = this.playerOneBattleSelection.length >= 2 && this.playerOneBattleSelection.length <= this.MAX_BATTLE_SELECTION;
         this.playerOneMixButton.disabled = !canMix;
-        console.log(`[UIManager P1 Orb Click/Deselect] P1 Mix Button updated. Can mix: ${canMix}. Disabled: ${this.playerOneMixButton.disabled}`);
-    } else {
-        console.warn('[UIManager P1 Orb Click/Deselect] P1 Mix Button NOT FOUND when trying to set disabled state.');
     }
-    // Future: Notify game logic to enable/disable P1's mix button
-    // if (this.game && typeof this.game.updateBattlePlayerState === 'function') {
-    //   this.game.updateBattlePlayerState('player1', { selection: this.playerOneBattleSelection });
-    // }
   }
   updatePlayerOneSelectedOrbsDisplay() {
     if (!this.playerOneSelectedOrbsContainer) return;
@@ -1165,7 +1440,7 @@ displayRandomTargetColor(discoveredColors) {
     placeholders.forEach((placeholder, index) => {
         placeholder.innerHTML = ''; // Clear any previous orb swatch
         placeholder.classList.remove('has-orb');
-        // backgroundColor is handled by .orb-placeholder CSS, no need to reset here unless it was changed directly
+
         if (index < this.playerOneBattleSelection.length) {
             const selectedOrbData = this.playerOneBattleSelection[index];
             placeholder.classList.add('has-orb');
@@ -1176,51 +1451,28 @@ displayRandomTargetColor(discoveredColors) {
             orbSwatchEl.title = selectedOrbData.name; // Tooltip for the selected swatch
             placeholder.appendChild(orbSwatchEl);
         }
-        // Else: placeholder remains empty, styled by its default CSS
+
     });
   }
   handlePlayerOneMixAttempt() {
-    console.log('[UIManager] P1 Mix Attempt. Local is P1:', this.localPlayerIsOne);
     if (!this.localPlayerIsOne) {
-        console.log("[UIManager] Ignoring P1 mix attempt because local player is P2.");
         return;
     }
     if (!this.game || !this.game.colorSystem || !this.playerOneColorDisplay || !this.playerOneColorResultInfo) {
-        console.warn("[UIManager] Cannot attempt P1 mix: critical components missing.");
         return;
     }
     if (this.playerOneBattleSelection.length < 2) {
         this.displayPlayerOneMixedColor(null, "Select at least 2 orbs to mix!");
         return;
     }
-    console.log('[UIManager] P1 Mix Attempt. Input Orbs:', 
-        this.playerOneBattleSelection.map(orb => ({ 
-            name: orb.name, 
-            hex: orb.hex, 
-            isPrimary: orb.isPrimary, 
-            isShadingColor: orb.isShadingColor, 
-            isSaturationModifier: orb.isSaturationModifier 
-        }))
-    );
-    // For more exhaustive debugging, you could uncomment the following line:
-    // console.log('[UIManager] P1 Full Selection Data for Mix:', JSON.stringify(this.playerOneBattleSelection));
     const mixedColor = this.game.colorSystem.mixColors(this.playerOneBattleSelection);
-    console.log('[UIManager] P1 Mix Attempt. Result from colorSystem:', 
-        mixedColor ? { name: mixedColor.name, hex: mixedColor.hex, rgb: mixedColor.rgb } : 'null (mix failed or no result)'
-    );
-    // For more exhaustive debugging of the result, you could uncomment the following line:
-    // console.log('[UIManager] P1 Full Mix Result Data:', JSON.stringify(mixedColor));
     this.displayPlayerOneMixedColor(mixedColor);
     if (mixedColor) { // Only add if the mix was successful
-        // Check if this color (by hex) is already in available orbs to avoid duplicates
         if (!this.playerOneAvailableBattleOrbs.some(orb => orb.colorData.hex === mixedColor.hex)) {
-            this.playerOneAvailableBattleOrbs.push({ 
-                colorData: mixedColor, 
-                // No fixed 'position' for dynamically added orbs, symbol is also not applicable here
-                // Orbs added this way will be rendered differently or just appended
+            this.playerOneAvailableBattleOrbs.push({
+                colorData: mixedColor,
             });
             this.renderPlayerOneBattleOrbs(); // Re-render to show the new orb
-            console.log(`[UIManager] Added ${mixedColor.name} to Player 1's available battle orbs.`);
         }
     }
     if (this.game && typeof this.game.handlePlayerOneBattleMixResult === 'function') {
@@ -1273,19 +1525,14 @@ displayRandomTargetColor(discoveredColors) {
       }
     }
   }
-  // --- Player 2 Battle Mode Methods (mirrors Player 1 for now) ---
+
   initializePlayerTwoBattleOrbs() {
     if (!this.game || !this.game.colorSystem || !this.playerTwoBattleOrbsContainer) {
-        console.warn("[UIManager] Critical components missing for Player 2 battle orbs initialization.");
         this.playerTwoAvailableBattleOrbs = [];
         return;
     }
     const cs = this.game.colorSystem;
-    // Using the same base orb setup as Player 1 for now
-    // If P2 needs distinct orb positions (e.g. orb-pos-p2-1-1), this needs to be adjusted.
-    // For now, assuming playerTwoSourceOrbs HTML uses the same class names for grid positions.
-    // Define the 7 starting orbs for Player 2 with their 5-column grid positions and symbols
-    // (Same as Player 1 for consistency)
+
     const baseOrbSetups = [
         { name: 'White',       position: 'orb-pos-r1-c1', symbol: null },
         { name: 'Red',         position: 'orb-pos-r1-c2', symbol: null },
@@ -1298,7 +1545,6 @@ displayRandomTargetColor(discoveredColors) {
     this.playerTwoAvailableBattleOrbs = baseOrbSetups.map(orbInfo => {
         const colorData = cs.getDiscoveredColors().find(c => c.name === orbInfo.name);
         if (!colorData) {
-            console.warn(`[UIManager] Player 2 battle orb color not found: ${orbInfo.name}`);
             return { colorData: { name: orbInfo.name, hex: '#808080', isFallback: true }, position: orbInfo.position, symbol: orbInfo.symbol };
         }
         return { colorData, position: orbInfo.position, symbol: orbInfo.symbol };
@@ -1330,36 +1576,25 @@ displayRandomTargetColor(discoveredColors) {
     });
 }
   handlePlayerTwoBattleOrbClick(colorData) {
-    console.log('[UIManager] P2 Orb Click. Local is P1:', this.localPlayerIsOne, 'Color:', colorData ? colorData.name : 'undefined');
     if (this.localPlayerIsOne) { // Note: condition is true if localPlayerIsOne (i.e., local player is P1, so P2 is opponent)
-        console.log("[UIManager] Ignoring P2 orb click because local player is P1.");
         return;
     }
     if (this.playerTwoBattleSelection.length >= this.MAX_BATTLE_SELECTION) {
-        console.log("Player 2: Maximum orb selection reached.");
         return;
     }
     const selectedIndex = this.playerTwoBattleSelection.findIndex(selectedOrb => selectedOrb.hex === colorData.hex);
     if (selectedIndex > -1) {
-        // Orb is already selected, so remove it (deselect)
         this.playerTwoBattleSelection.splice(selectedIndex, 1);
-        console.log(`Player 2: Orb ${colorData.name} deselected.`);
     } else {
-        // Orb is not selected, add it if max not reached
         if (this.playerTwoBattleSelection.length >= this.MAX_BATTLE_SELECTION) {
-            console.log("Player 2: Maximum orb selection reached. Cannot add new orb.");
             return;
         }
         this.playerTwoBattleSelection.push(colorData);
-        console.log(`Player 2: Orb ${colorData.name} selected.`);
     }
     this.updatePlayerTwoSelectedOrbsDisplay();
     if (this.playerTwoMixButton) {
         const canMix = this.playerTwoBattleSelection.length >= 2 && this.playerTwoBattleSelection.length <= this.MAX_BATTLE_SELECTION;
         this.playerTwoMixButton.disabled = !canMix;
-        console.log(`[UIManager P2 Orb Click/Deselect] P2 Mix Button updated. Can mix: ${canMix}. Disabled: ${this.playerTwoMixButton.disabled}`);
-    } else {
-        console.warn('[UIManager P2 Orb Click/Deselect] P2 Mix Button NOT FOUND when trying to set disabled state.');
     }
   }
   updatePlayerTwoSelectedOrbsDisplay() {
@@ -1380,42 +1615,22 @@ displayRandomTargetColor(discoveredColors) {
     });
   }
   handlePlayerTwoMixAttempt() {
-    console.log('[UIManager] P2 Mix Attempt. Local is P1:', this.localPlayerIsOne);
-    if (this.localPlayerIsOne) { // Note: condition is true if localPlayerIsOne (i.e., local player is P1, so P2 is opponent)
-        console.log("[UIManager] Ignoring P2 mix attempt because local player is P1.");
+    if (this.localPlayerIsOne) {
         return;
     }
     if (!this.game || !this.game.colorSystem || !this.playerTwoColorDisplay || !this.playerTwoColorResultInfo) {
-        console.warn("[UIManager] Cannot attempt P2 mix: critical components missing.");
         return;
     }
     if (this.playerTwoBattleSelection.length < 2) {
         this.displayPlayerTwoMixedColor(null, "Select at least 2 orbs to mix!");
         return;
     }
-    console.log('[UIManager] P2 Mix Attempt. Input Orbs:', 
-        this.playerTwoBattleSelection.map(orb => ({ 
-            name: orb.name, 
-            hex: orb.hex, 
-            isPrimary: orb.isPrimary, 
-            isShadingColor: orb.isShadingColor, 
-            isSaturationModifier: orb.isSaturationModifier 
-        }))
-    );
-    // For more exhaustive debugging, you could uncomment the following line:
-    // console.log('[UIManager] P2 Full Selection Data for Mix:', JSON.stringify(this.playerTwoBattleSelection));
     const mixedColor = this.game.colorSystem.mixColors(this.playerTwoBattleSelection);
-    console.log('[UIManager] P2 Mix Attempt. Result from colorSystem:', 
-        mixedColor ? { name: mixedColor.name, hex: mixedColor.hex, rgb: mixedColor.rgb } : 'null (mix failed or no result)'
-    );
-    // For more exhaustive debugging of the result, you could uncomment the following line:
-    // console.log('[UIManager] P2 Full Mix Result Data:', JSON.stringify(mixedColor));
     this.displayPlayerTwoMixedColor(mixedColor);
-    if (mixedColor) { // Only add if the mix was successful
+    if (mixedColor) {
         if (!this.playerTwoAvailableBattleOrbs.some(orb => orb.colorData.hex === mixedColor.hex)) {
             this.playerTwoAvailableBattleOrbs.push({ colorData: mixedColor });
-            this.renderPlayerTwoBattleOrbs(); // Re-render to show the new orb
-            console.log(`[UIManager] Added ${mixedColor.name} to Player 2's available battle orbs.`);
+            this.renderPlayerTwoBattleOrbs();
         }
     }
     if (this.game && typeof this.game.handlePlayerTwoBattleMixResult === 'function') {
@@ -1475,14 +1690,13 @@ displayRandomTargetColor(discoveredColors) {
   }
   displayBattleResults(playerOneBestAttempt, playerTwoBestAttempt, targetColorData, winnerMessage) {
     if (!this.battleResultsScreen || !this.game || !this.game.colorSystem) {
-      console.warn("[UIManager] Battle results screen elements or game/color system not found. Cannot display results.");
       return;
     }
-    // Set winner message
+
     if (this.battleWinnerMessage) {
       this.battleWinnerMessage.textContent = winnerMessage;
     }
-    // Update Player Labels on Results Screen
+
     if (this.game && this.game.isLocalPlayerOne !== null) {
         if (this.playerOneResultLabel) {
             this.playerOneResultLabel.textContent = this.game.isLocalPlayerOne ? "You (Player 1)" : "Opponent (Player 1)";
@@ -1495,11 +1709,11 @@ displayRandomTargetColor(discoveredColors) {
             else this.playerTwoResultLabel.classList.remove('local-player-label');
         }
     } else {
-        // Fallback if game state isn't ready
+
         if (this.playerOneResultLabel) this.playerOneResultLabel.textContent = "Player 1";
         if (this.playerTwoResultLabel) this.playerTwoResultLabel.textContent = "Player 2";
     }
-    // Display Target Color
+
     if (this.targetColorResultSwatch && this.targetColorResultInfo && targetColorData) {
       this.targetColorResultSwatch.style.backgroundColor = targetColorData.hex;
       const hsl = this.game.colorSystem.rgbToHsl(...targetColorData.rgb);
@@ -1510,7 +1724,7 @@ displayRandomTargetColor(discoveredColors) {
         HSL: ${hsl.h.toFixed(0)}, ${Math.round(hsl.s * 100)}%, ${Math.round(hsl.l * 100)}%
       `;
     }
-    // Helper to format player result info
+
     const formatPlayerResult = (playerAttempt) => {
       if (playerAttempt && playerAttempt.colorData) {
         const { colorData, difference } = playerAttempt;
@@ -1528,26 +1742,22 @@ displayRandomTargetColor(discoveredColors) {
       }
       return { hex: '#444444', html: 'No successful mix.' };
     };
-    // Display Player 1 Best Mix
+
     if (this.playerOneResultSwatch && this.playerOneResultInfo) {
       const p1Result = formatPlayerResult(playerOneBestAttempt);
       this.playerOneResultSwatch.style.backgroundColor = p1Result.hex;
       this.playerOneResultInfo.innerHTML = p1Result.html;
     }
-    // Display Player 2 Best Mix
+
     if (this.playerTwoResultSwatch && this.playerTwoResultInfo) {
       const p2Result = formatPlayerResult(playerTwoBestAttempt);
       this.playerTwoResultSwatch.style.backgroundColor = p2Result.hex;
       this.playerTwoResultInfo.innerHTML = p2Result.html;
     }
-    this.battleResultsScreen.style.display = 'flex'; // Use flex as per example styling
+    this.battleResultsScreen.style.display = 'flex'; 
   }
   showBattleResultsScreen(show) {
     if (show) {
-      // This method is primarily used to *hide* the results screen during resets.
-      // If called with `show = true` unexpectedly, we'll log a warning and show it with placeholder data.
-      // A proper call to display results should use `displayBattleResults` with actual game data.
-      console.warn("[UIManager] showBattleResultsScreen(true) called. This is unusual outside of a direct reset. Displaying with placeholder results.");
       const placeholderColor = { name: "N/A", hex: "#777", rgb: [119, 119, 119] };
       this.displayBattleResults(
         { colorData: placeholderColor, difference: 0 },
@@ -1563,24 +1773,17 @@ displayRandomTargetColor(discoveredColors) {
     if (this.battleResultsScreen) {
       this.battleResultsScreen.style.display = 'none';
     }
-    // Restore main game area interactivity if it was globally disabled by results screen
-    // (This depends on how main.js handles gameArea state when showing results)
+
     if (this.gameArea) {
-        // This assumes that battle mode screen was hidden, so main game area might be visible
-        // If gameArea was blurred by showBattleModeScreen(true) and not restored by showBattleModeScreen(false)
-        // then showing results means gameArea is still blurred. Closing results should unblur.
-        // However, showBattleModeScreen(false) *does* restore gameArea filter.
-        // So, this might not be strictly necessary here unless results screen itself adds a blur.
-        // For safety, let's ensure filter is none and pointer events are as expected.
        this.gameArea.style.filter = 'none';
-       // this.gameArea.style.pointerEvents = 'auto'; // This was problematic; default is 'none'
+
     }
   }
   setupLobbyEventListeners() {
     if (this.cancelLobbyButton) {
       this.cancelLobbyButton.addEventListener('click', () => {
         this.showLobbyScreen(false);
-        // Potentially call game logic to cancel matchmaking or leave session
+
         if (this.game && typeof this.game.leaveLobby === 'function') {
           this.game.leaveLobby();
         }
@@ -1591,7 +1794,7 @@ displayRandomTargetColor(discoveredColors) {
     if (this.lobbyScreen) {
       this.lobbyScreen.style.display = show ? 'flex' : 'none';
       if (show) {
-        // When showing lobby, hide other major overlays
+
         if (this.fullscreenEncyclopedia && this.fullscreenEncyclopedia.style.display !== 'none') {
           this.showEncyclopedia(false);
         }
@@ -1599,26 +1802,26 @@ displayRandomTargetColor(discoveredColors) {
           this.gameLeaderboardPanelEl.style.display = 'none';
         }
         if (this.battleModeScreen && this.battleModeScreen.style.display !== 'none') {
-          this.showBattleModeScreen(false); // Ensure battle screen is hidden
+          this.showBattleModeScreen(false);
         }
         if (this.battleResultsScreen && this.battleResultsScreen.style.display !== 'none') {
             this.hideBattleResults();
         }
-        // Blur game area
+
         if (this.gameArea) {
            this.gameArea.style.filter = 'blur(8px)'; 
            this.gameArea.style.pointerEvents = 'none';
         }
         this.updateLobbyStatus('Searching for a game...');
-        // Call game logic to start searching for/creating a game session
+
         if (this.game && typeof this.game.enterLobby === 'function') {
           this.game.enterLobby();
         }
       } else {
-        // Restore game area
+
         if (this.gameArea) {
            this.gameArea.style.filter = 'none';
-           this.gameArea.style.pointerEvents = ''; // Revert to CSS default
+           this.gameArea.style.pointerEvents = ''; 
         }
       }
     }
@@ -1629,7 +1832,7 @@ displayRandomTargetColor(discoveredColors) {
     }
     const spinner = this.lobbyScreen ? this.lobbyScreen.querySelector('.spinner') : null;
     if (spinner) {
-        // Hide spinner if message indicates a final state like "Opponent found" or "Error"
+
         if (message.toLowerCase().includes('found') || message.toLowerCase().includes('starting') || message.toLowerCase().includes('error') || message.toLowerCase().includes('failed')) {
             spinner.style.display = 'none';
         } else {
@@ -1638,12 +1841,7 @@ displayRandomTargetColor(discoveredColors) {
     }
   }
   updateOpponentMixDisplay(playerIdentifier, mixedColorData, difference) {
-    // Determine which player's UI elements to update based on playerIdentifier
-    // and whether the local player is Player 1 or Player 2.
     let opponentColorDisplay, opponentColorResultInfo;
-    // This assumes currentBattleSessionData and game.isLocalPlayerOne are correctly set.
-    // If the local player is P1, then "player_two" updates P2's UI.
-    // If the local player is P2, then "player_one" updates P1's UI.
     if (this.game && this.game.isLocalPlayerOne !== null && this.currentBattleSessionData) {
         if (playerIdentifier === 'player_one' && !this.game.isLocalPlayerOne) { // Opponent is P1
             opponentColorDisplay = this.playerOneColorDisplay;
@@ -1652,21 +1850,17 @@ displayRandomTargetColor(discoveredColors) {
             opponentColorDisplay = this.playerTwoColorDisplay;
             opponentColorResultInfo = this.playerTwoColorResultInfo;
         } else {
-            // This attempt is from the local player or identifier doesn't match opponent role, ignore for this UI update.
-            // console.log(`[UI Opponent Sync] Ignoring update for ${playerIdentifier} as it's local or role mismatch.`);
             return;
         }
     } else {
-        console.warn("[UI Opponent Sync] Cannot determine opponent UI elements. Game state not ready.");
         return;
     }
     if (!opponentColorDisplay || !opponentColorResultInfo || !this.game || !this.game.colorSystem) {
-        console.warn(`[UI Opponent Sync] Opponent UI elements for ${playerIdentifier} or color system not found.`);
         return;
     }
     if (mixedColorData) {
         opponentColorDisplay.style.backgroundColor = mixedColorData.hex;
-        opponentColorDisplay.textContent = ''; // Clear any placeholder
+        opponentColorDisplay.textContent = '';
         const hsl = this.game.colorSystem.rgbToHsl(...mixedColorData.rgb);
         opponentColorResultInfo.innerHTML = `
             <strong>Opponent's Mix: ${mixedColorData.name}</strong><br>
@@ -1674,34 +1868,30 @@ displayRandomTargetColor(discoveredColors) {
             <small>RGB: (${mixedColorData.rgb.join(', ')})</small><br>
             <small>HSL: ${hsl.h.toFixed(0)}, ${Math.round(hsl.s * 100)}%, ${Math.round(hsl.l * 100)}%</small>
         `;
-        // Optional: Add visual cue if it's their new best (e.g., border flash)
-        // This would require knowing their previous best difference from the game logic.
-        // For now, the `showAchievement` in main.js covers the "best attempt" notification.
     } else {
-        opponentColorDisplay.style.backgroundColor = '#4a4a6a'; // Neutral "no mix" color
-        opponentColorDisplay.textContent = 'O'; // "Opponent"
+        opponentColorDisplay.style.backgroundColor = '#4a4a6a';
+        opponentColorDisplay.textContent = 'O';
         opponentColorResultInfo.innerHTML = `<strong>Opponent is thinking...</strong>`;
     }
-     console.log(`[UI Opponent Sync] Updated opponent (${playerIdentifier}) display: ${mixedColorData.name}, Diff: ${difference.toFixed(2)}`);
   }
   setupInitialBattleReadyState() {
-    console.log('[UIManager] Setting up initial battle ready state. Local is P1:', this.localPlayerIsOne);
-    // Determine which "Ready" button is for the local player and which is for the opponent.
+
+
     const localPlayerButton = this.localPlayerIsOne ? this.playerOneReadyButton : this.playerTwoReadyButton;
     const opponentPlayerButton = this.localPlayerIsOne ? this.playerTwoReadyButton : this.playerOneReadyButton;
     const localPlayerStatusEl = this.localPlayerIsOne ? this.playerOneReadyStatus : this.playerTwoReadyStatus;
     const opponentPlayerStatusEl = this.localPlayerIsOne ? this.playerTwoReadyStatus : this.playerOneReadyStatus;
     if (localPlayerButton) {
         localPlayerButton.textContent = 'Ready?';
-        localPlayerButton.disabled = false; // Local player's button is clickable
+        localPlayerButton.disabled = false;
         localPlayerButton.style.display = 'block';
     }
     if (opponentPlayerButton) {
-        opponentPlayerButton.textContent = 'Opponent Not Ready'; // Display for opponent
-        opponentPlayerButton.disabled = true; // Opponent's button is just a status indicator here
+        opponentPlayerButton.textContent = 'Opponent Not Ready'; 
+        opponentPlayerButton.disabled = true; 
         opponentPlayerButton.style.display = 'block';
     }
-    // More detailed status text elements (optional, if you have them in HTML)
+
     if (localPlayerStatusEl) {
         localPlayerStatusEl.textContent = 'You: Not Ready';
         localPlayerStatusEl.style.display = 'block';
@@ -1712,10 +1902,10 @@ displayRandomTargetColor(discoveredColors) {
         opponentPlayerStatusEl.style.display = 'block';
         opponentPlayerStatusEl.classList.remove('player-ready');
     }
-    // Disable mix buttons
+
     if (this.playerOneMixButton) this.playerOneMixButton.disabled = true;
     if (this.playerTwoMixButton) this.playerTwoMixButton.disabled = true;
-    // Disable orb selection areas
+
     if (this.playerOneBattleOrbsContainer) {
         this.playerOneBattleOrbsContainer.style.pointerEvents = 'none';
         this.playerOneBattleOrbsContainer.style.opacity = '0.5';
@@ -1724,54 +1914,38 @@ displayRandomTargetColor(discoveredColors) {
         this.playerTwoBattleOrbsContainer.style.pointerEvents = 'none';
         this.playerTwoBattleOrbsContainer.style.opacity = '0.5';
     }
-    // Update timer display
+
     if (this.battleModeTimerDisplay) {
         this.battleModeTimerDisplay.textContent = "Waiting for players...";
     }
     if (this.battleModeActionButton) {
         this.battleModeActionButton.textContent = "Cancel Match";
-        this.battleModeActionButton.disabled = false; // Initially enabled to cancel
+        this.battleModeActionButton.disabled = false; 
     }
-    this.stopBattleTimer(); // Ensure any previous timer is stopped
-    console.log('[UIManager] Initial battle ready state setup complete.');
+    this.stopBattleTimer();
+
   }
   _setupReadyButtonListeners() {
-    console.log('[UIManager] Setting up ready button listeners. LocalPlayerIsOne:', this.localPlayerIsOne);
-    // This needs to be called AFTER localPlayerIsOne is determined,
-    // or the listeners need to dynamically check localPlayerIsOne.
-    // For simplicity, we assume this is called once and localPlayerIsOne is stable for the battle screen session.
-    const p1Button = this.playerOneReadyButton;
-    const p2Button = this.playerTwoReadyButton;
-    if (p1Button) {
-        // Clone and replace to remove old listeners if any
-        const newP1Button = p1Button.cloneNode(true);
-        p1Button.parentNode.replaceChild(newP1Button, p1Button);
-        this.playerOneReadyButton = newP1Button; // Update reference
-        newP1Button.addEventListener('click', () => {
-            if (this.localPlayerIsOne === true) {
-                console.log('[UIManager] Player ONE (Local) Ready Button Clicked');
-                this.game.localPlayerClickedReady();
-            } else {
-                console.log('[UIManager] Player ONE (Opponent) Ready Button Clicked - IGNORED');
-            }
-        });
-    }
-    if (p2Button) {
-        const newP2Button = p2Button.cloneNode(true);
-        p2Button.parentNode.replaceChild(newP2Button, p2Button);
-        this.playerTwoReadyButton = newP2Button; // Update reference
-        newP2Button.addEventListener('click', () => {
-            if (this.localPlayerIsOne === false) {
-                console.log('[UIManager] Player TWO (Local) Ready Button Clicked');
-                this.game.localPlayerClickedReady();
-            } else {
-                console.log('[UIManager] Player TWO (Opponent) Ready Button Clicked - IGNORED');
-            }
-        });
-    }
+
+
+    const setupListener = (button, callback) => {
+        if (button && !button.dataset.listenerAttached) {
+            button.addEventListener('click', callback);
+            button.dataset.listenerAttached = 'true';
+        }
+    };
+    setupListener(this.playerOneReadyButton, () => {
+        if (this.localPlayerIsOne === true) {
+            this.game.localPlayerClickedReady();
+        }
+    });
+    setupListener(this.playerTwoReadyButton, () => {
+        if (this.localPlayerIsOne === false) {
+            this.game.localPlayerClickedReady();
+        }
+    });
   }
   updateLocalPlayerReadyButtonState(isReady) {
-    console.log(`[UIManager] Updating local player ready button. Local is P1: ${this.localPlayerIsOne}, Ready: ${isReady}`);
     const localPlayerButton = this.localPlayerIsOne ? this.playerOneReadyButton : this.playerTwoReadyButton;
     const localPlayerStatusEl = this.localPlayerIsOne ? this.playerOneReadyStatus : this.playerTwoReadyStatus;
     const playerLabel = this.localPlayerIsOne ? "You (P1)" : "You (P2)";
@@ -1786,7 +1960,6 @@ displayRandomTargetColor(discoveredColors) {
   }
   updateOpponentReadyStatus(playerIdentifier, isReady) {
     // playerIdentifier is 'player_one' or 'player_two'
-    console.log(`[UIManager] Updating opponent ready status for ${playerIdentifier}. Is Ready: ${isReady}. Local is P1: ${this.localPlayerIsOne}`);
     let opponentPlayerButton, opponentPlayerStatusEl, opponentLabel;
     if (playerIdentifier === 'player_one' && this.localPlayerIsOne === false) { // Opponent is P1
         opponentPlayerButton = this.playerOneReadyButton;
@@ -1801,7 +1974,7 @@ displayRandomTargetColor(discoveredColors) {
     }
     if (opponentPlayerButton) {
         opponentPlayerButton.textContent = isReady ? 'Opponent Ready!' : 'Opponent Not Ready';
-        opponentPlayerButton.disabled = true; // Always disabled as it's a status indicator
+        opponentPlayerButton.disabled = true; 
     }
     if (opponentPlayerStatusEl) {
         opponentPlayerStatusEl.textContent = isReady ? `${opponentLabel}: Ready!` : `${opponentLabel}: Not Ready`;
@@ -1809,20 +1982,17 @@ displayRandomTargetColor(discoveredColors) {
     }
   }
   enableBattleModeInteractionsAndStartTimer() {
-    console.log('[UIManager] Enabling battle interactions & starting timer. Local is P1:', this.localPlayerIsOne);
-    // Hide "Ready" buttons and any explicit status elements if they are separate
     if (this.playerOneReadyButton) this.playerOneReadyButton.style.display = 'none';
     if (this.playerTwoReadyButton) this.playerTwoReadyButton.style.display = 'none';
     if (this.playerOneReadyStatus) this.playerOneReadyStatus.style.display = 'none';
     if (this.playerTwoReadyStatus) this.playerTwoReadyStatus.style.display = 'none';
-    // Enable mix button for the local player (actual enabled state depends on orb selection count)
-    // The buttons should already be disabled=true from initial setup, this just confirms.
+
     if (this.localPlayerIsOne) {
-        if (this.playerOneMixButton) this.playerOneMixButton.disabled = true; // Will be enabled by orb selection
+        if (this.playerOneMixButton) this.playerOneMixButton.disabled = true;
     } else if (this.localPlayerIsOne === false) {
-        if (this.playerTwoMixButton) this.playerTwoMixButton.disabled = true; // Will be enabled by orb selection
+        if (this.playerTwoMixButton) this.playerTwoMixButton.disabled = true; 
     }
-    // Enable orb selection for the local player
+
     if (this.localPlayerIsOne) {
         if (this.playerOneBattleOrbsContainer) {
             this.playerOneBattleOrbsContainer.style.pointerEvents = 'auto';
@@ -1834,67 +2004,53 @@ displayRandomTargetColor(discoveredColors) {
             this.playerTwoBattleOrbsContainer.style.opacity = '1';
         }
     }
-    // Start the battle timer
-    this.startBattleTimer(60); // Or use a value from game settings/session
+
+    this.startBattleTimer(60); 
     if (this.battleModeActionButton) {
         this.battleModeActionButton.textContent = "Forfeit Match";
-        this.battleModeActionButton.disabled = false; // Allow forfeiting
+        this.battleModeActionButton.disabled = false;
     }
-    console.log('[UIManager] Battle timer initiated.');
   }
   handleBattleActionClick() {
     if (!this.game || !this.currentBattleSessionData) {
-        console.warn("[UIManager] Cannot handle battle action: game instance or session data missing.");
-        this.showBattleModeScreen(false); // Fallback: just hide the screen
+        this.showBattleModeScreen(false);
         if (this.game && typeof this.game.resetToMainMenu === 'function') {
-            this.game.resetToMainMenu(); // Attempt to go to main menu
+            this.game.resetToMainMenu();
         }
         return;
     }
-    const isGameStarted = this.game.isBattleGameStarted(); // Assumes game.js has this method
+    const isGameStarted = this.game.isBattleGameStarted();
     if (isGameStarted) {
-        // Game has started, action is "Forfeit"
-        console.log(`[UIManager] Player clicked Forfeit Match. Session ID: ${this.currentBattleSessionData.id}`);
         if (typeof this.game.forfeitBattle === 'function') {
             this.game.forfeitBattle();
         } else {
-            console.error("[UIManager] game.forfeitBattle() function not found!");
-            // Fallback: show loss results locally and hide screen
-            // This part would need more context on how to construct results for a local forfeit.
-            // For now, we'll assume game.forfeitBattle handles UI updates via main.js
-            this.showBattleModeScreen(false); 
+            this.showBattleModeScreen(false);
             if (this.game && typeof this.game.resetToMainMenu === 'function') this.game.resetToMainMenu();
         }
     } else {
-        // Game not started, action is "Cancel Match"
-        console.log(`[UIManager] Player clicked Cancel Match. Session ID: ${this.currentBattleSessionData.id}`);
         if (typeof this.game.cancelBattleMatch === 'function') {
             this.game.cancelBattleMatch();
         } else {
-            console.error("[UIManager] game.cancelBattleMatch() function not found!");
-            this.showBattleModeScreen(false); // Hide battle screen
+            this.showBattleModeScreen(false);
              if (this.game && typeof this.game.resetToMainMenu === 'function') this.game.resetToMainMenu(); // Go to main menu
         }
     }
   }
-  // Call this method from main.js or game.js when a battle is truly over (results shown and acknowledged)
-  // or when cancelling/forfeiting leads to exiting battle mode.
   resetBattleModeUIElements() {
     if (this.battleModeActionButton) {
         this.battleModeActionButton.textContent = "Cancel Match";
-        this.battleModeActionButton.disabled = true; // Should be enabled only when battle screen is active
+        this.battleModeActionButton.disabled = true; 
     }
     this.clearPlayerOneMixedColorDisplay();
     this.clearPlayerTwoMixedColorDisplay();
     this.updatePlayerOneBattleScoreDisplay(Infinity);
     this.updatePlayerTwoBattleScoreDisplay(Infinity);
     if(this.battleModeTimerDisplay) this.battleModeTimerDisplay.textContent = "00:00";
-    // Reset ready buttons and status (if they are still visible or need resetting)
-    // This might be redundant if setupInitialBattleReadyState covers it when re-entering.
+  
     if (this.playerOneReadyButton) {
         this.playerOneReadyButton.textContent = 'Ready?';
         this.playerOneReadyButton.disabled = true;
-        this.playerOneReadyButton.style.display = 'none'; // Hide until explicitly shown
+        this.playerOneReadyButton.style.display = 'none';
     }
     if (this.playerTwoReadyButton) {
         this.playerTwoReadyButton.textContent = 'Opponent Not Ready';
@@ -1903,15 +2059,12 @@ displayRandomTargetColor(discoveredColors) {
     }
     if (this.playerOneReadyStatus) this.playerOneReadyStatus.style.display = 'none';
     if (this.playerTwoReadyStatus) this.playerTwoReadyStatus.style.display = 'none';
-    // Reset main game mix button state and selected colors display as well
+
     if (this.mixButton) {
         this.mixButton.disabled = true;
-        console.log("[UIManager] Main game mixButton disabled as part of battle UI reset.");
     }
     if (this.gameSelectedColors) {
-        this.gameSelectedColors.innerHTML = ''; // Clear main game selected colors display
-        console.log("[UIManager] Main game selected colors display cleared.");
+        this.gameSelectedColors.innerHTML = '';
     }
-    console.log("[UIManager] Battle Mode UI elements reset.");
   }
 }

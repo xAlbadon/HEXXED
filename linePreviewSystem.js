@@ -144,7 +144,10 @@ export class LinePreviewSystem {
             this.poolMaterial = null; // Clear reference to its material too
         }
     }
-
+    getCentralPoint() {
+        // Return a clone to prevent external modification of the original vector
+        return this.centerPoint.clone();
+    }
     update(deltaTime) {
         // TWEEN.update() is called globally, so no need here unless specific per-frame logic
         // is needed for the lines/pool beyond tweens.

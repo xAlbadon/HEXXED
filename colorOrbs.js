@@ -11,7 +11,11 @@ export class ColorOrbManager {
     this.selectedOrbs = new Set();
     this.textLabelFont = 'Bold 32px "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans", Arial, sans-serif'; // Thematic font
     this.textLabelScale = 0.035; // Slightly smaller scale for text labels
+    this.tooltipsEnabled = true; // Control whether hover tooltips can be shown
     this.setupInteraction();
+  }
+  setTooltipsEnabled(isEnabled) {
+    this.tooltipsEnabled = isEnabled;
   }
 
   setupInteraction() {

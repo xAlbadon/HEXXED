@@ -458,20 +458,53 @@
         box-shadow: 0 0 20px rgba(255,255,255,0.6);
         border-color: #ffda77;
       }
-      #colorInfo { /* Styles for colorInfo within the new page */
-        margin-top: 20px;
-        padding: 20px;
-        background: rgba(0, 0, 0, 0.5);
-        border-radius: 12px;
-        border: 1px solid rgba(255,255,255,0.1);
-        font-size: 1em;
-        min-height: 80px; 
-        line-height: 1.6;
-        box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+      .colorSwatch.pinned {
+        border-color: #87CEFA; /* Light sky blue to indicate selection */
+        transform: scale(1.1);
+        box-shadow: 0 0 15px rgba(135, 206, 250, 0.7), 0 0 5px rgba(255, 105, 180, 0.4); /* Matching input focus glow */
       }
+      .colorSwatch.pinned:hover {
+        transform: scale(1.12); /* Slightly more emphasis on hover */
+        box-shadow: 0 0 20px rgba(135, 206, 250, 0.9), 0 0 8px rgba(255, 105, 180, 0.5);
+      }
+#colorInfo { /* Styles for colorInfo tooltip */
+    position: fixed; /* Position relative to the viewport */
+    display: none; /* Hidden by default */
+    padding: 12px;
+    background: rgba(10, 0, 20, 0.95); /* Dark, high-contrast background */
+    backdrop-filter: blur(5px);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 0.9em;
+    line-height: 1.5;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5); /* Prominent shadow for depth */
+    z-index: 550; /* Ensure it's above other encyclopedia content */
+    pointer-events: none; /* Allow mouse events to pass through */
+    transition: opacity 0.15s ease-in-out; /* Smooth fade effect */
+    max-width: 250px; /* Prevent it from being too wide */
+}
       #colorInfo strong {
         color: #ffda77;
         font-size: 1.2em;
+      }
+      .copy-hex-button {
+        display: block;
+        width: 100%;
+        margin-top: 10px;
+        padding: 6px 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 5px;
+        color: #ccc;
+        text-align: center;
+        font-weight: bold;
+        cursor: pointer;
+        pointer-events: auto; /* Crucial to make it clickable inside the tooltip */
+        transition: background-color 0.2s, color 0.2s;
+      }
+      .copy-hex-button:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
       }
       #leaderboardPanel {
         position: absolute;
@@ -699,6 +732,21 @@
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Responsive grid */
         gap: 10px;
+      }
+      .availableOrbsGrid { /* New class specifically for the summonable list */
+        display: grid;
+        grid-template-columns: repeat(3, 1fr); /* Enforce a 3-column layout */
+        gap: 10px;
+      }
+      @media (max-width: 768px) { /* On smaller screens, go to 2 columns */
+          .availableOrbsGrid {
+              grid-template-columns: repeat(2, 1fr);
+          }
+      }
+      @media (max-width: 480px) { /* On very small screens, go to 1 column */
+          .availableOrbsGrid {
+              grid-template-columns: 1fr;
+          }
       }
       .ringOrbListItem {
         display: flex;
@@ -1467,6 +1515,88 @@
             min-width: 140px;
         }
       }
+      /* Styles for new dual-slider filter controls */
+      .filter-group.dual-slider { margin-bottom: 15px; }
+      .filter-group.dual-slider label { display: block; margin-bottom: 8px; color: #ccc; font-weight: bold; }
+      .filter-group.dual-slider .sliders { display: flex; flex-direction: column; gap: 5px; }
+      .filter-group.dual-slider .sliders input[type="range"] { width: 100%; margin: 0; }
+      .filter-group.dual-slider .values { display: flex; justify-content: space-between; font-size: 0.9em; color: #aaa; margin-top: 5px; }
+      
+      /* Advanced filter toggle styles */
+      #advancedFilterToggleContainer { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+      #toggleAdvancedFilters { display: none; /* Hide the actual checkbox */ }
+      #toggleAdvancedFilters + label { 
+          color: #ccc;
+          font-size: 0.9em;
+          position: relative;
+          padding-left: 24px;
+          user-select: none;
+      }
+      #toggleAdvancedFilters + label::before { /* The custom checkbox box */
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 16px;
+          height: 16px;
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.3);
+          border-radius: 4px;
+          transition: background-color 0.2s;
+      }
+      #toggleAdvancedFilters:checked + label::before {
+          background-color: #ffda77;
+      }
+      #toggleAdvancedFilters:checked + label::after { /* The checkmark */
+          content: '✔';
+          position: absolute;
+          left: 3px;
+          top: 50%;
+          transform: translateY(-50%);
+          font-size: 12px;
+          color: #11001c;
+          font-weight: bold;
+      }
+      #toggleAdvancedFilters:not(:checked) ~ #advancedFilterControls {
+          display: none;
+      }
+      .pagination-controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        margin-top: 20px;
+        padding: 10px;
+        user-select: none;
+      }
+      .pagination-button {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        color: white;
+        padding: 8px 16px;
+        font-size: 0.9em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s;
+      }
+      .pagination-button:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
+      }
+      .pagination-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .page-info {
+        color: #ccc;
+        font-size: 1em;
+        font-weight: bold;
+        min-width: 100px;
+        text-align: center;
+      }
     </style>
   </head>
   <body>
@@ -1523,7 +1653,7 @@
         </div>
         <div id="encyclopediaTabContent">
           <div id="colorGridTab" class="encyclopediaTabPanel active">
-            <div id="encyclopediaControls">
+            <div id="encyclopediaControls" style="display: flex; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
               <label for="sortColorsDropdown">Sort by:</label>
               <select id="sortColorsDropdown">
                 <option value="name_asc">Name (A-Z)</option>
@@ -1539,8 +1669,80 @@
                 <option value="mix_arity_asc">Complexity (Low-High)</option>
                 <option value="mix_arity_desc">Complexity (High-Low)</option>
               </select>
+              <label for="encyclopediaColorFilterInput" style="margin-left: 15px;">Filter by Name:</label>
+              <input type="text" id="encyclopediaColorFilterInput" placeholder="e.g., 'Azure' or 'Sky'" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: white; padding: 8px 12px; font-size: 0.9em; outline: none;">
+              <div id="advancedFilterToggleContainer">
+                <input type="checkbox" id="advancedFiltersToggle">
+                <label for="advancedFiltersToggle">Advanced Filters</label>
+              </div>
+            </div>
+            <div id="advanced-filters-container" style="margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <!-- HSL Section -->
+                    <div>
+                        <h5 style="color: #ffda77; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid rgba(255,218,119,0.3); padding-bottom: 5px;">HSL Filters</h5>
+                        <div class="filter-group dual-slider">
+                            <label>Hue Range (0-360)</label>
+                            <div class="sliders">
+                                <input type="range" id="encyclopediaHueMinSlider" min="0" max="360" value="0">
+                                <input type="range" id="encyclopediaHueMaxSlider" min="0" max="360" value="360">
+                            </div>
+                            <div class="values"><span>Min: <span id="encyclopediaHueMinValue">0</span>°</span><span>Max: <span id="encyclopediaHueMaxValue">360</span>°</span></div>
+                        </div>
+                        <div class="filter-group dual-slider">
+                            <label>Saturation Range (0-100)</label>
+                            <div class="sliders">
+                                <input type="range" id="encyclopediaSaturationMinSlider" min="0" max="100" value="0">
+                                <input type="range" id="encyclopediaSaturationMaxSlider" min="0" max="100" value="100">
+                            </div>
+                            <div class="values"><span>Min: <span id="encyclopediaSaturationMinValue">0</span>%</span><span>Max: <span id="encyclopediaSaturationMaxValue">100</span>%</span></div>
+                        </div>
+                        <div class="filter-group dual-slider">
+                            <label>Lightness Range (0-100)</label>
+                            <div class="sliders">
+                                <input type="range" id="encyclopediaLightnessMinSlider" min="0" max="100" value="0">
+                                <input type="range" id="encyclopediaLightnessMaxSlider" min="0" max="100" value="100">
+                            </div>
+                            <div class="values"><span>Min: <span id="encyclopediaLightnessMinValue">0</span>%</span><span>Max: <span id="encyclopediaLightnessMaxValue">100</span>%</span></div>
+                        </div>
+                    </div>
+                    <!-- RGB Section -->
+                    <div>
+                        <h5 style="color: #ffda77; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid rgba(255,218,119,0.3); padding-bottom: 5px;">RGB Filters</h5>
+                        <div class="filter-group dual-slider">
+                            <label>Red Range (0-255)</label>
+                            <div class="sliders">
+                                <input type="range" id="encyclopediaRedMinSlider" min="0" max="255" value="0">
+                                <input type="range" id="encyclopediaRedMaxSlider" min="0" max="255" value="255">
+                            </div>
+                            <div class="values"><span>Min: <span id="encyclopediaRedMinValue">0</span></span><span>Max: <span id="encyclopediaRedMaxValue">255</span></span></div>
+                        </div>
+                        <div class="filter-group dual-slider">
+                            <label>Green Range (0-255)</label>
+                            <div class="sliders">
+                                <input type="range" id="encyclopediaGreenMinSlider" min="0" max="255" value="0">
+                                <input type="range" id="encyclopediaGreenMaxSlider" min="0" max="255" value="255">
+                            </div>
+                            <div class="values"><span>Min: <span id="encyclopediaGreenMinValue">0</span></span><span>Max: <span id="encyclopediaGreenMaxValue">255</span></span></div>
+                        </div>
+                        <div class="filter-group dual-slider">
+                            <label>Blue Range (0-255)</label>
+                            <div class="sliders">
+                                <input type="range" id="encyclopediaBlueMinSlider" min="0" max="255" value="0">
+                                <input type="range" id="encyclopediaBlueMaxSlider" min="0" max="255" value="255">
+                            </div>
+                            <div class="values"><span>Min: <span id="encyclopediaBlueMinValue">0</span></span><span>Max: <span id="encyclopediaBlueMaxValue">255</span></span></div>
+                        </div>
+                    </div>
+                </div>
+                <button id="resetFiltersButton" style="margin-top: 20px; padding: 8px 16px; background: rgba(255,107,107,0.7); border: none; color: white; border-radius: 6px; cursor: pointer;">Reset All Filters</button>
             </div>
             <div id="colorGrid"></div>
+            <div class="pagination-controls" id="colorGridPagination">
+                <button class="pagination-button" id="colorGridPrevPage" disabled>&lt; Prev</button>
+                <span class="page-info" id="colorGridPageInfo">Page 1 / 1</span>
+                <button class="pagination-button" id="colorGridNextPage" disabled>Next &gt;</button>
+            </div>
             <div id="colorInfo">Select a color to see details.</div>
           </div>
           <div id="colorRingsTab" class="encyclopediaTabPanel">
@@ -1568,7 +1770,7 @@
               </ul>
               <div class="availableOrbsSection" id="availableOrbsSection-2" style="display: none;"> <!-- Initially hidden, shown by "Manage Orbs" -->
                 <h5>Available to Summon:</h5>
-                <div id="availableOrbsControls-2">
+                <div class="availableOrbsControls" id="availableOrbsControls-2">
                   <label for="availableOrbsSortDropdown-2">Sort by:</label>
                   <select id="availableOrbsSortDropdown-2" class="availableOrbsSortDropdown" data-arity="2">
                     <!-- Options similar to #sortColorsDropdown -->
@@ -1579,6 +1781,8 @@
                     <option value="hue_asc">Hue</option>
                     <!-- Add other relevant sort options -->
                   </select>
+                  <label for="availableOrbsFilterInput-2" style="margin-left: 10px;">Filter:</label>
+                  <input type="text" id="availableOrbsFilterInput-2" class="availableOrbsFilterInput" placeholder="Filter by name..." data-arity="2">
                 </div>
                 <ul class="ringOrbList" id="availableOrbsList-2">
                   <!-- Populated by JS: e.g. -->
@@ -1590,6 +1794,11 @@
                   </li>
                   -->
                 </ul>
+              </div>
+              <div class="pagination-controls" id="summonablePagination-2">
+                  <button class="pagination-button" id="summonablePrevPage-2" disabled>&lt; Prev</button>
+                  <span class="page-info" id="summonablePageInfo-2">Page 1 / 1</span>
+                  <button class="pagination-button" id="summonableNextPage-2" disabled>Next &gt;</button>
               </div>
             </div>
             <!-- Section for 3-Color Mix Ring (similar structure) -->
@@ -1603,14 +1812,21 @@
               <ul class="ringOrbList activeOrbsGrid" id="activeOrbsList-3"></ul>
               <div class="availableOrbsSection" id="availableOrbsSection-3" style="display: none;">
                 <h5>Available to Summon:</h5>
-                <div id="availableOrbsControls-3">
+                <div class="availableOrbsControls" id="availableOrbsControls-3">
                   <label for="availableOrbsSortDropdown-3">Sort by:</label>
                   <select id="availableOrbsSortDropdown-3" class="availableOrbsSortDropdown" data-arity="3">
                      <option value="name_asc">Name (A-Z)</option>
                      <!-- other options -->
                   </select>
+                  <label for="availableOrbsFilterInput-3" style="margin-left: 10px;">Filter:</label>
+                  <input type="text" id="availableOrbsFilterInput-3" class="availableOrbsFilterInput" placeholder="Filter by name..." data-arity="3">
                 </div>
                 <ul class="ringOrbList" id="availableOrbsList-3"></ul>
+              </div>
+              <div class="pagination-controls" id="summonablePagination-3">
+                  <button class="pagination-button" id="summonablePrevPage-3" disabled>&lt; Prev</button>
+                  <span class="page-info" id="summonablePageInfo-3">Page 1 / 1</span>
+                  <button class="pagination-button" id="summonableNextPage-3" disabled>Next &gt;</button>
               </div>
             </div>
             <!-- Section for 4-Color Mix Ring (similar structure) -->
@@ -1624,14 +1840,21 @@
               <ul class="ringOrbList activeOrbsGrid" id="activeOrbsList-4"></ul>
               <div class="availableOrbsSection" id="availableOrbsSection-4" style="display: none;">
                 <h5>Available to Summon:</h5>
-                 <div id="availableOrbsControls-4">
+                 <div class="availableOrbsControls" id="availableOrbsControls-4">
                   <label for="availableOrbsSortDropdown-4">Sort by:</label>
                   <select id="availableOrbsSortDropdown-4" class="availableOrbsSortDropdown" data-arity="4">
                      <option value="name_asc">Name (A-Z)</option>
                      <!-- other options -->
                   </select>
+                  <label for="availableOrbsFilterInput-4" style="margin-left: 10px;">Filter:</label>
+                  <input type="text" id="availableOrbsFilterInput-4" class="availableOrbsFilterInput" placeholder="Filter by name..." data-arity="4">
                 </div>
                 <ul class="ringOrbList" id="availableOrbsList-4"></ul>
+              </div>
+              <div class="pagination-controls" id="summonablePagination-4">
+                  <button class="pagination-button" id="summonablePrevPage-4" disabled>&lt; Prev</button>
+                  <span class="page-info" id="summonablePageInfo-4">Page 1 / 1</span>
+                  <button class="pagination-button" id="summonableNextPage-4" disabled>Next &gt;</button>
               </div>
             </div>
           </div>

@@ -310,6 +310,13 @@ class ChromaLabGame {
       this.selectOrb(orb);
     }
     
+    // Toggle tooltip availability based on selection
+    // Toggle tooltip availability based on selection
+    if (this.selectedColors.length > 0) {
+      this.orbManager.setTooltipsEnabled(false);
+    } else {
+      this.orbManager.setTooltipsEnabled(true);
+    }
     this.uiManager.updateSelectedColors(this.selectedColors);
     this.checkMixingAvailable();
     
@@ -329,12 +336,11 @@ class ChromaLabGame {
     this.selectedColors.push(orb);
     this.orbManager.selectOrb(orb);
   }
-
   deselectOrb(orb) {
+    this.orbManager.deselectOrb(orb); // Call this first to ensure visual state updates
     const index = this.selectedColors.indexOf(orb);
     if (index > -1) {
       this.selectedColors.splice(index, 1);
-      this.orbManager.deselectOrb(orb);
     }
   }
 
@@ -375,7 +381,9 @@ class ChromaLabGame {
             } else { // Must be Player 2 in a session
                 this.handlePlayerTwoBattleMixResult(newColor, this.currentBattleTargetColor);
             }
-            if (this.particleSystem) this.particleSystem.createBurst(new THREE.Vector3(0, 1, 0), newColor);
+            // Trigger particle burst for a successful mix in battle mode
+            const centralPoint = this.linePreviewSystem.getCentralPoint() || new THREE.Vector3(0, 1, 0);
+            if (this.particleSystem) this.particleSystem.createBurst(centralPoint, newColor);
         } else {
             console.log('[ChromaLabGame.mixSelectedColors] Battle Mode: Mix considered failed (newColor is null or currentBattleTargetColor is null).');
             this.uiManager.showAchievement("Mix Failed! Try again.");
@@ -391,7 +399,9 @@ class ChromaLabGame {
                 this.updateProgressionRules();
                 this.uiManager.updateColorCount(this.colorSystem.getDiscoveredColors().length);
                 this.uiManager.showColorDiscovered(newColor);
-                if (this.particleSystem) this.particleSystem.createBurst(new THREE.Vector3(0, 1, 0), newColor);
+                // Trigger particle burst for a new color discovery
+                const centralPoint = this.linePreviewSystem.getCentralPoint() || new THREE.Vector3(0, 1, 0);
+                if (this.particleSystem) this.particleSystem.createBurst(centralPoint, newColor);
                 const totalDiscovered = this.colorSystem.getDiscoveredColors().length;
                 const achievementProgressMade = this.challengeManager.updateProgress(newColor, totalDiscovered);
                 if (achievementProgressMade) {
@@ -405,7 +415,9 @@ class ChromaLabGame {
                 this.uiManager.updateChallengeDisplay();
             } else { // Color already discovered
                 this.uiManager.showAchievement(`${newColor.name} already discovered.`);
-                if (this.particleSystem) this.particleSystem.createBurst(new THREE.Vector3(0, 1, 0), newColor); // Particles for re-mix
+                // Trigger particle burst for re-mixing an existing color
+                const centralPoint = this.linePreviewSystem.getCentralPoint() || new THREE.Vector3(0, 1, 0);
+                if (this.particleSystem) this.particleSystem.createBurst(centralPoint, newColor);
             }
         } else { // Mix failed
             this.uiManager.showAchievement("Mix Failed! Try different colors.");
@@ -501,6 +513,7 @@ class ChromaLabGame {
     this.uiManager.updateSelectedColors(this.selectedColors);
     this.checkMixingAvailable();
     this.linePreviewSystem.clearPreview(); // Clear preview when selection is cleared
+    this.orbManager.setTooltipsEnabled(true); // Re-enable tooltips when selection clears
   }
 
   // Event listeners specific to the game (after login)
