@@ -67,7 +67,7 @@ class AudioManager {
             return;
         }
         
-        const trackName = trackPath.split('/').pop().replace(/_/g, ' ');
+        const trackName = trackPath.split('/').pop();
         const fullTrackName = `${trackName}.${extension}`;
         
         if (this.backgroundMusic && this.backgroundMusic.src.endsWith(fullTrackName)) {
