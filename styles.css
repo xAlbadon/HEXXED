@@ -1,0 +1,134 @@
+/* Existing styles from index.html can be moved here */
+body {
+    background-color: #1a1a2e;
+    color: #e0e0e0;
+    font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+canvas {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+
+#lobbyScreen, #battleModeScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(26, 26, 46, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(5px);
+}
+#lobbyContent, .battleContainer, .battleResultsContainer {
+    background-color: rgba(16, 16, 32, 0.8);
+    padding: 2rem 3rem;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+h1.game-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(255, 107, 107, 0.5), 0 0 20px rgba(255, 107, 107, 0.3);
+}
+
+#authForm input {
+    display: block;
+    width: 250px;
+    padding: 12px;
+    margin: 10px auto;
+    border: 1px solid #4f4f8e;
+    border-radius: 8px;
+    background-color: #1a1a2e;
+    color: #e0e0e0;
+    font-size: 1rem;
+}
+
+#authForm input::placeholder {
+    color: #8a8a9e;
+}
+
+.auth-buttons button {
+    padding: 12px 25px;
+    margin: 10px 5px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#loginButton {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+    color: white;
+}
+#loginButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+}
+
+#signupButton {
+    background-color: transparent;
+    border: 2px solid #ff6b6b;
+    color: #ff6b6b;
+}
+
+#signupButton:hover {
+    background-color: #ff6b6b;
+    color: white;
+}
+
+#authMessage {
+    margin-top: 15px;
+    font-weight: 500;
+    height: 20px;
+}
+
+#gameArea {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: none; /* Initially hidden */
+}
+
+/* Side Notification Styling */
+.side-notification {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 10px;
+    font-weight: bold;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    margin-bottom: 10px; /* Use gap in container now */
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+    pointer-events: auto;
+}
+
+.side-notification.visible {
+    opacity: 1;
+    transform: translateX(0);
+}

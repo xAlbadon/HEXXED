@@ -9,6 +9,7 @@ import { ChallengeManager } from './challengeManager.js';
 import { LinePreviewSystem } from './linePreviewSystem.js'; // Added
 import { supabase } from './supabaseClient.js';
 import { UpdateManager } from './updateManager.js'; // Added for Electron updates
+import audioManager from './audioManager.js';
 class ChromaLabGame {
   constructor() {
     this.container = document.getElementById('gameContainer');
@@ -61,6 +62,16 @@ class ChromaLabGame {
   }
   // Called after successful login/signup
   async completeInitialization() {
+    // Play background music
+    // Note: In Electron, paths are relative to the project root.
+    // Ensure 'assets/music/Chromatic_Cascade.mp3' exists.
+    if (audioManager.currentTrackPath) {
+        audioManager.playBackgroundMusic(audioManager.currentTrackPath);
+    } else {
+        // If no track is saved in localStorage, play the default and save it.
+        audioManager.playBackgroundMusic('./assets/music/Chromatic_Cascade.mp3');
+    }
+    
     // Initialize core systems
     this.gameWorld = new GameWorld(this.container);
     this.colorSystem = new ColorSystem();
@@ -121,7 +132,7 @@ class ChromaLabGame {
         this.playerId = data.id;
         this.username = data.username;
         this.uiManager.setAuthMessage('Login successful!', false);
-        this.uiManager.showGameArea();
+        this.uiManager.showGameArea(this.username);
         await this.completeInitialization();
       } else {
         this.uiManager.setAuthMessage('Invalid username or password.', true);
@@ -160,7 +171,7 @@ class ChromaLabGame {
         this.playerId = newUser.id;
         this.username = newUser.username;
         this.uiManager.setAuthMessage('Signup successful! Logging in...', false);
-        this.uiManager.showGameArea();
+        this.uiManager.showGameArea(this.username);
         await this.completeInitialization();
       } else {
         this.uiManager.setAuthMessage('Signup failed. Please try again.', true);
@@ -1422,7 +1433,7 @@ class ChromaLabGame {
         this.uiManager.gameArea.style.pointerEvents = ''; // Revert to CSS default
         this.uiManager.gameArea.style.filter = 'none'; // Ensure blur is removed
     }
-    this.uiManager.showGameArea(); // Show the main game area (discovery mode)
+    this.uiManager.showGameArea(this.username); // Show the main game area (discovery mode)
     // Reset game state variables related to battle
     this.currentBattleTargetColor = null;
     this.playerOneReadyForBattle = false;

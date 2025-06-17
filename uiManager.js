@@ -1,5 +1,6 @@
 import { Leaderboard } from './leaderboard.js';
 import { UpdateManager } from './updateManager.js';
+import audioManager from './audioManager.js';
 export class UIManager {
   constructor(gameInstance, loginCallback, signupCallback) {
     this.game = gameInstance;
@@ -108,6 +109,17 @@ export class UIManager {
     this.gameLeaderboardPanelEl = document.getElementById('leaderboardPanel');
 
     this.achievementsListContainer = document.getElementById('achievementsList');
+    // Audio Settings Elements
+    this.sideNotificationContainer = null;
+    this._createSideNotificationContainer();
+    this.muteButton = document.getElementById('muteButton');
+    this.masterVolumeSlider = document.getElementById('masterVolumeSlider');
+    this.masterVolumeValue = document.getElementById('masterVolumeValue');
+    this.sfxVolumeSlider = document.getElementById('sfxVolumeSlider');
+    this.sfxVolumeValue = document.getElementById('sfxVolumeValue');
+    this.musicVolumeSlider = document.getElementById('musicVolumeSlider');
+    this.musicVolumeValue = document.getElementById('musicVolumeValue');
+    this.musicTrackSelector = document.getElementById('musicTrackSelector');
     this.setupAuthEventListeners();
     this.leaderboard = null;
     this.mixButtonContainer = null;
@@ -117,6 +129,7 @@ export class UIManager {
     this.summonableListPage = { 2: 1, 3: 1, 4: 1 };
     this.SUMMONABLE_LIST_PAGE_SIZE = 12;
     this.setupEncyclopediaEventListeners();
+    this.setupAudioEventListeners();
     window.addEventListener('resize', this.handleResize.bind(this));
     this.setupLeaderboardToggleListener();
     this.setupBattleModeButtonListener();
@@ -133,6 +146,7 @@ export class UIManager {
     this.currentBattleSessionData = null;
     this.localPlayerIsOne = null;
     this.pinnedColorSwatch = null;
+    this.previousSelectedOrbsCount = 0;
     if (this.updateManager) {
       try {
         this.updateManager.initialize();
@@ -182,6 +196,7 @@ export class UIManager {
   }
   setupAuthEventListeners() {
     this.loginButton.addEventListener('click', () => {
+      audioManager.playSound('click1');
       const username = this.usernameInput.value.trim();
       const password = this.passwordInput.value;
       if (username && password) {
@@ -191,6 +206,7 @@ export class UIManager {
       }
     });
     this.signupButton.addEventListener('click', () => {
+      audioManager.playSound('click1');
       const username = this.usernameInput.value.trim();
       const password = this.passwordInput.value;
       if (username && password) {
@@ -209,10 +225,14 @@ export class UIManager {
   }
   setupEncyclopediaEventListeners() {
     if (this.encyclopediaToggleButton) {
-        this.encyclopediaToggleButton.addEventListener('click', () => this.showEncyclopedia(true));
+        this.encyclopediaToggleButton.addEventListener('click', () => {
+          audioManager.playSound('click1');
+          this.showEncyclopedia(true);
+        });
     }
     if (this.closeEncyclopediaButton) {
         this.closeEncyclopediaButton.addEventListener('click', () => {
+            audioManager.playSound('click1');
             this.showEncyclopedia(false);
             this.hideColorInfo(true); 
         });
@@ -256,6 +276,7 @@ export class UIManager {
     }
     this.encyclopediaTabButtons.forEach(button => {
       button.addEventListener('click', () => {
+        audioManager.playSound('click1');
         const targetTabId = button.dataset.tab;
         this.setActiveEncyclopediaTab(targetTabId);
       });
@@ -330,6 +351,9 @@ export class UIManager {
     } else if (tabId === 'achievementsTab') {
       this.populateAchievementsTab();
     }
+    if (tabId === 'settingsTab') {
+      this._updateAudioUI();
+    }
   }
   showEncyclopedia(show) {
     if (this.fullscreenEncyclopedia) {
@@ -356,17 +380,13 @@ export class UIManager {
         this.gameLeaderboardPanelEl.style.display = 'none';
     }
   }
-  showGameArea() {
+  showGameArea(currentPlayerUsername) {
     this.titleScreen.style.display = 'none';
     this.gameArea.style.display = 'block';
-
     this.gameArea.style.filter = 'none';
-
     this.createMixButton();
-
     if (this.gameLeaderboardPanelEl) {
-        this.leaderboard = new Leaderboard(this.gameLeaderboardPanelEl);
-
+        this.leaderboard = new Leaderboard(this.gameLeaderboardPanelEl, currentPlayerUsername);
     }
   }
   createMixButton() {
@@ -398,6 +418,10 @@ export class UIManager {
     if(this.gameColorCount) this.gameColorCount.textContent = count;
   }
   updateSelectedColors(selectedOrbs) {
+    if (selectedOrbs.length !== this.previousSelectedOrbsCount) {
+      audioManager.playRandomSelectSound();
+      this.previousSelectedOrbsCount = selectedOrbs.length;
+    }
     if(!this.gameSelectedColors) return;
     this.gameSelectedColors.innerHTML = '';
     
@@ -664,6 +688,7 @@ export class UIManager {
         e.stopPropagation(); 
         const hexToCopy = e.target.dataset.hex;
         navigator.clipboard.writeText(hexToCopy).then(() => {
+          audioManager.playSound('click1');
           e.target.textContent = 'Copied!';
           setTimeout(() => {
             e.target.textContent = 'Copy Hex';
@@ -715,7 +740,7 @@ export class UIManager {
     }
   }
   showColorDiscovered(colorData) {
-
+    audioManager.playSound('NewColor');
     const notification = document.createElement('div');
     notification.style.cssText = `
       position: fixed;
@@ -748,35 +773,59 @@ export class UIManager {
       }, 500);
     }, 2000);
   }
-
-  showAchievement(message) {
-    const achievement = document.createElement('div');
-    achievement.style.cssText = `
-      position: fixed;
-      top: 100px;
-      right: 20px;
-      background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
-      color: white;
-      padding: 15px;
-      border-radius: 10px;
-      font-weight: bold;
-      z-index: 1000;
-      pointer-events: none;
-      box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+  _createSideNotificationContainer() {
+    if (document.getElementById('side-notification-container')) {
+        this.sideNotificationContainer = document.getElementById('side-notification-container');
+        return;
+    }
+    this.sideNotificationContainer = document.createElement('div');
+    this.sideNotificationContainer.id = 'side-notification-container';
+    this.sideNotificationContainer.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+        pointer-events: none;
     `;
-    achievement.textContent = message;
-    
-    document.body.appendChild(achievement);
-    
+    document.body.appendChild(this.sideNotificationContainer);
+  }
+  showAchievement(message) {
+    audioManager.playSound('Achievement');
+    const notificationElement = document.createElement('div');
+    notificationElement.className = 'side-notification';
+    notificationElement.textContent = message;
+    this.sideNotificationContainer.insertBefore(notificationElement, this.sideNotificationContainer.firstChild);
+    // This forces a reflow, making the initial state register before the transition
+    void notificationElement.offsetWidth;
+    // Add class to trigger animation
+    notificationElement.classList.add('visible');
+    // Update styles for existing notifications
+    const allNotifications = this.sideNotificationContainer.querySelectorAll('.side-notification');
+    allNotifications.forEach((el, index) => {
+        if (index > 0) { // Don't apply to the new one
+            el.style.transform = `scale(${1 - (index * 0.05)}) translateY(${index * 5}px)`;
+            el.style.opacity = 1 - (index * 0.15);
+        }
+    });
+    // Set timeout to remove the notification
     setTimeout(() => {
-      achievement.style.transition = 'all 0.5s ease';
-      achievement.style.opacity = '0';
-      achievement.style.transform = 'translateX(100%)';
-      
-      setTimeout(() => {
-        document.body.removeChild(achievement);
-      }, 500);
-    }, 3000);
+        notificationElement.classList.remove('visible');
+        notificationElement.addEventListener('transitionend', () => {
+            if (notificationElement.parentNode) {
+                notificationElement.parentNode.removeChild(notificationElement);
+            }
+             // After removing one, we need to re-adjust the positions of the remaining ones.
+            const remainingNotifications = this.sideNotificationContainer.querySelectorAll('.side-notification');
+            remainingNotifications.forEach((el, index) => {
+                el.style.transform = `scale(${1 - (index * 0.05)}) translateY(${index * 5}px)`;
+                el.style.opacity = 1 - (index * 0.15);
+            });
+        });
+    }, 4000);
   }
   updateChallengeDisplay(challenge) {
     if(!this.gameChallengeDisplay) return;
@@ -800,6 +849,7 @@ export class UIManager {
   setupLeaderboardToggleListener() {
     if (this.leaderboardToggleButton && this.gameLeaderboardPanelEl) {
       this.leaderboardToggleButton.addEventListener('click', () => {
+        audioManager.playSound('click1');
         const isVisible = this.gameLeaderboardPanelEl.style.display === 'block';
         this.gameLeaderboardPanelEl.style.display = isVisible ? 'none' : 'block';
         if (!isVisible) {
@@ -882,6 +932,7 @@ populateRingsManagementTab() {
           unsummonButton.textContent = 'Unsummon';
           unsummonButton.title = `Remove ${orb.colorData.name} from this ring`;
           unsummonButton.addEventListener('click', () => {
+            audioManager.playSound('RemoveColor');
             if (this.game && typeof this.game.handleUnsummonOrbRequest === 'function') {
               this.game.handleUnsummonOrbRequest(orb);
             }
@@ -1011,6 +1062,7 @@ populateRingsManagementTab() {
       summonButton.title = `Summon ${colorData.name} to this ring`;
       summonButton.dataset.orbHex = colorData.hex;
       summonButton.addEventListener('click', () => {
+        audioManager.playSound('AddColor');
         if (this.game && typeof this.game.handleSummonOrbRequest === 'function') {
           this.game.handleSummonOrbRequest(colorData, mixArity);
         }
@@ -1177,7 +1229,7 @@ populateRingsManagementTab() {
   setupBattleModeButtonListener() {
     if (this.battleModeButton) {
       this.battleModeButton.addEventListener('click', () => {
-
+        audioManager.playSound('click1');
         this.showLobbyScreen(true); 
       });
     }
@@ -1696,6 +1748,19 @@ populateRingsManagementTab() {
     if (this.battleWinnerMessage) {
       this.battleWinnerMessage.textContent = winnerMessage;
     }
+    const localPlayerLost = (this.game.isLocalPlayerOne && winnerMessage.includes('Player 2 Wins')) ||
+                            (!this.game.isLocalPlayerOne && winnerMessage.includes('Player 1 Wins')) ||
+                            winnerMessage.includes('You Lose');
+    if (localPlayerLost) {
+        audioManager.playSound('Loss');
+    }
+    const localPlayerWon = (this.game.isLocalPlayerOne && winnerMessage.includes('Player 1 Wins')) ||
+                           (!this.game.isLocalPlayerOne && winnerMessage.includes('Player 2 Wins')) ||
+                           winnerMessage.includes('You Win!');
+                           
+    if (localPlayerWon) {
+        audioManager.playSound('Achievement');
+    }
 
     if (this.game && this.game.isLocalPlayerOne !== null) {
         if (this.playerOneResultLabel) {
@@ -2065,6 +2130,84 @@ populateRingsManagementTab() {
     }
     if (this.gameSelectedColors) {
         this.gameSelectedColors.innerHTML = '';
+    }
+    }
+  setupAudioEventListeners() {
+    if (this.muteButton) {
+        this.muteButton.addEventListener('click', () => {
+            audioManager.toggleMute();
+            this._updateAudioUI();
+        });
+    }
+    if (this.masterVolumeSlider) {
+        this.masterVolumeSlider.addEventListener('input', () => {
+            const volume = parseFloat(this.masterVolumeSlider.value);
+            audioManager.setMasterVolume(volume);
+            this._updateAudioUI();
+        });
+    }
+    if (this.sfxVolumeSlider) {
+        this.sfxVolumeSlider.addEventListener('input', () => {
+            const volume = parseFloat(this.sfxVolumeSlider.value);
+            audioManager.setSfxVolume(volume);
+            this._updateAudioUI();
+        });
+    }
+    if (this.musicVolumeSlider) {
+        this.musicVolumeSlider.addEventListener('input', () => {
+            const volume = parseFloat(this.musicVolumeSlider.value);
+            audioManager.setMusicVolume(volume);
+            this._updateAudioUI();
+        });
+    }
+    if (this.musicTrackSelector) {
+        this.musicTrackSelector.addEventListener('change', () => {
+            const newTrack = this.musicTrackSelector.value;
+            audioManager.playBackgroundMusic(newTrack);
+            this._updateAudioUI();
+        });
+    }
+    // Set initial state
+    this._updateAudioUI();
+  }
+  _updateAudioUI() {
+    if (!this.muteButton || !this.masterVolumeSlider || !this.masterVolumeValue || !this.sfxVolumeSlider || !this.sfxVolumeValue || !this.musicVolumeSlider || !this.musicVolumeValue || !this.musicTrackSelector) return;
+    const isMuted = audioManager.isMuted;
+    const masterVolume = audioManager.getMasterVolume();
+    const sfxVolume = audioManager.getSfxVolume();
+    const musicVolume = audioManager.getMusicVolume();
+    const currentTrack = audioManager.getCurrentTrack();
+    // Update Mute Button
+    this.muteButton.textContent = isMuted ? '🔇' : '🔊';
+    this.muteButton.title = isMuted ? 'Unmute' : 'Mute';
+    // Update Master Volume Slider and Value
+    this.masterVolumeSlider.value = isMuted ? 0 : masterVolume;
+    this.masterVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(masterVolume * 100)}%`;
+    // Update SFX Volume Slider and Value
+    this.sfxVolumeSlider.value = isMuted ? 0 : sfxVolume;
+    this.sfxVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(sfxVolume * 100)}%`;
+    // Update Music Volume Slider and Value
+    this.musicVolumeSlider.value = isMuted ? 0 : musicVolume;
+    this.musicVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(musicVolume * 100)}%`;
+    // Update Music Selector
+    const musicTracks = ['Mixin_Melody', 'Chromatic_Cascade'];
+    // Populate dropdown if it's empty
+    if (this.musicTrackSelector.options.length !== musicTracks.length) {
+        this.musicTrackSelector.innerHTML = '';
+        musicTracks.forEach(trackName => {
+            const option = document.createElement('option');
+            option.value = trackName;
+            option.textContent = trackName.replace(/_/g, ' ');
+            this.musicTrackSelector.appendChild(option);
+        });
+    }
+    if (currentTrack) {
+        this.musicTrackSelector.value = currentTrack;
+    } else {
+        // If no track is playing, select the default or first option
+        if (this.musicTrackSelector.options.length > 0) {
+             this.musicTrackSelector.selectedIndex = 0;
+        }
     }
   }
 }
