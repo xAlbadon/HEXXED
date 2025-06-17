@@ -21,6 +21,16 @@ export class UpdateManager {
         }
     }
     setupEventListeners() {
+        // Set a timeout for the update check. If no response is received, hide the updater.
+        this.updateCheckTimeout = setTimeout(() => {
+            if (!this.updateStateKnown) { // Check if we are still waiting for a response
+                console.warn('[UpdateManager] Update check timed out. Proceeding without update info.');
+                this.isChecking = false;
+                this.updateInProgress = false;
+                this.updateStateKnown = true;
+                this.uiManager.finishUpdateCheck();
+            }
+        }, 10000); // 10-second timeout
         // --- Event Listeners for Electron Main Process Communication ---
         // Fired when an update is available.
         window.electron.onUpdateAvailable((info) => {
@@ -39,7 +49,7 @@ export class UpdateManager {
             this.isChecking = false; // Finished checking
             this.updateStateKnown = true; // We have a definitive state
             // Explicitly hide the UI when no update is found.
-            this.uiManager.hideUpdater();
+            this.uiManager.finishUpdateCheck();
         });
         // Fired periodically with download progress.
         window.electron.onUpdateDownloadProgress((progressInfo) => {
@@ -62,7 +72,7 @@ export class UpdateManager {
             this.updateStateKnown = true; // We have a definitive state
             this.uiManager.showUpdateMessage(`Error: ${error.message}`);
             // Optionally, hide the updater after a delay on error
-            setTimeout(() => this.uiManager.hideUpdater(), 5000);
+            setTimeout(() => this.uiManager.finishUpdateCheck(), 5000);
         });
     }
     /**

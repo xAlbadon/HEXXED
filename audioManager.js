@@ -61,12 +61,15 @@ class AudioManager {
             this.backgroundMusic.volume = this.isMuted ? 0 : this.masterVolume * this.musicVolume;
         }
     }
-    playBackgroundMusic(trackPath) {
+    playBackgroundMusic(trackPath, extension = 'mp3') {
         if (!trackPath) {
             console.warn("playBackgroundMusic called with no trackPath.");
             return;
         }
-        if (this.backgroundMusic && this.backgroundMusic.src.endsWith(trackPath)) {
+        
+        const fullTrackName = `${trackPath.split('/').pop()}.${extension}`;
+        
+        if (this.backgroundMusic && this.backgroundMusic.src.endsWith(fullTrackName)) {
             this.backgroundMusic.play().catch(e => console.error("Error resuming background music:", e));
             return;
         }
@@ -75,7 +78,7 @@ class AudioManager {
         }
         this.currentTrackPath = trackPath;
         // Construct a full, reliable path from the application's origin
-        const fullPath = `${window.location.origin}/assets/music/${trackPath.split('/').pop()}`;
+        const fullPath = `${window.location.origin}/assets/music/${fullTrackName}`;
         this.backgroundMusic = new Audio(fullPath);
         this.backgroundMusic.loop = true;
         this.updateMusicVolume();

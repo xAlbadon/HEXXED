@@ -3,7 +3,7 @@ import audioManager from './audioManager.js';
 export class UIManager {
   constructor(gameInstance, loginCallback, signupCallback, updateManager) {
     this.game = gameInstance;
-    this.updateManager = updateManager;
+    this.updateManager = updateManager; // Ensure updateManager is assigned on instantiation
     this.loginCallback = loginCallback;
     this.signupCallback = signupCallback;
 
@@ -355,6 +355,15 @@ setUpdateManager(updateManager) {
     if (this.titleScreen) {
         this.titleScreen.style.display = 'none';
     }
+  }
+  showTitleScreen() {
+    if (this.titleScreen) {
+      this.titleScreen.style.display = 'flex';
+    }
+  }
+  finishUpdateCheck() {
+    this.hideUpdater();
+    this.showTitleScreen();
   }
   showGameArea(currentPlayerUsername) {
     this.hideTitleScreen();
