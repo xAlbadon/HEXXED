@@ -9,7 +9,7 @@ function createWindow() {
     width: 1280, // A good default width for your game
     height: 720, // A good default height
     webPreferences: {
-      // preload: path.join(__dirname, 'preload.js'), // We can add a preload script later if needed
+      preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false, // Important for security: keeps Node.js features out of your web content
       contextIsolation: true, // Important for security: isolates Electron APIs from your web content
       devTools: true // Enable DevTools, can be turned off for production
@@ -30,13 +30,13 @@ autoUpdater.logger.transports.file.level = "info";
 autoUpdater.on('update-available', (info) => {
   autoUpdater.logger.info(`Update available: version ${info.version}`);
   if (mainWindow) {
-    mainWindow.webContents.send('update-status', { status: 'update-available', version: info.version });
+    mainWindow.webContents.send('update-status', 'update-available', { version: info.version });
   }
 });
 autoUpdater.on('update-not-available', () => {
   autoUpdater.logger.info('Update not available.');
   if (mainWindow) {
-    mainWindow.webContents.send('update-status', { status: 'update-not-available' });
+    mainWindow.webContents.send('update-status', 'update-not-available');
   }
 });
 autoUpdater.on('error', (err) => {
@@ -45,9 +45,9 @@ autoUpdater.on('error', (err) => {
   if (mainWindow) {
     if (errorMessage.includes("No published versions on GitHub")) {
       autoUpdater.logger.info("No published versions found on GitHub. This is normal if no releases have been published yet.");
-      mainWindow.webContents.send('update-status', { status: 'update-not-available', message: "No published versions found. Game is up to date." });
+      mainWindow.webContents.send('update-status', 'update-not-available', { message: "No published versions found. Game is up to date." });
     } else {
-      mainWindow.webContents.send('update-status', { status: 'error', message: `Error checking for updates: ${errorMessage}` });
+      mainWindow.webContents.send('update-status', 'error', { message: `Error checking for updates: ${errorMessage}` });
     }
   }
 });
@@ -57,15 +57,16 @@ autoUpdater.on('download-progress', (progressObj) => {
   log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
   autoUpdater.logger.info(log_message);
   if (mainWindow) {
-    mainWindow.webContents.send('update-status', { status: 'downloading', progress: progressObj });
+    mainWindow.webContents.send('update-status', 'download-progress', progressObj);
   }
 });
 autoUpdater.on('update-downloaded', (info) => {
   autoUpdater.logger.info(`Update downloaded: version ${info.version}. Ready to install.`);
+  // Notify the renderer process that the update is ready.
+  // The renderer will now be responsible for showing the "Restart Now" button.
   if (mainWindow) {
-    mainWindow.webContents.send('update-status', { status: 'downloaded', version: info.version });
+    mainWindow.webContents.send('update-status', 'update-downloaded', { version: info.version });
   }
-  // Main process will now wait for 'user-triggered-restart-for-update' IPC message from the renderer
 });
 // Listen for a message from renderer to quit and install the update
 ipcMain.on('user-triggered-restart-for-update', () => {
@@ -80,7 +81,7 @@ app.whenReady().then(() => {
     mainWindow.webContents.on('did-finish-load', () => {
       // Only check for updates once the window content is loaded and ready to receive IPC messages
       if (mainWindow && !mainWindow.isDestroyed()) {
-         mainWindow.webContents.send('update-status', { status: 'checking' });
+         mainWindow.webContents.send('update-status', 'checking-for-update');
       }
       autoUpdater.checkForUpdates(); // Changed from checkForUpdatesAndNotify
     });

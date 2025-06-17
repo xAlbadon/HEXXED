@@ -905,6 +905,70 @@
         }
         /* #encyclopediaPanel styles removed */
       }
+      /* Update Screen Styles */
+      .update-screen-container {
+        display: none; /* Hidden by default, shown by JS */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(30, 30, 40, 0.95);
+        color: #e0e0e0;
+        z-index: 2000;
+        display: flex; /* Use flex to center the modal */
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        text-align: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .update-modal-content {
+        background-color: rgba(50, 50, 70, 0.8);
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        max-width: 500px;
+        width: 90%;
+      }
+      #updateTitle {
+        margin-top: 0;
+        color: #ffffff;
+      }
+      #updateMessage {
+        font-size: 1.1em;
+        line-height: 1.6;
+      }
+      .update-progress-container {
+        width: 100%;
+        background-color: #3a3a5a;
+        border-radius: 5px;
+        margin-top: 25px;
+        display: none; /* Shown by JS when download starts */
+        height: 25px;
+        overflow: hidden;
+      }
+      .update-progress-bar {
+        width: 0%;
+        height: 100%;
+        background-color: #6200ea;
+        border-radius: 5px;
+        text-align: center;
+        line-height: 25px;
+        color: white;
+        font-weight: bold;
+        transition: width 0.3s ease-in-out;
+      }
+      .update-actions {
+        margin-top: 25px;
+      }
+      .update-version-info {
+        font-size: 0.9em;
+        color: #a0a0a0;
+        margin-top: 20px;
+      }
       /* Achievement Card Styles */
       .achievements-grid {
         display: grid;
@@ -1787,20 +1851,21 @@
   </head>
   <body>
     <canvas id="titleParticlesCanvas"></canvas>
-    <!-- UpdateManager UI Container -->
-    <div id="updateManagerUI" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(30, 30, 40, 0.95); color: #e0e0e0; z-index: 2000; flex-direction: column; align-items: center; justify-content: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; box-sizing: border-box;">
-        <div id="updateMessageContainer" style="background-color: rgba(50, 50, 70, 0.8); padding: 30px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); max-width: 500px; width: 90%;">
-            <h2 id="updateTitle" style="margin-top: 0; color: #ffffff;">Checking for Updates...</h2>
-            <p id="updateMessage" style="font-size: 1.1em; line-height: 1.6;">Please wait a moment.</p>
-            <div id="updateProgressContainer" style="width: 100%; background-color: #3a3a5a; border-radius: 5px; margin-top: 25px; display: none; height: 25px; overflow: hidden;">
-                <div id="updateProgressBar" style="width: 0%; height: 100%; background-color: #6200ea; border-radius: 5px; text-align: center; line-height: 25px; color: white; font-weight: bold; transition: width 0.3s ease-in-out;">0%</div>
+    <!-- Update Screen -->
+    <div id="updateScreen">
+        <div id="updateModal">
+            <h2 id="updateTitle">Checking for Updates...</h2>
+            <p id="updateMessage">Please wait a moment.</p>
+            <div id="updateProgressContainer">
+                <div id="updateProgressBar">0%</div>
             </div>
-            <div id="updateActionButtonsContainer" style="margin-top: 25px;">
-                 <!-- Buttons like Retry, Skip, Update Now will be dynamically added here by UpdateManager -->
+            <div id="updateActionButtonsContainer">
+                <!-- Buttons will be dynamically added here -->
             </div>
-            <p id="updateVersionInfo" style="font-size: 0.9em; color: #a0a0a0; margin-top: 20px;"></p>
+            <p id="updateVersionInfo"></p>
         </div>
     </div>
+    <div id="gameContainer">
     <div id="gameContainer">
       <div id="titleScreen">
         <h1>#HEXXED</h1>

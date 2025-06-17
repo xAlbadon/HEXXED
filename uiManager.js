@@ -1,10 +1,8 @@
 import { Leaderboard } from './leaderboard.js';
-import { UpdateManager } from './updateManager.js';
 import audioManager from './audioManager.js';
 export class UIManager {
   constructor(gameInstance, loginCallback, signupCallback) {
     this.game = gameInstance;
-    this.updateManager = new UpdateManager(this.game, this._showTitleScreenPostUpdate.bind(this)); // Instantiate UpdateManager
     this.loginCallback = loginCallback;
     this.signupCallback = signupCallback;
 
@@ -53,10 +51,10 @@ export class UIManager {
     this.battleWinnerMessage = document.getElementById('battleWinnerMessage');
     this.targetColorResultSwatch = document.getElementById('targetColorResultSwatch');
     this.targetColorResultInfo = document.getElementById('targetColorResultInfo');
-    this.playerOneResultLabel = document.getElementById('playerOneResultLabel'); // New label for results screen
+    this.playerOneResultLabel = document.getElementById('playerOneResultLabel'); 
     this.playerOneResultSwatch = document.getElementById('playerOneResultSwatch');
     this.playerOneResultInfo = document.getElementById('playerOneResultInfo');
-    this.playerTwoResultLabel = document.getElementById('playerTwoResultLabel'); // New label for results screen
+    this.playerTwoResultLabel = document.getElementById('playerTwoResultLabel'); 
     this.playerTwoResultSwatch = document.getElementById('playerTwoResultSwatch');
     this.playerTwoResultInfo = document.getElementById('playerTwoResultInfo');
     this.closeBattleResultsButton = document.getElementById('closeBattleResultsButton');
@@ -107,7 +105,6 @@ export class UIManager {
     this.advancedFiltersContainer = document.getElementById('advanced-filters-container'); 
     this.gameChallengeDisplay = document.getElementById('challengeDisplay'); 
     this.gameLeaderboardPanelEl = document.getElementById('leaderboardPanel');
-
     this.achievementsListContainer = document.getElementById('achievementsList');
 
     this.sideNotificationContainer = null;
@@ -123,8 +120,11 @@ export class UIManager {
     this.muteAchievementsButton = document.getElementById('muteAchievementsButton');
     this.achievementVolumeSlider = document.getElementById('achievementVolumeSlider');
     this.achievementVolumeValue = document.getElementById('achievementVolumeValue');
+    this.updateContainer = document.getElementById('update-notification');
+    this.updateMessage = document.getElementById('update-message');
+    this.restartButton = document.getElementById('restart-button');
     this.setupAuthEventListeners();
-    this.leaderboard = null;
+    this.leaderboard = null; // updateManager is initialized in main.js now
     this.mixButtonContainer = null;
     this.colorGridPaginationControls = document.getElementById('colorGridPagination');
     this.colorGridCurrentPage = 1;
@@ -149,45 +149,10 @@ export class UIManager {
     this.currentBattleSessionData = null;
     this.localPlayerIsOne = null;
     this.pinnedColorSwatch = null;
-    this.previousSelectedOrbsCount = 0;
-    if (this.updateManager) {
-      try {
-        this.updateManager.initialize();
-        this._syncTitleScreenWithUpdateManager(false);
-      } catch (error) {
-        if (this.titleScreen) {
-            this.titleScreen.style.display = 'flex';
-        }
-        if (this.updateManager && typeof this.updateManager.hideUpdateUI === 'function') {
-            this.updateManager.hideUpdateUI();
-        }
-      }
-    } else {
-      this._syncTitleScreenWithUpdateManager(false);
-    }
-  }
-  _syncTitleScreenWithUpdateManager(isUpdateManagerCompleting = false) {
-    if (!this.titleScreen) {
-        return;
-    }
-    if (this.updateManager) {
-        if (!isUpdateManagerCompleting && this.updateManager.isBlockingUI()) {
-            this.titleScreen.style.display = 'none';
-        } else {
-            if (isUpdateManagerCompleting && typeof this.updateManager.hideUpdateUI === 'function') {
-                this.updateManager.hideUpdateUI();
-            }
-            this.titleScreen.style.display = 'flex';
-            if (this.gameArea) {
-                this.gameArea.style.filter = 'none';
-            }
-        }
-    } else {
-        this.titleScreen.style.display = 'flex';
-    }
-  }
-  #calculateLuminance(rgb) {
+this.previousSelectedOrbsCount = 0;
+}
 
+#calculateLuminance(rgb) {
     if (!rgb || rgb.length < 3) return 0;
     const r = rgb[0];
     const g = rgb[1];
@@ -221,10 +186,7 @@ export class UIManager {
   }
   setAuthMessage(message, isError = true) {
     this.authMessage.textContent = message;
-    this.authMessage.style.color = isError ? '#ff6b6b' : '#6bff6b'; 
-  }
-  _showTitleScreenPostUpdate() {
-    this._syncTitleScreenWithUpdateManager(true);
+    this.authMessage.style.color = isError ? '#ff6b6b' : '#6bff6b';
   }
   setupEncyclopediaEventListeners() {
     if (this.encyclopediaToggleButton) {
@@ -553,12 +515,12 @@ export class UIManager {
     const filteredColors = sortedColors.filter(color => {
       const nameMatch = filterText ? color.name.toLowerCase().includes(filterText) : true;
       if (!nameMatch) return false;
-      // HSL checks
+
       const hueMatch = (color.hsl.h || 0) >= hueMin && (color.hsl.h || 0) <= hueMax;
       const saturationMatch = (color.hsl.s || 0) >= satMin && (color.hsl.s || 0) <= satMax;
       const lightnessMatch = (color.hsl.l || 0) >= lightMin && (color.hsl.l || 0) <= lightMax;
       if (!hueMatch || !saturationMatch || !lightnessMatch) return false;
-      // RGB checks
+
       const redMatch = (color.rgb[0] || 0) >= redMin && (color.rgb[0] || 0) <= redMax;
       const greenMatch = (color.rgb[1] || 0) >= greenMin && (color.rgb[1] || 0) <= greenMax;
       const blueMatch = (color.rgb[2] || 0) >= blueMin && (color.rgb[2] || 0) <= blueMax;
@@ -833,7 +795,7 @@ export class UIManager {
 
     const allNotifications = this.sideNotificationContainer.querySelectorAll('.side-notification');
     allNotifications.forEach((el, index) => {
-        if (index > 0) { // Don't apply to the new one
+        if (index > 0) { 
             el.style.transform = `scale(${1 - (index * 0.05)}) translateY(${index * 5}px)`;
             el.style.opacity = 1 - (index * 0.15);
         }
@@ -929,7 +891,7 @@ populateRingsManagementTab() {
       if (!activeOrbsCountSpan || !maxOrbsCountSpan || !activeOrbsListUl || !manageOrbsButton || !availableOrbsSectionDiv || !availableOrbsSortDropdown || !availableOrbsFilterInput) {
         return;
       }
-      // Ensure pagination is hidden only if its corresponding section is also hidden.
+
       if (availableOrbsSectionDiv.style.display === 'none' || availableOrbsSectionDiv.style.display === '') {
         const paginationControlsContainer = document.getElementById(`summonablePagination-${mixArity}`);
         if (paginationControlsContainer) {
@@ -1934,10 +1896,10 @@ populateRingsManagementTab() {
   updateOpponentMixDisplay(playerIdentifier, mixedColorData, difference) {
     let opponentColorDisplay, opponentColorResultInfo;
     if (this.game && this.game.isLocalPlayerOne !== null && this.currentBattleSessionData) {
-        if (playerIdentifier === 'player_one' && !this.game.isLocalPlayerOne) { // Opponent is P1
+        if (playerIdentifier === 'player_one' && !this.game.isLocalPlayerOne) { 
             opponentColorDisplay = this.playerOneColorDisplay;
             opponentColorResultInfo = this.playerOneColorResultInfo;
-        } else if (playerIdentifier === 'player_two' && this.game.isLocalPlayerOne) { // Opponent is P2
+        } else if (playerIdentifier === 'player_two' && this.game.isLocalPlayerOne) { 
             opponentColorDisplay = this.playerTwoColorDisplay;
             opponentColorResultInfo = this.playerTwoColorResultInfo;
         } else {
@@ -2052,7 +2014,7 @@ populateRingsManagementTab() {
   updateOpponentReadyStatus(playerIdentifier, isReady) {
 
     let opponentPlayerButton, opponentPlayerStatusEl, opponentLabel;
-    if (playerIdentifier === 'player_one' && this.localPlayerIsOne === false) { // Opponent is P1
+    if (playerIdentifier === 'player_one' && this.localPlayerIsOne === false) { 
         opponentPlayerButton = this.playerOneReadyButton;
         opponentPlayerStatusEl = this.playerOneReadyStatus;
         opponentLabel = "Opponent (P1)";
@@ -2123,7 +2085,7 @@ populateRingsManagementTab() {
             this.game.cancelBattleMatch();
         } else {
             this.showBattleModeScreen(false);
-             if (this.game && typeof this.game.resetToMainMenu === 'function') this.game.resetToMainMenu(); // Go to main menu
+             if (this.game && typeof this.game.resetToMainMenu === 'function') this.game.resetToMainMenu();
         }
     }
   }
@@ -2252,5 +2214,26 @@ populateRingsManagementTab() {
              this.musicTrackSelector.selectedIndex = 0;
         }
     }
+  }
+  showUpdateMessage(message) {
+    if (this.updateContainer) this.updateContainer.style.display = 'block';
+    if (this.updateMessage) this.updateMessage.textContent = message;
+    if (this.restartButton) this.restartButton.style.display = 'none';
+  }
+  showUpdateDownloaded(message) {
+    if (this.updateContainer) this.updateContainer.style.display = 'block';
+    if (this.updateMessage) this.updateMessage.textContent = message;
+    if (this.restartButton) {
+        this.restartButton.style.display = 'block';
+        if (!this.restartButton.dataset.listenerAttached) {
+            this.restartButton.addEventListener('click', () => {
+                window.electron.send('user-triggered-restart-for-update');
+            });
+            this.restartButton.dataset.listenerAttached = 'true';
+        }
+    }
+  }
+  hideUpdateMessage() {
+    if (this.updateContainer) this.updateContainer.style.display = 'none';
   }
 }
