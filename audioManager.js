@@ -7,10 +7,11 @@ class AudioManager {
         this.musicVolume = 1.0;
         this.sfxVolume = 1.0;
         this.achievementVolume = 1.0;
-        this.currentTrackPath = './assets/music/Mixin_Melody.mp3';
+        this.currentTrackPath = null; // No default track
         this.achievementSoundsMuted = false;
         this.loadSettings();
-        if (!this.backgroundMusic) {
+        // After loading settings, if a track is defined, play it.
+        if (this.currentTrackPath && !this.backgroundMusic) {
             this.playBackgroundMusic(this.currentTrackPath);
         }
     }
@@ -47,9 +48,8 @@ class AudioManager {
             this.achievementVolume = parseFloat(achievementVolume);
         }
         const track = localStorage.getItem('audioTrack');
-        if (track) {
-            this.currentTrackPath = track;
-            this.playBackgroundMusic(this.currentTrackPath);
+        if (track && track !== 'null') { // Ensure we don't load 'null' as a track
+            this.playBackgroundMusic(track);
         }
         const achievementSoundsMuted = localStorage.getItem('achievementSoundsMuted');
         if (achievementSoundsMuted !== null) {
@@ -62,6 +62,10 @@ class AudioManager {
         }
     }
     playBackgroundMusic(trackPath) {
+        if (!trackPath) {
+            console.warn("playBackgroundMusic called with no trackPath.");
+            return;
+        }
         if (this.backgroundMusic && this.backgroundMusic.src.endsWith(trackPath)) {
             this.backgroundMusic.play().catch(e => console.error("Error resuming background music:", e));
             return;
@@ -70,10 +74,19 @@ class AudioManager {
             this.backgroundMusic.pause();
         }
         this.currentTrackPath = trackPath;
-        this.backgroundMusic = new Audio(trackPath);
+        // Construct a full, reliable path from the application's origin
+        const fullPath = `${window.location.origin}/assets/music/${trackPath.split('/').pop()}`;
+        this.backgroundMusic = new Audio(fullPath);
         this.backgroundMusic.loop = true;
         this.updateMusicVolume();
-        this.backgroundMusic.play().catch(e => console.error("Error playing background music:", e));
+        const playPromise = this.backgroundMusic.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.error(`Error playing background music: ${fullPath}`, error);
+                this.backgroundMusic = null; // Clear out the failed audio element
+                this.currentTrackPath = null; // Also clear the track path to prevent retries
+            });
+        }
         this.saveSettings();
     }
     toggleMute() {

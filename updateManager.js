@@ -4,6 +4,7 @@ export class UpdateManager {
     constructor(uiManager) {
         this.uiManager = uiManager;
         this.updateInProgress = false; // Flag to track if an update is actively being handled
+        this.updateStateKnown = false; // Flag to ensure we have a response from the main process
         this.updateCheckTimeout = null; // Timeout for the update check
         // This check ensures these listeners are only set up in an Electron environment
         if (window.electron) {
@@ -16,6 +17,7 @@ export class UpdateManager {
             // If not in Electron, we are not checking and there's no update in progress.
             this.isChecking = false;
             this.updateInProgress = false;
+            this.updateStateKnown = true; // In web, the state is known immediately.
         }
     }
     setupEventListeners() {
@@ -26,6 +28,7 @@ export class UpdateManager {
             this.clearUpdateCheckTimeout();
             this.updateInProgress = true;
             this.isChecking = false; // Finished checking
+            this.updateStateKnown = true; // We have a definitive state
             this.uiManager.showUpdateAvailable(info.version);
         });
         // Fired when no update is available.
@@ -34,6 +37,7 @@ export class UpdateManager {
             this.clearUpdateCheckTimeout();
             this.updateInProgress = false;
             this.isChecking = false; // Finished checking
+            this.updateStateKnown = true; // We have a definitive state
             // Explicitly hide the UI when no update is found.
             this.uiManager.hideUpdater();
         });
@@ -55,6 +59,7 @@ export class UpdateManager {
             this.clearUpdateCheckTimeout();
             this.updateInProgress = false;
             this.isChecking = false; // Finished checking (with error)
+            this.updateStateKnown = true; // We have a definitive state
             this.uiManager.showUpdateMessage(`Error: ${error.message}`);
             // Optionally, hide the updater after a delay on error
             setTimeout(() => this.uiManager.hideUpdater(), 5000);
@@ -75,7 +80,10 @@ export class UpdateManager {
      * @returns {boolean}
      */
     isBlockingUI() {
-        // If we are still checking, or an update is in progress, we are "blocking".
-        return this.isChecking || this.updateInProgress;
+        // If the update state isn't known yet, or an update is in progress, we are "blocking".
+        if (!this.updateStateKnown) {
+            return true;
+        }
+        return this.updateInProgress;
     }
 }
