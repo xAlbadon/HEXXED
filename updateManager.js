@@ -1,69 +1,81 @@
-// updateManager.js
-
-/**
- * Manages application updates by listening to events from the Electron main process
- * and delegating UI changes to the UIManager.
- */
-class UpdateManager {
+// This class handles checking for and managing application updates in an Electron environment.
+// It communicates with the main process and updates the UI accordingly.
+export class UpdateManager {
     constructor(uiManager) {
-        if (!uiManager) {
-            throw new Error("UpdateManager requires a UIManager instance.");
-        }
         this.uiManager = uiManager;
-        this.init();
-    }
-    init() {
-        this._setupEventListeners();
-        this._notifyRendererReady();
-    }
-    _setupEventListeners() {
-        if (window.electronAPI && typeof window.electronAPI.onUpdateStatus === 'function') {
-            window.electronAPI.onUpdateStatus((status, data) => {
-                console.log(`[UpdateManager] Received status: ${status}`, data);
-                this.handleUpdateStatus(status, data);
-            });
-            console.log('[UpdateManager] Event listener for "update-status" is set up.');
+        this.updateInProgress = false; // Flag to track if an update is actively being handled
+        this.updateCheckTimeout = null; // Timeout for the update check
+        // This check ensures these listeners are only set up in an Electron environment
+        if (window.electron) {
+            this.isChecking = true; // Start by assuming we are checking
+            this.setupEventListeners();
+            // Signal the main process that the renderer is ready to handle update events.
+            window.electron.send('renderer-ready-for-updates');
         } else {
-            console.warn('[UpdateManager] Electron API (onUpdateStatus) not found. Update functionality will be disabled.');
+            console.log("[UpdateManager] Not in Electron environment. Simulating 'no update available'.");
+            // If not in Electron, we are not checking and there's no update in progress.
+            this.isChecking = false;
+            this.updateInProgress = false;
         }
     }
-    handleUpdateStatus(status, data) {
-        switch (status) {
-            case 'checking-for-update':
-                this.uiManager.showUpdateMessage('Checking for updates...');
-                break;
-            case 'update-not-available':
-                // We can briefly show a message and then hide it, or just hide it immediately.
-                this.uiManager.showUpdateMessage('You are on the latest version.');
-                setTimeout(() => this.uiManager.hideUpdateMessage(), 3000); // Hide after 3s
-                break;
-            case 'update-available':
-                this.uiManager.showUpdateMessage('Update available. Downloading...');
-                break;
-            case 'download-progress':
-                const percent = data && data.percent ? Math.round(data.percent) : 0;
-                this.uiManager.showUpdateMessage(`Downloading update: ${percent}%`);
-                break;
-            case 'update-downloaded':
-                this.uiManager.showUpdateDownloaded('Update downloaded. Restart to install.');
-                break;
-            case 'error':
-                const errorMessage = data && data.message ? data.message : 'An unknown error occurred.';
-                this.uiManager.showUpdateMessage(`Update error: ${errorMessage}`);
-                // Optionally hide after a delay
-                setTimeout(() => this.uiManager.hideUpdateMessage(), 5000);
-                break;
-            default:
-                console.warn(`[UpdateManager] Received unknown status: ${status}`);
+    setupEventListeners() {
+        // --- Event Listeners for Electron Main Process Communication ---
+        // Fired when an update is available.
+        window.electron.onUpdateAvailable((info) => {
+            console.log('[UpdateManager] Update available:', info);
+            this.clearUpdateCheckTimeout();
+            this.updateInProgress = true;
+            this.isChecking = false; // Finished checking
+            this.uiManager.showUpdateAvailable(info.version);
+        });
+        // Fired when no update is available.
+        window.electron.onUpdateNotAvailable(() => {
+            console.log('[UpdateManager] No update available.');
+            this.clearUpdateCheckTimeout();
+            this.updateInProgress = false;
+            this.isChecking = false; // Finished checking
+            // Explicitly hide the UI when no update is found.
+            this.uiManager.hideUpdater();
+        });
+        // Fired periodically with download progress.
+        window.electron.onUpdateDownloadProgress((progressInfo) => {
+            console.log('[UpdateManager] Update download progress:', progressInfo);
+            this.updateInProgress = true;
+            this.uiManager.updateDownloadProgress(progressInfo);
+        });
+        // Fired when an update has been downloaded and is ready to be installed.
+        window.electron.onUpdateDownloaded((info) => {
+            console.log('[UpdateManager] Update downloaded and ready:', info);
+            this.updateInProgress = true;
+            this.uiManager.showUpdateDownloaded(`Update v${info.version} downloaded. Restart to install.`);
+        });
+        // Fired when an error occurs during the update process.
+        window.electron.onUpdateError((error) => {
+            console.error('[UpdateManager] Update error:', error);
+            this.clearUpdateCheckTimeout();
+            this.updateInProgress = false;
+            this.isChecking = false; // Finished checking (with error)
+            this.uiManager.showUpdateMessage(`Error: ${error.message}`);
+            // Optionally, hide the updater after a delay on error
+            setTimeout(() => this.uiManager.hideUpdater(), 5000);
+        });
+    }
+    /**
+     * Clears the update check timeout if it's currently set.
+     */
+    clearUpdateCheckTimeout() {
+        if (this.updateCheckTimeout) {
+            clearTimeout(this.updateCheckTimeout);
+            this.updateCheckTimeout = null;
         }
     }
-    _notifyRendererReady() {
-        if (window.electronAPI && typeof window.electronAPI.send === 'function') {
-            window.electronAPI.send('renderer-ready-for-updates');
-            console.log('[UpdateManager] "renderer-ready-for-updates" signal sent.');
-        } else {
-            console.warn('[UpdateManager] Electron API not found. Cannot signal that renderer is ready.');
-        }
+    /**
+     * A flag to indicate if the UI should be blocked by the update process.
+     * This is true if we are checking for, downloading, or have an update ready to install.
+     * @returns {boolean}
+     */
+    isBlockingUI() {
+        // If we are still checking, or an update is in progress, we are "blocking".
+        return this.isChecking || this.updateInProgress;
     }
 }
-export { UpdateManager };

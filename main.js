@@ -35,6 +35,7 @@ class ChromaLabGame {
       4: 0.9   // 4-mix orbs
     };
     // Initialize UIManager first as it handles the title screen
+    // We will pass updateManager later via a setter to avoid circular dependency
     this.uiManager = new UIManager(
         this, // Pass the game instance to UIManager
         this.handleLogin.bind(this),
@@ -57,6 +58,7 @@ class ChromaLabGame {
     // Initialize UpdateManager (for Electron environments)
     // It will handle showing its UI if an update is in progress
     this.updateManager = new UpdateManager(this.uiManager);
+    this.uiManager.setUpdateManager(this.updateManager); // Provide the reference
     // Defer full game init until after login/signup
     // this.init();
   }
@@ -1797,7 +1799,7 @@ ChromaLabGame.prototype.prepareForBattle = function(sessionData = null) {
         this.uiManager.setupInitialBattleReadyState();
     }
 };
-// Call animate here if it's not self-starting or ensure it starts after login
+// Call animate here if it's not self-starting, or ensure it starts after login
 // For now, animate() will be called in completeInitialization.
 // We need a global animate loop if parts of UI (like title screen animations) need it before gameWorld init.
 // Let's assume title screen is static for now. If animations are added there, animate() might need to start earlier.

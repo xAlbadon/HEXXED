@@ -916,7 +916,8 @@
         background-color: rgba(30, 30, 40, 0.95);
         color: #e0e0e0;
         z-index: 2000;
-        display: flex; /* Use flex to center the modal */
+        /* Default to none, it will be set to flex by JS if needed */
+        display: none; 
         flex-direction: column;
         align-items: center;
         justify-content: center;
@@ -1852,17 +1853,17 @@
   <body>
     <canvas id="titleParticlesCanvas"></canvas>
     <!-- Update Screen -->
-    <div id="updateScreen">
-        <div id="updateModal">
+    <div id="updateScreen" class="update-screen-container">
+        <div class="update-modal-content">
             <h2 id="updateTitle">Checking for Updates...</h2>
             <p id="updateMessage">Please wait a moment.</p>
-            <div id="updateProgressContainer">
-                <div id="updateProgressBar">0%</div>
+            <div class="update-progress-container" id="updateProgressContainer">
+                <div class="update-progress-bar" id="updateProgressBar">0%</div>
             </div>
-            <div id="updateActionButtonsContainer">
+            <div class="update-actions" id="updateActionButtonsContainer">
                 <!-- Buttons will be dynamically added here -->
             </div>
-            <p id="updateVersionInfo"></p>
+            <p class="update-version-info" id="updateVersionInfo"></p>
         </div>
     </div>
     <div id="gameContainer">

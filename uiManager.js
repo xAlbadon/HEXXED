@@ -1,8 +1,9 @@
 import { Leaderboard } from './leaderboard.js';
 import audioManager from './audioManager.js';
 export class UIManager {
-  constructor(gameInstance, loginCallback, signupCallback) {
+  constructor(gameInstance, loginCallback, signupCallback, updateManager) {
     this.game = gameInstance;
+    this.updateManager = updateManager;
     this.loginCallback = loginCallback;
     this.signupCallback = signupCallback;
 
@@ -124,7 +125,7 @@ export class UIManager {
     this.updateMessage = document.getElementById('update-message');
     this.restartButton = document.getElementById('restart-button');
     this.setupAuthEventListeners();
-    this.leaderboard = null; // updateManager is initialized in main.js now
+    this.leaderboard = null; 
     this.mixButtonContainer = null;
     this.colorGridPaginationControls = document.getElementById('colorGridPagination');
     this.colorGridCurrentPage = 1;
@@ -151,7 +152,12 @@ export class UIManager {
     this.pinnedColorSwatch = null;
 this.previousSelectedOrbsCount = 0;
 }
-
+setUpdateManager(updateManager) {
+    this.updateManager = updateManager;
+    if (this.updateManager && this.updateManager.isBlockingUI()) {
+        this.hideTitleScreen();
+    }
+  }
 #calculateLuminance(rgb) {
     if (!rgb || rgb.length < 3) return 0;
     const r = rgb[0];
@@ -345,8 +351,13 @@ this.previousSelectedOrbsCount = 0;
         this.gameLeaderboardPanelEl.style.display = 'none';
     }
   }
+  hideTitleScreen() {
+    if (this.titleScreen) {
+        this.titleScreen.style.display = 'none';
+    }
+  }
   showGameArea(currentPlayerUsername) {
-    this.titleScreen.style.display = 'none';
+    this.hideTitleScreen();
     this.gameArea.style.display = 'block';
     this.gameArea.style.filter = 'none';
     this.gameArea.style.pointerEvents = '';
@@ -2215,6 +2226,25 @@ populateRingsManagementTab() {
         }
     }
   }
+  showCheckingForUpdates() {
+    this.showUpdateMessage("Checking for updates...");
+  }
+  showUpdateAvailable(version) {
+    this.showUpdateMessage(`Update to v${version} available. Downloading...`);
+  }
+  updateDownloadProgress(progress) {
+    if (this.updateContainer && this.updateMessage) {
+      this.updateContainer.style.display = 'block';
+      const percent = progress.percent || 0;
+      const bytesPerSecond = progress.bytesPerSecond || 0;
+      const transferredBytes = progress.transferred || 0;
+      const totalBytes = progress.total || 0;
+      const megabytesPerSecond = (bytesPerSecond / 1024 / 1024).toFixed(2);
+      const transferredMB = (transferredBytes / 1024 / 1024).toFixed(2);
+      const totalMB = (totalBytes / 1024 / 1024).toFixed(2);
+      this.updateMessage.textContent = `Downloading: ${percent.toFixed(1)}% (${transferredMB} / ${totalMB} MB) at ${megabytesPerSecond} MB/s`;
+    }
+  }
   showUpdateMessage(message) {
     if (this.updateContainer) this.updateContainer.style.display = 'block';
     if (this.updateMessage) this.updateMessage.textContent = message;
@@ -2235,5 +2265,8 @@ populateRingsManagementTab() {
   }
   hideUpdateMessage() {
     if (this.updateContainer) this.updateContainer.style.display = 'none';
+  }
+  hideUpdater() {
+    this.hideUpdateMessage();
   }
 }

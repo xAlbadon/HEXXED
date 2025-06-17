@@ -30,13 +30,13 @@ autoUpdater.logger.transports.file.level = "info";
 autoUpdater.on('update-available', (info) => {
   autoUpdater.logger.info(`Update available: version ${info.version}`);
   if (mainWindow) {
-    mainWindow.webContents.send('update-status', 'update-available', { version: info.version });
+    mainWindow.webContents.send('update-available', info);
   }
 });
 autoUpdater.on('update-not-available', () => {
   autoUpdater.logger.info('Update not available.');
   if (mainWindow) {
-    mainWindow.webContents.send('update-status', 'update-not-available');
+    mainWindow.webContents.send('update-not-available');
   }
 });
 autoUpdater.on('error', (err) => {
@@ -45,9 +45,10 @@ autoUpdater.on('error', (err) => {
   if (mainWindow) {
     if (errorMessage.includes("No published versions on GitHub")) {
       autoUpdater.logger.info("No published versions found on GitHub. This is normal if no releases have been published yet.");
-      mainWindow.webContents.send('update-status', 'update-not-available', { message: "No published versions found. Game is up to date." });
+      // This is not an error, it's a specific case of "not available"
+      mainWindow.webContents.send('update-not-available');
     } else {
-      mainWindow.webContents.send('update-status', 'error', { message: `Error checking for updates: ${errorMessage}` });
+      mainWindow.webContents.send('update-error', err);
     }
   }
 });
@@ -57,7 +58,7 @@ autoUpdater.on('download-progress', (progressObj) => {
   log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
   autoUpdater.logger.info(log_message);
   if (mainWindow) {
-    mainWindow.webContents.send('update-status', 'download-progress', progressObj);
+    mainWindow.webContents.send('download-progress', progressObj);
   }
 });
 autoUpdater.on('update-downloaded', (info) => {
@@ -65,7 +66,7 @@ autoUpdater.on('update-downloaded', (info) => {
   // Notify the renderer process that the update is ready.
   // The renderer will now be responsible for showing the "Restart Now" button.
   if (mainWindow) {
-    mainWindow.webContents.send('update-status', 'update-downloaded', { version: info.version });
+    mainWindow.webContents.send('update-downloaded', info);
   }
 });
 // Listen for a message from renderer to quit and install the update
@@ -77,17 +78,11 @@ ipcMain.on('user-triggered-restart-for-update', () => {
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {
   createWindow();
-  if (mainWindow) {
-    mainWindow.webContents.on('did-finish-load', () => {
-      // Only check for updates once the window content is loaded and ready to receive IPC messages
-      if (mainWindow && !mainWindow.isDestroyed()) {
-         mainWindow.webContents.send('update-status', 'checking-for-update');
-      }
-      autoUpdater.checkForUpdates(); // Changed from checkForUpdatesAndNotify
+    // Wait for the renderer process to signal that it's ready for update checks.
+    ipcMain.on('renderer-ready-for-updates', () => {
+        autoUpdater.logger.info("Renderer is ready. Checking for updates...");
+        autoUpdater.checkForUpdates();
     });
-  } else {
-      autoUpdater.logger.error("mainWindow not initialized when app ready. Cannot check for updates.");
-  }
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
