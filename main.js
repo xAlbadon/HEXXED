@@ -1797,7 +1797,7 @@ ChromaLabGame.prototype.prepareForBattle = function(sessionData = null) {
         this.uiManager.setupInitialBattleReadyState();
     }
 };
-// Call animate here if it's not self-starting, or ensure it starts after login
+// Call animate here if it's not self-starting or ensure it starts after login
 // For now, animate() will be called in completeInitialization.
 // We need a global animate loop if parts of UI (like title screen animations) need it before gameWorld init.
 // Let's assume title screen is static for now. If animations are added there, animate() might need to start earlier.
