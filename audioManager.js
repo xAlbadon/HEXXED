@@ -67,7 +67,8 @@ class AudioManager {
             return;
         }
         
-        const fullTrackName = `${trackPath.split('/').pop()}.${extension}`;
+        const trackName = trackPath.split('/').pop().replace(/_/g, ' ');
+        const fullTrackName = `${trackName}.${extension}`;
         
         if (this.backgroundMusic && this.backgroundMusic.src.endsWith(fullTrackName)) {
             this.backgroundMusic.play().catch(e => console.error("Error resuming background music:", e));
@@ -77,8 +78,8 @@ class AudioManager {
             this.backgroundMusic.pause();
         }
         this.currentTrackPath = trackPath;
-        // Construct a full, reliable path from the application's origin
-        const fullPath = `${window.location.origin}/assets/music/${fullTrackName}`;
+        // Construct a relative path to the assets folder
+        const fullPath = `./assets/music/${fullTrackName}`;
         this.backgroundMusic = new Audio(fullPath);
         this.backgroundMusic.loop = true;
         this.updateMusicVolume();
