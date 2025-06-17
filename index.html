@@ -7,7 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
     <script type="importmap">
       {
         "imports": {
@@ -1729,6 +1728,64 @@
         pointer-events: none; /* Allows clicks to pass through the container itself */
         width: 300px;
       }
+      .side-notification {
+        background: linear-gradient(135deg, rgba(30, 10, 60, 0.85), rgba(15, 5, 30, 0.9));
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-left: 4px solid #888; /* Default border color */
+        border-radius: 8px;
+        padding: 12px 16px;
+        color: #e0e0e0;
+        font-size: 0.9em;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        pointer-events: auto; /* Make individual notifications clickable if needed */
+        animation: slideInRight 0.4s ease-out, fadeOut 0.5s ease-in-out 4.5s forwards;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .side-notification.info {
+        border-left-color: #5bc0de; /* Cyan */
+      }
+      .side-notification.success {
+        border-left-color: #28a745; /* Green */
+      }
+      .side-notification.warning {
+        border-left-color: #ffc107; /* Yellow */
+      }
+      .side-notification.error {
+        border-left-color: #dc3545; /* Red */
+      }
+      .side-notification strong {
+        font-weight: bold;
+        color: #ffda77; /* Gold for emphasis */
+      }
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      @keyframes fadeOut {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+          transform: translateX(5%); /* Slight move on fade */
+          height: 0;
+          padding-top: 0;
+          padding-bottom: 0;
+          margin-bottom: 0;
+          border-width: 0;
+        }
+      }
+      #sideNotificationContainer > .side-notification:not(:last-child) {
+        margin-bottom: 10px; /* This is handled by the parent's gap property, but as a fallback */
+      }
     </style>
   </head>
   <body>
@@ -2135,7 +2192,7 @@
         </div>
       </div>
       <!-- Lobby Screen -->
-      <div id="lobbyScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); z-index: 1002; justify-content: center; align-items: center; flex-direction: column; color: white; font-family: 'Arial', sans-serif;">
+      <div id="lobbyScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); z-index: 1002; justify-content: center; align-items: center; flex-direction: column; color: white; font-family: 'Arial', sans-serif; display: none;">
         <div style="background: linear-gradient(145deg, #3a3a7e, #2a2a5a); padding: 40px; border-radius: 15px; text-align: center; box-shadow: 0 0 30px rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.1);">
             <h2 style="color: #a29bfe; font-size: 2.2em; margin-bottom: 25px; text-shadow: 0 0 10px #a29bfe;">Game Lobby</h2>
             <p id="lobbyStatusMessage" style="font-size: 1.4em; margin-bottom: 30px; min-height: 30px;">Initializing...</p>

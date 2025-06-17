@@ -316,22 +316,52 @@ class ChromaLabGame {
   }
   onOrbClick(orb) {
     if (this.selectedColors.includes(orb)) {
-      this.deselectOrb(orb);
+      this.handleOrbDeselection(orb); // Re-route to the new central handler
     } else if (this.selectedColors.length < this.maxSelections) {
       this.selectOrb(orb);
     }
-    
-    // Toggle tooltip availability based on selection
-    // Toggle tooltip availability based on selection
-    if (this.selectedColors.length > 0) {
-      this.orbManager.setTooltipsEnabled(false);
-    } else {
-      this.orbManager.setTooltipsEnabled(true);
+  }
+  selectOrb(orb) {
+    this.selectedColors.push(orb);
+    this.orbManager.selectOrb(orb);
+    // After selecting, update the state
+    this.updateSelectionState();
+     // Play a random selection sound
+     const soundIndex = Math.floor(Math.random() * 6) + 1;
+     audioManager.playSound(`./assets/sounds/select${soundIndex}.wav`, 0.5);
+  }
+  deselectOrb(orb) {
+    this.orbManager.deselectOrb(orb);
+    const index = this.selectedColors.indexOf(orb);
+    if (index > -1) {
+      this.selectedColors.splice(index, 1);
     }
+    // Update all UI and game state after deselecting
+    this.updateSelectionState();
+  }
+  handleOrbDeselection(orb) {
+    // This is now the single point of entry for deselection logic.
+    if (!this.selectedColors.includes(orb)) {
+      console.warn("[ChromaLabGame] handleOrbDeselection called for an orb that is not in the selectedColors array.");
+      return;
+    }
+    
+    console.log(`[ChromaLabGame] Deselecting orb: ${orb.colorData.name}`);
+    audioManager.playSound('./assets/sounds/select2.wav', 0.5);
+    this.deselectOrb(orb);
+  }
+  // A new helper method to centralize state updates after any selection change.
+  updateSelectionState() {
+    // Toggle tooltip availability
+    this.orbManager.setTooltipsEnabled(this.selectedColors.length === 0);
+    
+    // Update the UI display of selected colors
     this.uiManager.updateSelectedColors(this.selectedColors);
+    
+    // Update the mix button availability
     this.checkMixingAvailable();
     
-    // Update line preview
+    // Update the line preview
     if (this.selectedColors.length >= 2) {
       const potentialMixedColor = this.colorSystem.mixColors(this.selectedColors.map(o => o.colorData));
       if (potentialMixedColor) {
@@ -343,18 +373,6 @@ class ChromaLabGame {
       this.linePreviewSystem.clearPreview();
     }
   }
-  selectOrb(orb) {
-    this.selectedColors.push(orb);
-    this.orbManager.selectOrb(orb);
-  }
-  deselectOrb(orb) {
-    this.orbManager.deselectOrb(orb); // Call this first to ensure visual state updates
-    const index = this.selectedColors.indexOf(orb);
-    if (index > -1) {
-      this.selectedColors.splice(index, 1);
-    }
-  }
-
   checkMixingAvailable() {
     const selectionCount = this.selectedColors.length;
     const canMix = selectionCount >= 2 && selectionCount <= this.maxSelections;

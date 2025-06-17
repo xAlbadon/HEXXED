@@ -6,8 +6,9 @@ class AudioManager {
         this.masterVolume = 0.5;
         this.musicVolume = 1.0;
         this.sfxVolume = 1.0;
-        this.currentTrackPath = null;
+        this.currentTrackPath = './assets/music/Mixin_Melody.mp3'; // Default track
         this.loadSettings();
+        this.playBackgroundMusic(this.currentTrackPath);
     }
     saveSettings() {
         localStorage.setItem('audioMuted', JSON.stringify(this.isMuted));

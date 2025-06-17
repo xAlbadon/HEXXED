@@ -384,6 +384,7 @@ export class UIManager {
     this.titleScreen.style.display = 'none';
     this.gameArea.style.display = 'block';
     this.gameArea.style.filter = 'none';
+    this.gameArea.style.pointerEvents = '';
     this.createMixButton();
     if (this.gameLeaderboardPanelEl) {
         this.leaderboard = new Leaderboard(this.gameLeaderboardPanelEl, currentPlayerUsername);
@@ -409,7 +410,13 @@ export class UIManager {
     this.updateMixButtonPosition(); // Set initial position
   }
   onMixButtonClick(callback) {
-    if(this.mixButton) this.mixButton.addEventListener('click', callback);
+    if (this.mixButton && !this.mixButton.dataset.listenerAttached) {
+        this.mixButton.addEventListener('click', () => {
+            audioManager.playSound('click1');
+            callback();
+        });
+        this.mixButton.dataset.listenerAttached = 'true';
+    }
   }
   setMixButtonEnabled(enabled) {
     if(this.mixButton) this.mixButton.disabled = !enabled;
@@ -418,10 +425,19 @@ export class UIManager {
     if(this.gameColorCount) this.gameColorCount.textContent = count;
   }
   updateSelectedColors(selectedOrbs) {
-    if (selectedOrbs.length !== this.previousSelectedOrbsCount) {
+    if (audioManager && selectedOrbs.length > this.previousSelectedOrbsCount) {
       audioManager.playRandomSelectSound();
-      this.previousSelectedOrbsCount = selectedOrbs.length;
     }
+    this.previousSelectedOrbsCount = selectedOrbs.length;
+    // After updating the display, check if the mix button should be enabled.
+    const canMix = selectedOrbs.length >= 2 && selectedOrbs.length <= 4;
+    this.setMixButtonEnabled(canMix);
+    
+    // Update line preview system
+    if (this.game && this.game.linePreviewSystem && typeof this.game.linePreviewSystem.updateLines === 'function') {
+        this.game.linePreviewSystem.updateLines(selectedOrbs);
+    }
+    
     if(!this.gameSelectedColors) return;
     this.gameSelectedColors.innerHTML = '';
     
@@ -434,11 +450,21 @@ export class UIManager {
       const nameSpan = document.createElement('span');
       nameSpan.className = 'selectedColorName';
       nameSpan.textContent = orb.colorData.name;
-      nameSpan.title = orb.colorData.name; 
+      nameSpan.title = orb.colorData.name;
       selectedColorItem.appendChild(swatch);
       selectedColorItem.appendChild(nameSpan);
+      
+      // Add click event listener for deselection
+      selectedColorItem.addEventListener('click', () => {
+        if (this.game && typeof this.game.handleOrbDeselection === 'function') {
+          audioManager.playSound('RemoveColor');
+          this.game.handleOrbDeselection(orb);
+        }
+      });
+      
       this.gameSelectedColors.appendChild(selectedColorItem);
     });
+    // Redundant check removed from here, as it's now at the top of the function.
   }
   updateEncyclopedia(discoveredColors, currentSortOrder = null, preserveScroll = false) {
     if (!this.gameColorGrid) return;
@@ -536,7 +562,7 @@ export class UIManager {
       const greenMatch = (color.rgb[1] || 0) >= greenMin && (color.rgb[1] || 0) <= greenMax;
       const blueMatch = (color.rgb[2] || 0) >= blueMin && (color.rgb[2] || 0) <= blueMax;
       if (!redMatch || !greenMatch || !blueMatch) return false;
-      return true; // All filters passed
+      return true; 
     });
     this.lastKnownFilteredColorCount = filteredColors.length;
     const totalPages = Math.ceil(this.lastKnownFilteredColorCount / this.COLOR_GRID_PAGE_SIZE);
@@ -544,7 +570,7 @@ export class UIManager {
     const startIndex = (this.colorGridCurrentPage - 1) * this.COLOR_GRID_PAGE_SIZE;
     const endIndex = startIndex + this.COLOR_GRID_PAGE_SIZE;
     const paginatedColors = filteredColors.slice(startIndex, endIndex);
-    this.gameColorGrid.innerHTML = ''; // Clear previous swatches
+    this.gameColorGrid.innerHTML = ''; 
     this._updateColorGridPaginationControls(filteredColors.length);
     if (paginatedColors.length === 0) {
         this.gameColorGrid.innerHTML = `<p class="no-results-message">No colors found matching the current filters.</p>`;
@@ -598,7 +624,7 @@ export class UIManager {
         }
     });
     if (preserveScroll && encyclopediaContent) {
-        // Use requestAnimationFrame to ensure the content is rendered before scrolling
+
         requestAnimationFrame(() => {
             encyclopediaContent.scrollTop = scrollPosition;
         });
@@ -641,7 +667,7 @@ export class UIManager {
       this.colorGridPaginationControls.style.display = 'flex';
       if (prevButton) {
         prevButton.disabled = this.colorGridCurrentPage === 1;
-        // Event listeners are now attached once, so no need to clone and replace
+
       }
       
       if (pageInfo) {
@@ -650,7 +676,7 @@ export class UIManager {
       
       if (nextButton) {
         nextButton.disabled = this.colorGridCurrentPage === totalPages;
-        // Event listeners are now attached once, so no need to clone and replace
+
       }
   }
   showColorInfo(colorData, event, isPinned = false) {
@@ -799,11 +825,11 @@ export class UIManager {
     notificationElement.className = 'side-notification';
     notificationElement.textContent = message;
     this.sideNotificationContainer.insertBefore(notificationElement, this.sideNotificationContainer.firstChild);
-    // This forces a reflow, making the initial state register before the transition
+
     void notificationElement.offsetWidth;
-    // Add class to trigger animation
+
     notificationElement.classList.add('visible');
-    // Update styles for existing notifications
+
     const allNotifications = this.sideNotificationContainer.querySelectorAll('.side-notification');
     allNotifications.forEach((el, index) => {
         if (index > 0) { // Don't apply to the new one
@@ -811,14 +837,14 @@ export class UIManager {
             el.style.opacity = 1 - (index * 0.15);
         }
     });
-    // Set timeout to remove the notification
+
     setTimeout(() => {
         notificationElement.classList.remove('visible');
         notificationElement.addEventListener('transitionend', () => {
             if (notificationElement.parentNode) {
                 notificationElement.parentNode.removeChild(notificationElement);
             }
-             // After removing one, we need to re-adjust the positions of the remaining ones.
+
             const remainingNotifications = this.sideNotificationContainer.querySelectorAll('.side-notification');
             remainingNotifications.forEach((el, index) => {
                 el.style.transform = `scale(${1 - (index * 0.05)}) translateY(${index * 5}px)`;
@@ -945,7 +971,7 @@ populateRingsManagementTab() {
       } else {
         activeOrbsListUl.innerHTML = '<li class="noOrbsMessage">No colors currently active in this ring.</li>';
       }
-      // Re-bind listeners without cloning to prevent issues
+
       if (!manageOrbsButton.dataset.listenerAttached) {
           manageOrbsButton.addEventListener('click', () => {
               const isHidden = availableOrbsSectionDiv.style.display === 'none' || availableOrbsSectionDiv.style.display === '';
@@ -954,7 +980,7 @@ populateRingsManagementTab() {
               if (isHidden) {
                   this.populateAvailableOrbsList(mixArity);
               } else {
-                  // If we are hiding the section, also hide its pagination.
+
                   const paginationControlsContainer = document.getElementById(`summonablePagination-${mixArity}`);
                   if (paginationControlsContainer) {
                       paginationControlsContainer.style.display = 'none';
@@ -1034,7 +1060,7 @@ populateRingsManagementTab() {
     }
     this._updateSummonableListPaginationControls(mixArity, summonableColors.length);
     availableOrbsListUl.innerHTML = '';
-    availableOrbsListUl.className = 'availableOrbsGrid'; // Apply the new grid layout class
+    availableOrbsListUl.className = 'availableOrbsGrid'; 
     if (summonableColors.length === 0) {
         if (filterText) {
             availableOrbsListUl.innerHTML = `<li class="noOrbsMessage">No colors found matching "${filterInput.value}".</li>`;
@@ -1240,7 +1266,7 @@ populateRingsManagementTab() {
   }
   _initializeAndBindPlayerMixButtons() {
     if (this._playerMixButtonListenersAttached) {
-        return; // Listeners already attached
+        return; 
     }
     if (!this.playerOneMixButton) {
         this.playerOneMixButton = document.getElementById('playerOneMixButton');
@@ -1266,12 +1292,12 @@ populateRingsManagementTab() {
     }
   }
   showBattleModeScreen(show, sessionData = null, isLocalPlayerOne = null) {
-    this.currentBattleSessionData = sessionData; // Store session data
-    this.localPlayerIsOne = isLocalPlayerOne; // Store who the local player is
+    this.currentBattleSessionData = sessionData; 
+    this.localPlayerIsOne = isLocalPlayerOne; 
     if (this.battleModeScreen) {
-      this.battleModeScreen.style.display = show ? 'flex' : 'none'; // Use flex due to new CSS
+      this.battleModeScreen.style.display = show ? 'flex' : 'none'; 
       if (show) {
-        this._initializeAndBindPlayerMixButtons(); // Ensure buttons are initialized and listeners attached
+        this._initializeAndBindPlayerMixButtons();
 
         if (this.fullscreenEncyclopedia && this.fullscreenEncyclopedia.style.display !== 'none') {
           this.showEncyclopedia(false);
@@ -1284,8 +1310,7 @@ populateRingsManagementTab() {
            this.gameArea.style.filter = 'blur(8px)';
            this.gameArea.style.pointerEvents = 'none';
         }
-        
-        // Update player labels based on who the local player is
+
         const playerOneLabelEl = document.getElementById('playerOneBattleLabel');
         const playerTwoLabelEl = document.getElementById('playerTwoBattleLabel');
         
@@ -1546,7 +1571,7 @@ populateRingsManagementTab() {
     }
     if (colorData) {
         this.playerOneColorDisplay.style.backgroundColor = colorData.hex;
-        this.playerOneColorDisplay.textContent = ''; // Clear any placeholder
+        this.playerOneColorDisplay.textContent = ''; 
         const hsl = this.game.colorSystem.rgbToHsl(...colorData.rgb);
         this.playerOneColorResultInfo.innerHTML = `
             <strong>${colorData.name}</strong><br>
@@ -2024,7 +2049,7 @@ populateRingsManagementTab() {
     }
   }
   updateOpponentReadyStatus(playerIdentifier, isReady) {
-    // playerIdentifier is 'player_one' or 'player_two'
+
     let opponentPlayerButton, opponentPlayerStatusEl, opponentLabel;
     if (playerIdentifier === 'player_one' && this.localPlayerIsOne === false) { // Opponent is P1
         opponentPlayerButton = this.playerOneReadyButton;
@@ -2035,7 +2060,7 @@ populateRingsManagementTab() {
         opponentPlayerStatusEl = this.playerTwoReadyStatus;
         opponentLabel = "Opponent (P2)";
     } else {
-        return; // Not for the opponent, or local player state unclear.
+        return; 
     }
     if (opponentPlayerButton) {
         opponentPlayerButton.textContent = isReady ? 'Opponent Ready!' : 'Opponent Not Ready';
@@ -2177,21 +2202,21 @@ populateRingsManagementTab() {
     const sfxVolume = audioManager.getSfxVolume();
     const musicVolume = audioManager.getMusicVolume();
     const currentTrack = audioManager.getCurrentTrack();
-    // Update Mute Button
+
     this.muteButton.textContent = isMuted ? '🔇' : '🔊';
     this.muteButton.title = isMuted ? 'Unmute' : 'Mute';
-    // Update Master Volume Slider and Value
+
     this.masterVolumeSlider.value = isMuted ? 0 : masterVolume;
     this.masterVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(masterVolume * 100)}%`;
-    // Update SFX Volume Slider and Value
+
     this.sfxVolumeSlider.value = isMuted ? 0 : sfxVolume;
     this.sfxVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(sfxVolume * 100)}%`;
-    // Update Music Volume Slider and Value
+
     this.musicVolumeSlider.value = isMuted ? 0 : musicVolume;
     this.musicVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(musicVolume * 100)}%`;
-    // Update Music Selector
+
     const musicTracks = ['Mixin_Melody', 'Chromatic_Cascade'];
-    // Populate dropdown if it's empty
+
     if (this.musicTrackSelector.options.length !== musicTracks.length) {
         this.musicTrackSelector.innerHTML = '';
         musicTracks.forEach(trackName => {
