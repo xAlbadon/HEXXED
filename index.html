@@ -24,8 +24,8 @@
         left: 0;
         width: 100%;
         height: 100%;
-        z-index: 1; /* Above body background, below titleScreen */
-        pointer-events: none; /* Allows clicks to pass through */
+        z-index: 1; 
+        pointer-events: none; 
       }
       body {
         margin: 0;
@@ -48,11 +48,11 @@
         position: relative;
         width: 100vw;
         height: 100vh;
-        display: flex; /* Added for centering title screen */
-        align-items: center; /* Added for centering title screen */
-        justify-content: center; /* Added for centering title screen */
+        display: flex; 
+        align-items: center;
+        justify-content: center; 
       }
-      #gameArea { /* Renamed from #ui to distinguish game UI from title screen */
+      #gameArea { 
         position: absolute;
         top: 0;
         left: 0;
@@ -60,10 +60,10 @@
         height: 100%;
         pointer-events: none;
         z-index: 100;
-        display: none; /* Initially hidden until player logs in */
+        display: none; 
       }
       #titleScreen {
-        background: rgba(17, 0, 28, 0.85); /* Darker, semi-transparent bg */
+        background: rgba(17, 0, 28, 0.85); 
         backdrop-filter: blur(5px);
         padding: 40px;
         border-radius: 20px;
@@ -144,22 +144,22 @@
 }
 .authForm input:focus {
     outline: none;
-    border-color: #87CEFA; /* Light sky blue border on focus */
-    box-shadow: 0 0 10px rgba(135, 206, 250, 0.7), /* Stronger blue glow */
-                0 0 5px rgba(255, 105, 180, 0.4); /* Hint of pink glow */
+    border-color: #87CEFA; 
+    box-shadow: 0 0 10px rgba(135, 206, 250, 0.7), 
+                0 0 5px rgba(255, 105, 180, 0.4); 
 }
 .authForm input::placeholder {
     color: #bbb;
 }
 .authForm button {
       border: none;
-      border-radius: 10px; /* Slightly more rounded */
-      padding: 14px 24px; /* Larger padding */
+      border-radius: 10px;
+      padding: 14px 24px; 
       color: white;
       font-weight: bold;
-      font-size: 1.05em; /* Slightly larger font */
+      font-size: 1.05em; 
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother transition */
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       margin: 8px 5px; /* Adjusted margin */
       min-width: 130px; /* Slightly larger min-width */
       text-transform: uppercase;
@@ -468,19 +468,19 @@
         box-shadow: 0 0 20px rgba(135, 206, 250, 0.9), 0 0 8px rgba(255, 105, 180, 0.5);
       }
 #colorInfo { /* Styles for colorInfo tooltip */
-    position: fixed; /* Position relative to the viewport */
-    display: none; /* Hidden by default */
+    position: fixed; 
+    display: none;
     padding: 12px;
-    background: rgba(10, 0, 20, 0.95); /* Dark, high-contrast background */
+    background: rgba(10, 0, 20, 0.95); 
     backdrop-filter: blur(5px);
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     font-size: 0.9em;
     line-height: 1.5;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.5); /* Prominent shadow for depth */
-    z-index: 550; /* Ensure it's above other encyclopedia content */
-    pointer-events: none; /* Allow mouse events to pass through */
-    transition: opacity 0.15s ease-in-out; /* Smooth fade effect */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5); 
+    z-index: 550;
+    pointer-events: none; 
+    transition: opacity 0.15s ease-in-out; 
     max-width: 250px; /* Prevent it from being too wide */
 }
       #colorInfo strong {
@@ -553,7 +553,7 @@
         background-color: rgba(255, 255, 255, 0.05);
       }
       #leaderboardList li.currentUser {
-        background-color: rgba(255, 218, 119, 0.15); /* Faint gold highlight */
+        background-color: rgba(255, 218, 119, 0.15); 
         border-left: 3px solid #ffd700;
       }
       .rank {
@@ -568,7 +568,7 @@
       }
       .score {
         font-weight: bold;
-        color: #87CEFA; /* Light sky blue for scores */
+        color: #87CEFA;
       }
       @media (max-width: 768px) {
         #titleScreen {
@@ -579,7 +579,7 @@
           font-size: 2.5em;
         }
         #titleScreen p {
-          font-size: 1.2em; /* Adjusted for Luckiest Guy on mobile */
+          font-size: 1.2em; 
           margin-bottom: 25px;
         }
         .authForm input {
@@ -603,19 +603,19 @@
         #encyclopediaToggleButton, #leaderboardToggleButton, #battleModeButton {
             padding: 6px 10px;
             font-size: 18px;
-            /* order: 0; default order is fine with flex-wrap */
+
         }
         #colorCounter {
-            font-size: 14px; /* Slightly smaller for mobile */
+            font-size: 14px; 
             padding: 8px 12px;
-            /* order: 1; */
+
         }
         #instructions {
           font-size: 9px; 
           padding: 6px 8px; 
-          text-align: left; /* More readable for instructions */
-          flex-basis: 100%; /* Takes full width when wraps */
-          order: 3; /* Display below primary buttons and counter */
+          text-align: left; 
+          flex-basis: 100%;
+          order: 3;
           margin-top: 5px;
         }
         #challengeDisplay {
@@ -625,15 +625,15 @@
             padding: 6px 8px;
             margin-top: 5px;
         }
-        #selectedColors { /* Adjustments for the new right panel on mobile */
-          top: 80px; /* Below top bar on mobile */
+        #selectedColors { 
+          top: 80px;
           right: 10px;
-          width: 180px; /* Narrower for mobile */
-          max-height: calc(100vh - 200px); /* Adjusted max height */
+          width: 180px; 
+          max-height: calc(100vh - 200px); 
           padding: 10px;
           gap: 6px;
         }
-        .selectedColor { /* Mobile adjustments for items in the panel */
+        .selectedColor {
           padding: 6px;
         }
         .selectedColorSwatch {
@@ -648,13 +648,13 @@
           padding: 12px 25px;
           font-size: 14px;
         }
-        /* #encyclopediaPanel related mobile styles removed */
+
         #leaderboardPanel {
-            /* display: none; Now handled by JS and default style */
-            width: calc(100% - 30px); /* Full width on mobile, with padding */
+
+            width: calc(100% - 30px); 
             left: 15px;
-            top: 60px; /* Position below topBar */
-            max-height: calc(100vh - 150px); /* Ensure it doesn't overlap bottom UI */
+            top: 60px; 
+            max-height: calc(100vh - 150px); 
         }
         #fullscreenEncyclopedia {
             padding: 15px;
@@ -673,7 +673,7 @@
             font-size: 0.9em;
         }
         #colorGrid {
-          grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); /* Slightly larger tap targets for mobile */
+          grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); 
           gap: 8px;
         }
         #colorInfo {
@@ -682,11 +682,11 @@
         }
       }
       .ringManagementSection {
-        margin-bottom: 30px; /* Increased margin */
-        padding: 20px; /* Increased padding */
-        background-color: rgba(255, 255, 255, 0.04); /* Slightly adjusted background */
+        margin-bottom: 30px; 
+        padding: 20px; 
+        background-color: rgba(255, 255, 255, 0.04); 
         border-radius: 15px; /* Softer radius */
-        border: 1px solid rgba(255, 255, 255, 0.1); /* Slightly more visible border */
+        border: 1px solid rgba(255, 255, 255, 0.1); 
         box-shadow: 0 4px 12px rgba(0,0,0,0.25); /* Enhanced shadow */
       }
       .ringManagementSectionHeader {
@@ -738,17 +738,17 @@
         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Responsive grid */
         gap: 10px;
       }
-      .availableOrbsGrid { /* New class specifically for the summonable list */
+      .availableOrbsGrid { 
         display: grid;
-        grid-template-columns: repeat(3, 1fr); /* Enforce a 3-column layout */
+        grid-template-columns: repeat(3, 1fr); 
         gap: 10px;
       }
-      @media (max-width: 768px) { /* On smaller screens, go to 2 columns */
+      @media (max-width: 768px) {
           .availableOrbsGrid {
               grid-template-columns: repeat(2, 1fr);
           }
       }
-      @media (max-width: 480px) { /* On very small screens, go to 1 column */
+      @media (max-width: 480px) { 
           .availableOrbsGrid {
               grid-template-columns: 1fr;
           }
@@ -756,8 +756,8 @@
       .ringOrbListItem {
         display: flex;
         align-items: center;
-        padding: 10px 12px; /* Adjusted padding */
-        background-color: rgba(0,0,0,0.3); /* Darker item background */
+        padding: 10px 12px;
+        background-color: rgba(0,0,0,0.3); 
         border-radius: 10px; /* Softer radius */
         border: 1px solid rgba(255,255,255,0.15);
         transition: background-color 0.2s, transform 0.15s ease-out;
@@ -776,15 +776,15 @@
       }
       .ringOrbName {
         font-size: 1em;
-        color: #f5f5f5; /* Slightly brighter white */
+        color: #f5f5f5;
         flex-grow: 1;
       }
-      .unsummonOrbButton, .summonOrbButton { /* Shared style for action buttons */
-        background-color: #ff6b6b; /* Default unsummon color */
+      .unsummonOrbButton, .summonOrbButton { 
+        background-color: #ff6b6b; 
         color: white;
         border: none;
-        border-radius: 6px; /* Slightly softer radius */
-        padding: 7px 14px; /* Adjusted padding */
+        border-radius: 6px; 
+        padding: 7px 14px; 
         font-size: 0.85em;
         font-weight: bold;
         cursor: pointer;
@@ -1002,11 +1002,11 @@
         border-radius: 4px;
         height: 8px;
         margin-top: 8px;
-        overflow: hidden; /* Ensures progress bar stays within rounded corners */
+        overflow: hidden; 
       }
       .progress-bar {
         height: 100%;
-        background-color: #6c5ce7; /* Default progress color (purple-ish) */
+        background-color: #6c5ce7; 
         border-radius: 4px;
         transition: width 0.3s ease-in-out;
       }
@@ -1016,7 +1016,7 @@
       /* Responsive adjustments for achievement cards if needed */
       @media (max-width: 768px) {
         .achievements-grid {
-          grid-template-columns: 1fr; /* Single column on smaller screens */
+          grid-template-columns: 1fr;
         }
         .achievement-title {
             font-size: 1.1em;
@@ -1156,25 +1156,24 @@
       }
       #battleModeContentPlaceholder {
         width: 100%;
-        max-width: 1200px; /* Increased max-width to accommodate target color area better */
-        /* text-align: center; Will be managed by flex */
+        max-width: 1200px;
         font-size: 1.2em;
         color: #ccc;
         padding: 10px; /* Reduced padding */
-        background: rgba(255,255,255,0.03); /* Slightly more subtle background */
+        background: rgba(255,255,255,0.03);
         border-radius: 15px;
         border: 1px solid rgba(255,255,255,0.1);
         display: flex;
-        justify-content: space-between; /* Changed to space-between for target in middle */
-        align-items: flex-start; /* Align items to the top of their container */
+        justify-content: space-between;
+        align-items: flex-start; 
         gap: 20px;
-        flex-wrap: wrap; /* Allow wrapping for responsiveness */
+        flex-wrap: wrap;
       }
       .playerBattleArea {
-        flex-basis: calc(35% - 20px); /* Reduced basis to make space for target area */
-        min-width: 280px; /* Minimum width before stacking, slightly reduced */
-        background: rgba(40, 20, 60, 0.5); /* Darker, thematic background for player area */
-        border: 1px solid rgba(255, 107, 107, 0.4); /* Fiery red accent border */
+        flex-basis: calc(35% - 20px); 
+        min-width: 280px; 
+        background: rgba(40, 20, 60, 0.5); 
+        border: 1px solid rgba(255, 107, 107, 0.4); 
         border-radius: 12px;
         padding: 15px; /* Reduced padding */
         display: flex;
@@ -1182,7 +1181,7 @@
         align-items: center;
         gap: 10px; /* Reduced gap */
         box-shadow: 0 0 15px rgba(255, 107, 107, 0.2);
-        position: relative; /* For positioning ready button */
+        position: relative;
       }
       .playerBattleTitle {
         color: #ff8b8b; /* Slightly lighter fiery red for titles */
@@ -1315,16 +1314,16 @@
         transform: scale(1.1);
         box-shadow: 0 0 12px rgba(255,255,255,0.8);
       }
-      /* 5-column grid positions. Example: row / column / end-row / end-column */
+
       .battle-source-orb.orb-pos-r1-c1 { grid-area: 1 / 1 / 2 / 2; } /* Row 1, Col 1 */
       .battle-source-orb.orb-pos-r1-c2 { grid-area: 1 / 2 / 2 / 3; } /* Row 1, Col 2 */
       .battle-source-orb.orb-pos-r1-c3 { grid-area: 1 / 3 / 2 / 4; } /* Row 1, Col 3 */
       .battle-source-orb.orb-pos-r1-c4 { grid-area: 1 / 4 / 2 / 5; } /* Row 1, Col 4 */
       .battle-source-orb.orb-pos-r1-c5 { grid-area: 1 / 5 / 2 / 6; } /* Row 1, Col 5 */
       .battle-source-orb.orb-pos-r2-c1 { grid-area: 2 / 1 / 3 / 2; } /* Row 2, Col 1 */
-      /* .battle-source-orb.orb-pos-r2-c2 ... etc. */
+
       .battle-source-orb.orb-pos-r2-c5 { grid-area: 2 / 5 / 3 / 6; } /* Row 2, Col 5 */
-      /* Add more as needed up to r3-c5 for a 3x5 grid */
+
       .playerBattleSelectedOrbs {
         display: flex;
         justify-content: center;
@@ -1415,8 +1414,7 @@
         text-align: center;
       }
       .battleVersusIndicator {
-        /* This can be removed or repurposed if the layout changes significantly */
-        /* For now, let's keep its styling but it might not be used in the HTML directly */
+
         font-size: 3.5em;
         color: #ff6b6b;
         align-self: center;
@@ -1460,7 +1458,7 @@
         color: #4CAF50; /* Green text when ready */
         font-weight: bold;
       }
-      @media (min-width: 769px) { /* Desktop layout adjustments */
+      @media (min-width: 769px) { 
          #battleModeContentPlaceholder {
             padding: 15px; /* Reduced padding for desktop */
             justify-content: space-around; /* Ensure good spacing with target in middle */
@@ -1526,8 +1524,7 @@
       .filter-group.dual-slider .sliders { display: flex; flex-direction: column; gap: 5px; }
       .filter-group.dual-slider .sliders input[type="range"] { width: 100%; margin: 0; }
       .filter-group.dual-slider .values { display: flex; justify-content: space-between; font-size: 0.9em; color: #aaa; margin-top: 5px; }
-      
-      /* Advanced filter toggle styles */
+
       #advancedFilterToggleContainer { display: flex; align-items: center; gap: 8px; cursor: pointer; }
       #toggleAdvancedFilters { display: none; /* Hide the actual checkbox */ }
       #toggleAdvancedFilters + label { 
@@ -2079,6 +2076,20 @@
                       <div class="volume-control-wrapper">
                           <input type="range" id="sfxVolumeSlider" min="0" max="1" step="0.01" value="1.0">
                           <span id="sfxVolumeValue">100%</span>
+                      </div>
+                  </div>
+                  <div class="settings-control">
+                      <label>Achievement Sounds</label> <!-- Changed label -->
+                      <div id="advancedFilterToggleContainer"> <!-- Re-using style for a toggle switch -->
+                        <input type="checkbox" id="toggleAchievementSounds" checked>
+                        <label for="toggleAchievementSounds">Enable Achievement Sounds</label>
+                      </div>
+                  </div>
+                  <div class="settings-control">
+                      <label>Achievement Sounds Volume</label>
+                      <div class="volume-control-wrapper">
+                          <input type="range" id="achievementVolumeSlider" min="0" max="1" step="0.01" value="1.0">
+                          <span id="achievementVolumeValue">100%</span>
                       </div>
                   </div>
                   <div class="settings-control">

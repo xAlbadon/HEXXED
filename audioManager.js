@@ -6,18 +6,24 @@ class AudioManager {
         this.masterVolume = 0.5;
         this.musicVolume = 1.0;
         this.sfxVolume = 1.0;
-        this.currentTrackPath = './assets/music/Mixin_Melody.mp3'; // Default track
+        this.achievementVolume = 1.0;
+        this.currentTrackPath = './assets/music/Mixin_Melody.mp3';
+        this.achievementSoundsMuted = false;
         this.loadSettings();
-        this.playBackgroundMusic(this.currentTrackPath);
+        if (!this.backgroundMusic) {
+            this.playBackgroundMusic(this.currentTrackPath);
+        }
     }
     saveSettings() {
         localStorage.setItem('audioMuted', JSON.stringify(this.isMuted));
         localStorage.setItem('masterVolume', this.masterVolume);
         localStorage.setItem('musicVolume', this.musicVolume);
         localStorage.setItem('sfxVolume', this.sfxVolume);
+        localStorage.setItem('achievementVolume', this.achievementVolume);
         if (this.currentTrackPath) {
             localStorage.setItem('audioTrack', this.currentTrackPath);
         }
+        localStorage.setItem('achievementSoundsMuted', JSON.stringify(this.achievementSoundsMuted));
     }
     loadSettings() {
         const muted = localStorage.getItem('audioMuted');
@@ -36,9 +42,18 @@ class AudioManager {
         if (sfxVolume !== null) {
             this.sfxVolume = parseFloat(sfxVolume);
         }
+        const achievementVolume = localStorage.getItem('achievementVolume');
+        if (achievementVolume !== null) {
+            this.achievementVolume = parseFloat(achievementVolume);
+        }
         const track = localStorage.getItem('audioTrack');
         if (track) {
             this.currentTrackPath = track;
+            this.playBackgroundMusic(this.currentTrackPath);
+        }
+        const achievementSoundsMuted = localStorage.getItem('achievementSoundsMuted');
+        if (achievementSoundsMuted !== null) {
+            this.achievementSoundsMuted = JSON.parse(achievementSoundsMuted);
         }
     }
     updateMusicVolume() {
@@ -80,7 +95,13 @@ class AudioManager {
         this.sfxVolume = Math.max(0, Math.min(1, volume)); // Clamp
         this.saveSettings();
     }
-    
+    setAchievementVolume(volume) {
+        this.achievementVolume = Math.max(0, Math.min(1, volume)); // Clamp
+        this.saveSettings();
+    }
+    getAchievementVolume() {
+        return this.achievementVolume;
+    }
     getMasterVolume() {
         return this.masterVolume;
     }
@@ -96,8 +117,15 @@ class AudioManager {
     
     playSound(soundName, extension = 'wav') {
         if (this.isMuted) return;
+        if (soundName === 'Achievement' && this.achievementSoundsMuted) {
+            return;
+        }
+        let volume = this.masterVolume * this.sfxVolume;
+        if (soundName === 'Achievement') {
+            volume = this.masterVolume * this.achievementVolume;
+        }
         const sound = new Audio(`./assets/sounds/${soundName}.${extension}`);
-        sound.volume = this.masterVolume * this.sfxVolume;
+        sound.volume = volume;
         sound.play().catch(e => console.error(`Error playing sound ${soundName}:`, e));
     }
     playRandomSelectSound() {
@@ -105,8 +133,15 @@ class AudioManager {
         const soundName = `select${soundIndex}`;
         this.playSound(soundName, 'wav');
     }
+    toggleAchievementSounds() {
+        this.achievementSoundsMuted = !this.achievementSoundsMuted;
+        this.saveSettings();
+    }
+    
+    areAchievementSoundsMuted() {
+        return this.achievementSoundsMuted;
+    }
 }
-
 // Export a singleton instance
 const audioManager = new AudioManager();
 export default audioManager;

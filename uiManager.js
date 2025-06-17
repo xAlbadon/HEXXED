@@ -60,11 +60,11 @@ export class UIManager {
     this.playerTwoResultSwatch = document.getElementById('playerTwoResultSwatch');
     this.playerTwoResultInfo = document.getElementById('playerTwoResultInfo');
     this.closeBattleResultsButton = document.getElementById('closeBattleResultsButton');
-    // Lobby Screen Elements
+
     this.lobbyScreen = document.getElementById('lobbyScreen');
     this.lobbyStatusMessage = document.getElementById('lobbyStatusMessage');
     this.cancelLobbyButton = document.getElementById('cancelLobbyButton');
-    // Encyclopedia Tab Elements
+
     this.encyclopediaTabsContainer = document.getElementById('encyclopediaTabs');
     this.encyclopediaTabButtons = this.encyclopediaTabsContainer ? 
                                   this.encyclopediaTabsContainer.querySelectorAll('.encyclopediaTabButton') : [];
@@ -101,7 +101,7 @@ export class UIManager {
     this.encyclopediaGreenMaxValue = document.getElementById('encyclopediaGreenMaxValue');
     this.encyclopediaBlueMinValue = document.getElementById('encyclopediaBlueMinValue');
     this.encyclopediaBlueMaxValue = document.getElementById('encyclopediaBlueMaxValue');
-    // Reset Filters Button
+
     this.resetFiltersButton = document.getElementById('resetFiltersButton');
     this.advancedFiltersToggle = document.getElementById('advancedFiltersToggle'); 
     this.advancedFiltersContainer = document.getElementById('advanced-filters-container'); 
@@ -109,7 +109,7 @@ export class UIManager {
     this.gameLeaderboardPanelEl = document.getElementById('leaderboardPanel');
 
     this.achievementsListContainer = document.getElementById('achievementsList');
-    // Audio Settings Elements
+
     this.sideNotificationContainer = null;
     this._createSideNotificationContainer();
     this.muteButton = document.getElementById('muteButton');
@@ -120,6 +120,9 @@ export class UIManager {
     this.musicVolumeSlider = document.getElementById('musicVolumeSlider');
     this.musicVolumeValue = document.getElementById('musicVolumeValue');
     this.musicTrackSelector = document.getElementById('musicTrackSelector');
+    this.muteAchievementsButton = document.getElementById('muteAchievementsButton');
+    this.achievementVolumeSlider = document.getElementById('achievementVolumeSlider');
+    this.achievementVolumeValue = document.getElementById('achievementVolumeValue');
     this.setupAuthEventListeners();
     this.leaderboard = null;
     this.mixButtonContainer = null;
@@ -185,13 +188,13 @@ export class UIManager {
   }
   #calculateLuminance(rgb) {
 
-    if (!rgb || rgb.length < 3) return 0; // Default to dark (0) if invalid input
+    if (!rgb || rgb.length < 3) return 0;
     const r = rgb[0];
     const g = rgb[1];
     const b = rgb[2];
 
     const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-    // Normalize to 0-1 scale
+
     return lum / 255;
   }
   setupAuthEventListeners() {
@@ -332,7 +335,7 @@ export class UIManager {
     if (this.encyclopediaBlueMaxSlider) this.encyclopediaBlueMaxSlider.value = 255;
 
     if (this.lastKnownDiscoveredColors) {
-      this.colorGridCurrentPage = 1; // Reset to first page on filter reset
+      this.colorGridCurrentPage = 1; 
       this.updateEncyclopedia(this.lastKnownDiscoveredColors);
     }
   }
@@ -406,8 +409,8 @@ export class UIManager {
       z-index: 10; /* Ensure it's above selectedColors but below modals */
     `;
     this.mixButtonContainer.appendChild(this.mixButton);
-    this.gameArea.appendChild(this.mixButtonContainer); // Append to gameArea
-    this.updateMixButtonPosition(); // Set initial position
+    this.gameArea.appendChild(this.mixButtonContainer); 
+    this.updateMixButtonPosition(); 
   }
   onMixButtonClick(callback) {
     if (this.mixButton && !this.mixButton.dataset.listenerAttached) {
@@ -429,11 +432,10 @@ export class UIManager {
       audioManager.playRandomSelectSound();
     }
     this.previousSelectedOrbsCount = selectedOrbs.length;
-    // After updating the display, check if the mix button should be enabled.
+
     const canMix = selectedOrbs.length >= 2 && selectedOrbs.length <= 4;
     this.setMixButtonEnabled(canMix);
-    
-    // Update line preview system
+
     if (this.game && this.game.linePreviewSystem && typeof this.game.linePreviewSystem.updateLines === 'function') {
         this.game.linePreviewSystem.updateLines(selectedOrbs);
     }
@@ -453,8 +455,7 @@ export class UIManager {
       nameSpan.title = orb.colorData.name;
       selectedColorItem.appendChild(swatch);
       selectedColorItem.appendChild(nameSpan);
-      
-      // Add click event listener for deselection
+
       selectedColorItem.addEventListener('click', () => {
         if (this.game && typeof this.game.handleOrbDeselection === 'function') {
           audioManager.playSound('RemoveColor');
@@ -464,7 +465,7 @@ export class UIManager {
       
       this.gameSelectedColors.appendChild(selectedColorItem);
     });
-    // Redundant check removed from here, as it's now at the top of the function.
+
   }
   updateEncyclopedia(discoveredColors, currentSortOrder = null, preserveScroll = false) {
     if (!this.gameColorGrid) return;
@@ -610,7 +611,7 @@ export class UIManager {
 
           this.pinnedColorSwatch = swatch;
           this.pinnedColorSwatch.classList.add('pinned');
-          this.showColorInfo(color, event, true); // Show and pin it
+          this.showColorInfo(color, event, true); 
         }
       });
       this.gameColorGrid.appendChild(swatch);
@@ -685,7 +686,7 @@ export class UIManager {
     if (this.pinnedColorSwatch && !isPinned) {
         return;
     }
-    this.gameColorInfo.style.display = 'block'; // Make it visible first
+    this.gameColorInfo.style.display = 'block'; 
     if (isPinned) {
       this.gameColorInfo.classList.add('pinned');
     } else {
@@ -733,8 +734,8 @@ export class UIManager {
         const swatchRect = swatchEl.getBoundingClientRect();
         const tooltipRect = this.gameColorInfo.getBoundingClientRect();
         const containerRect = this.fullscreenEncyclopedia.getBoundingClientRect();
-        let top = swatchRect.top - tooltipRect.height - 10; // Default above
-        let left = swatchRect.left + (swatchRect.width / 2) - (tooltipRect.width / 2); // Default centered
+        let top = swatchRect.top - tooltipRect.height - 10; 
+        let left = swatchRect.left + (swatchRect.width / 2) - (tooltipRect.width / 2); 
 
         if (top < containerRect.top) {
             top = swatchRect.bottom + 10;
@@ -1000,7 +1001,7 @@ populateRingsManagementTab() {
       if (!availableOrbsFilterInput.dataset.listenerAttached) {
           availableOrbsFilterInput.addEventListener('input', () => {
               if (availableOrbsSectionDiv.style.display === 'block') {
-                  this.summonableListPage[mixArity] = 1; // Reset to page 1 on filter/sort change
+                  this.summonableListPage[mixArity] = 1;
                   this.populateAvailableOrbsList(mixArity);
               }
           });
@@ -1314,7 +1315,7 @@ populateRingsManagementTab() {
         const playerOneLabelEl = document.getElementById('playerOneBattleLabel');
         const playerTwoLabelEl = document.getElementById('playerTwoBattleLabel');
         
-        if (this.localPlayerIsOne !== null) { // Use the passed-in flag
+        if (this.localPlayerIsOne !== null) { 
             if (playerOneLabelEl) {
                 playerOneLabelEl.textContent = this.localPlayerIsOne ? "You (Player 1)" : "Opponent (Player 1)";
                 if (this.localPlayerIsOne) playerOneLabelEl.classList.add('local-player-label');
@@ -1420,7 +1421,7 @@ populateRingsManagementTab() {
         return null;
     }
     this.targetBattleColorDisplay.style.backgroundColor = targetColor.hex;
-    this.targetBattleColorDisplay.textContent = ''; // Clear placeholder text
+    this.targetBattleColorDisplay.textContent = ''; 
 
     this.targetBattleColorInfo.innerHTML = `
         <strong>${targetColor.name}</strong><br>
@@ -1428,7 +1429,7 @@ populateRingsManagementTab() {
     `;
     
     this.currentGameBattleTargetColor = targetColor;
-    return targetColor; // Return the chosen color
+    return targetColor; 
   }
   initializePlayerOneBattleOrbs() {
     if (!this.game || !this.game.colorSystem) {
@@ -1441,13 +1442,13 @@ populateRingsManagementTab() {
     const cs = this.game.colorSystem;
   
     const baseOrbSetups = [
-        { name: 'White',       position: 'orb-pos-r1-c1', symbol: null }, // Row 1, Col 1
-        { name: 'Red',         position: 'orb-pos-r1-c2', symbol: null }, // Row 1, Col 2
-        { name: 'Yellow',      position: 'orb-pos-r1-c3', symbol: null }, // Row 1, Col 3
-        { name: 'Blue',        position: 'orb-pos-r1-c4', symbol: null }, // Row 1, Col 4
-        { name: 'Black',       position: 'orb-pos-r1-c5', symbol: null }, // Row 1, Col 5
-        { name: 'Saturator',   position: 'orb-pos-r2-c1', symbol: 'S'  }, // Row 2, Col 1
-        { name: 'Desaturator', position: 'orb-pos-r2-c5', symbol: 'D'  }  // Row 2, Col 5
+        { name: 'White',       position: 'orb-pos-r1-c1', symbol: null }, 
+        { name: 'Red',         position: 'orb-pos-r1-c2', symbol: null }, 
+        { name: 'Yellow',      position: 'orb-pos-r1-c3', symbol: null }, 
+        { name: 'Blue',        position: 'orb-pos-r1-c4', symbol: null }, 
+        { name: 'Black',       position: 'orb-pos-r1-c5', symbol: null }, 
+        { name: 'Saturator',   position: 'orb-pos-r2-c1', symbol: 'S'  }, 
+        { name: 'Desaturator', position: 'orb-pos-r2-c5', symbol: 'D'  }  
     ];
     this.playerOneAvailableBattleOrbs = baseOrbSetups.map(orbInfo => {
         const colorData = cs.getDiscoveredColors().find(c => c.name === orbInfo.name);
@@ -1478,7 +1479,7 @@ populateRingsManagementTab() {
         orbEl.title = orbSetup.colorData.name;
         if (orbSetup.symbol) {
             orbEl.textContent = orbSetup.symbol;
-            const luminance = this.#calculateLuminance(orbSetup.colorData.rgb || [0,0,0]); // Ensure rgb exists
+            const luminance = this.#calculateLuminance(orbSetup.colorData.rgb || [0,0,0]); 
             orbEl.style.color = luminance > 0.5 ? 'black' : 'white';
         } else if (!orbSetup.position) { 
 
@@ -1515,7 +1516,7 @@ populateRingsManagementTab() {
     const placeholders = this.playerOneSelectedOrbsContainer.querySelectorAll('.orb-placeholder');
     
     placeholders.forEach((placeholder, index) => {
-        placeholder.innerHTML = ''; // Clear any previous orb swatch
+        placeholder.innerHTML = ''; 
         placeholder.classList.remove('has-orb');
 
         if (index < this.playerOneBattleSelection.length) {
@@ -1525,7 +1526,7 @@ populateRingsManagementTab() {
             const orbSwatchEl = document.createElement('div');
             orbSwatchEl.classList.add('selected-battle-orb');
             orbSwatchEl.style.backgroundColor = selectedOrbData.hex;
-            orbSwatchEl.title = selectedOrbData.name; // Tooltip for the selected swatch
+            orbSwatchEl.title = selectedOrbData.name; 
             placeholder.appendChild(orbSwatchEl);
         }
 
@@ -1544,12 +1545,12 @@ populateRingsManagementTab() {
     }
     const mixedColor = this.game.colorSystem.mixColors(this.playerOneBattleSelection);
     this.displayPlayerOneMixedColor(mixedColor);
-    if (mixedColor) { // Only add if the mix was successful
+    if (mixedColor) {
         if (!this.playerOneAvailableBattleOrbs.some(orb => orb.colorData.hex === mixedColor.hex)) {
             this.playerOneAvailableBattleOrbs.push({
                 colorData: mixedColor,
             });
-            this.renderPlayerOneBattleOrbs(); // Re-render to show the new orb
+            this.renderPlayerOneBattleOrbs(); 
         }
     }
     if (this.game && typeof this.game.handlePlayerOneBattleMixResult === 'function') {
@@ -1558,13 +1559,13 @@ populateRingsManagementTab() {
     this.playerOneBattleSelection = [];
     this.updatePlayerOneSelectedOrbsDisplay();
     if (this.playerOneMixButton) {
-        this.playerOneMixButton.disabled = true; // Disable after attempt
+        this.playerOneMixButton.disabled = true; 
     }
 }
   displayPlayerOneMixedColor(colorData, customMessage = null) {
     if (!this.playerOneColorDisplay || !this.playerOneColorResultInfo) return;
     if (customMessage) {
-        this.playerOneColorDisplay.style.backgroundColor = '#555'; // Default/failed color
+        this.playerOneColorDisplay.style.backgroundColor = '#555'; 
         this.playerOneColorDisplay.textContent = 'X';
         this.playerOneColorResultInfo.innerHTML = `<strong>${customMessage}</strong>`;
         return;
@@ -1579,14 +1580,14 @@ populateRingsManagementTab() {
             HSL: ${hsl.h.toFixed(0)}, ${Math.round(hsl.s * 100)}%, ${Math.round(hsl.l * 100)}%
         `;
     } else {
-        this.playerOneColorDisplay.style.backgroundColor = '#555'; // Default/failed color
+        this.playerOneColorDisplay.style.backgroundColor = '#555'; 
         this.playerOneColorDisplay.textContent = 'X'; 
         this.playerOneColorResultInfo.innerHTML = `<strong>Mix Failed!</strong><br>Try a different combination.`;
     }
   }
   clearPlayerOneMixedColorDisplay() {
     if (this.playerOneColorDisplay) {
-        this.playerOneColorDisplay.style.backgroundColor = '#3a3a5a'; // Initial placeholder bg
+        this.playerOneColorDisplay.style.backgroundColor = '#3a3a5a'; 
         this.playerOneColorDisplay.textContent = '?';
     }
     if (this.playerOneColorResultInfo) {
@@ -1644,7 +1645,7 @@ populateRingsManagementTab() {
         orbEl.title = orbSetup.colorData.name;
         if (orbSetup.symbol) {
             orbEl.textContent = orbSetup.symbol;
-            const luminance = this.#calculateLuminance(orbSetup.colorData.rgb || [0,0,0]); // Ensure rgb exists
+            const luminance = this.#calculateLuminance(orbSetup.colorData.rgb || [0,0,0]); 
             orbEl.style.color = luminance > 0.5 ? 'black' : 'white';
         }
         
@@ -1653,7 +1654,7 @@ populateRingsManagementTab() {
     });
 }
   handlePlayerTwoBattleOrbClick(colorData) {
-    if (this.localPlayerIsOne) { // Note: condition is true if localPlayerIsOne (i.e., local player is P1, so P2 is opponent)
+    if (this.localPlayerIsOne) { 
         return;
     }
     if (this.playerTwoBattleSelection.length >= this.MAX_BATTLE_SELECTION) {
@@ -2055,7 +2056,7 @@ populateRingsManagementTab() {
         opponentPlayerButton = this.playerOneReadyButton;
         opponentPlayerStatusEl = this.playerOneReadyStatus;
         opponentLabel = "Opponent (P1)";
-    } else if (playerIdentifier === 'player_two' && this.localPlayerIsOne === true) { // Opponent is P2
+    } else if (playerIdentifier === 'player_two' && this.localPlayerIsOne === true) { 
         opponentPlayerButton = this.playerTwoReadyButton;
         opponentPlayerStatusEl = this.playerTwoReadyStatus;
         opponentLabel = "Opponent (P2)";
@@ -2088,7 +2089,7 @@ populateRingsManagementTab() {
             this.playerOneBattleOrbsContainer.style.pointerEvents = 'auto';
             this.playerOneBattleOrbsContainer.style.opacity = '1';
         }
-    } else if (this.localPlayerIsOne === false) { // Check for explicit false
+    } else if (this.localPlayerIsOne === false) { 
         if (this.playerTwoBattleOrbsContainer) {
             this.playerTwoBattleOrbsContainer.style.pointerEvents = 'auto';
             this.playerTwoBattleOrbsContainer.style.opacity = '1';
@@ -2192,29 +2193,46 @@ populateRingsManagementTab() {
             this._updateAudioUI();
         });
     }
-    // Set initial state
+    if (this.muteAchievementsButton) {
+      this.muteAchievementsButton.addEventListener('click', () => {
+        audioManager.toggleAchievementMute();
+        this._updateAudioUI();
+      });
+    }
+    if (this.achievementVolumeSlider) {
+        this.achievementVolumeSlider.addEventListener('input', () => {
+            const volume = parseFloat(this.achievementVolumeSlider.value);
+            audioManager.setAchievementVolume(volume);
+            this._updateAudioUI();
+        });
+    }
+
     this._updateAudioUI();
   }
   _updateAudioUI() {
-    if (!this.muteButton || !this.masterVolumeSlider || !this.masterVolumeValue || !this.sfxVolumeSlider || !this.sfxVolumeValue || !this.musicVolumeSlider || !this.musicVolumeValue || !this.musicTrackSelector) return;
+    if (!this.muteButton || !this.masterVolumeSlider || !this.masterVolumeValue || !this.sfxVolumeSlider || !this.sfxVolumeValue || !this.musicVolumeSlider || !this.musicVolumeValue || !this.musicTrackSelector || !this.achievementVolumeSlider || !this.achievementVolumeValue) return;
     const isMuted = audioManager.isMuted;
     const masterVolume = audioManager.getMasterVolume();
     const sfxVolume = audioManager.getSfxVolume();
     const musicVolume = audioManager.getMusicVolume();
+    const achievementVolume = audioManager.getAchievementVolume();
     const currentTrack = audioManager.getCurrentTrack();
-
+    const areAchievementSoundsMuted = audioManager.areAchievementSoundsMuted();
     this.muteButton.textContent = isMuted ? '🔇' : '🔊';
     this.muteButton.title = isMuted ? 'Unmute' : 'Mute';
-
     this.masterVolumeSlider.value = isMuted ? 0 : masterVolume;
     this.masterVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(masterVolume * 100)}%`;
-
     this.sfxVolumeSlider.value = isMuted ? 0 : sfxVolume;
     this.sfxVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(sfxVolume * 100)}%`;
-
     this.musicVolumeSlider.value = isMuted ? 0 : musicVolume;
     this.musicVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(musicVolume * 100)}%`;
-
+    this.musicVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(musicVolume * 100)}%`;
+    this.achievementVolumeSlider.value = isMuted || areAchievementSoundsMuted ? 0 : achievementVolume;
+    this.achievementVolumeValue.textContent = isMuted || areAchievementSoundsMuted ? 'Muted' : `${Math.round(achievementVolume * 100)}%`;
+    if (this.muteAchievementsButton) {
+      this.muteAchievementsButton.textContent = areAchievementSoundsMuted ? 'Unmute Achievements' : 'Mute Achievements';
+      this.muteAchievementsButton.classList.toggle('toggled-on', areAchievementSoundsMuted);
+    }
     const musicTracks = ['Mixin_Melody', 'Chromatic_Cascade'];
 
     if (this.musicTrackSelector.options.length !== musicTracks.length) {
@@ -2229,7 +2247,7 @@ populateRingsManagementTab() {
     if (currentTrack) {
         this.musicTrackSelector.value = currentTrack;
     } else {
-        // If no track is playing, select the default or first option
+
         if (this.musicTrackSelector.options.length > 0) {
              this.musicTrackSelector.selectedIndex = 0;
         }
