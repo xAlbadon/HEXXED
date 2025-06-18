@@ -156,6 +156,8 @@ class AudioManager {
         const soundIndex = Math.floor(Math.random() * 6) + 1; // 1 to 6
         const soundName = `select${soundIndex}`;
         this.playSound(soundName, 'wav');
+        // Return the name of the sound played so it can be reused
+        return soundName;
     }
     toggleAchievementSounds() {
         this.achievementSoundsMuted = !this.achievementSoundsMuted;
