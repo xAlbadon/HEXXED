@@ -12,6 +12,7 @@ export class UpdateManager {
             this.setupEventListeners();
             // Signal the main process that the renderer is ready to handle update events.
             window.electron.send('renderer-ready-for-updates');
+            this.uiManager.showCheckingForUpdate();
         } else {
             console.log("[UpdateManager] Not in Electron environment. Simulating 'no update available'.");
             // If not in Electron, we are not checking and there's no update in progress.

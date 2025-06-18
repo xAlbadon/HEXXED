@@ -394,6 +394,53 @@ setUpdateManager(updateManager) {
     this.gameArea.appendChild(this.mixButtonContainer); 
     this.updateMixButtonPosition(); 
   }
+  showUpdater(message) {
+    if (this.updateContainer && this.updateMessage) {
+      this.updateMessage.innerHTML = message;
+      this.updateContainer.style.display = 'block';
+      this.hideTitleScreen();
+    }
+  }
+  hideUpdater() {
+    if (this.updateContainer) {
+      this.updateContainer.style.display = 'none';
+    }
+  }
+  showCheckingForUpdate() {
+    this.showUpdater('Checking for updates...');
+    if (this.restartButton) {
+      this.restartButton.style.display = 'none';
+    }
+  }
+  showUpdateAvailable(version) {
+    this.showUpdater(`Update v${version} is available. Downloading...`);
+  }
+  updateDownloadProgress(progressInfo) {
+    const percent = Math.round(progressInfo.percent);
+    const downloaded = (progressInfo.transferred / 1024 / 1024).toFixed(2);
+    const total = (progressInfo.total / 1024 / 1024).toFixed(2);
+    const speed = (progressInfo.bytesPerSecond / 1024).toFixed(2);
+    this.showUpdater(`
+        Downloading update... ${percent}%<br>
+        <progress value="${percent}" max="100"></progress><br>
+        <small>${downloaded} MB / ${total} MB (${speed} KB/s)</small>
+    `);
+  }
+  showUpdateDownloaded(message) {
+    this.showUpdater(message);
+    if (this.restartButton) {
+      this.restartButton.style.display = 'block';
+      this.restartButton.onclick = () => {
+        window.electron.send('restart-app');
+      };
+    }
+  }
+  showUpdateMessage(message) {
+    this.showUpdater(message);
+    if (this.restartButton) {
+      this.restartButton.style.display = 'none';
+    }
+  }
   onMixButtonClick(callback) {
     if (this.mixButton && !this.mixButton.dataset.listenerAttached) {
         this.mixButton.addEventListener('click', () => {

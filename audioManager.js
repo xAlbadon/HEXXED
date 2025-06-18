@@ -134,12 +134,17 @@ class AudioManager {
     
     playSound(soundName, extension = 'wav') {
         if (this.isMuted) return;
-        if (soundName === 'Achievement' && this.achievementSoundsMuted) {
-            return;
+        // Unified check for any sound starting with "Achievement"
+        const isAchievementSound = soundName.startsWith('Achievement');
+        if (isAchievementSound && this.achievementSoundsMuted) {
+            return; // Exit if achievement sounds are muted
         }
-        let volume = this.masterVolume * this.sfxVolume;
-        if (soundName === 'Achievement') {
+        
+        let volume;
+        if (isAchievementSound) {
             volume = this.masterVolume * this.achievementVolume;
+        } else {
+            volume = this.masterVolume * this.sfxVolume;
         }
         const sound = new Audio(`./assets/sounds/${soundName}.${extension}`);
         sound.volume = volume;
