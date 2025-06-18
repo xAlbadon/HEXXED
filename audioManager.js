@@ -9,6 +9,8 @@ class AudioManager {
         this.achievementVolume = 1.0;
         this.currentTrackPath = null; // No default track
         this.achievementSoundsMuted = false;
+        this.lastSelectSoundTime = 0;
+        this.selectSoundDebounce = 50; // 50ms
         this.loadSettings();
         // After loading settings, if a track is defined, play it.
         if (this.currentTrackPath && !this.backgroundMusic) {
@@ -153,6 +155,11 @@ class AudioManager {
         sound.play().catch(e => console.error(`Error playing sound ${baseSoundName}:`, e));
     }
     playRandomSelectSound() {
+        const now = performance.now();
+        if (now - this.lastSelectSoundTime < this.selectSoundDebounce) {
+            return; // Debounce
+        }
+        this.lastSelectSoundTime = now;
         const soundIndex = Math.floor(Math.random() * 6) + 1; // 1 to 6
         const soundName = `select${soundIndex}`;
         this.playSound(soundName, 'wav');
