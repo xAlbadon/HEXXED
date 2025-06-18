@@ -134,8 +134,9 @@ class AudioManager {
     
     playSound(soundName, extension = 'wav') {
         if (this.isMuted) return;
-        // Unified check for any sound starting with "Achievement"
-        const isAchievementSound = soundName.startsWith('Achievement');
+        // Extract the base name if a full path is provided
+        const baseSoundName = soundName.split('/').pop().replace(`.${extension}`, '');
+        const isAchievementSound = baseSoundName.startsWith('Achievement');
         if (isAchievementSound && this.achievementSoundsMuted) {
             return; // Exit if achievement sounds are muted
         }
@@ -146,9 +147,10 @@ class AudioManager {
         } else {
             volume = this.masterVolume * this.sfxVolume;
         }
-        const sound = new Audio(`./assets/sounds/${soundName}.${extension}`);
+        
+        const sound = new Audio(`./assets/sounds/${baseSoundName}.${extension}`);
         sound.volume = volume;
-        sound.play().catch(e => console.error(`Error playing sound ${soundName}:`, e));
+        sound.play().catch(e => console.error(`Error playing sound ${baseSoundName}:`, e));
     }
     playRandomSelectSound() {
         const soundIndex = Math.floor(Math.random() * 6) + 1; // 1 to 6

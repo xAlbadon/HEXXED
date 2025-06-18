@@ -487,7 +487,7 @@ setUpdateManager(updateManager) {
 
       selectedColorItem.addEventListener('click', () => {
         if (this.game && typeof this.game.handleOrbDeselection === 'function') {
-          audioManager.playSound('RemoveColor');
+          audioManager.playRandomSelectSound();
           this.game.handleOrbDeselection(orb);
         }
       });
