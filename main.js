@@ -316,9 +316,8 @@ class ChromaLabGame {
     this.orbManager.selectOrb(orb);
     // After selecting, update the state
     this.updateSelectionState();
-     // Play a random selection sound
-    const soundIndex = Math.floor(Math.random() * 6) + 1;
-    audioManager.playSound(`./assets/sounds/select${soundIndex}`, 0.5);
+    // Play a random selection sound
+    audioManager.playRandomSelectSound();
   }
   deselectOrb(orb) {
     this.orbManager.deselectOrb(orb);
@@ -337,8 +336,7 @@ class ChromaLabGame {
     }
     
     console.log(`[ChromaLabGame] Deselecting orb: ${orb.colorData.name}`);
-    const soundIndex = Math.floor(Math.random() * 6) + 1;
-    audioManager.playSound(`./assets/sounds/select${soundIndex}`, 0.5);
+    audioManager.playRandomSelectSound();
     this.deselectOrb(orb);
   }
   // A new helper method to centralize state updates after any selection change.
