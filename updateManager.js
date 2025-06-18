@@ -62,7 +62,7 @@ export class UpdateManager {
         window.electron.onUpdateDownloaded((info) => {
             console.log('[UpdateManager] Update downloaded and ready:', info);
             this.updateInProgress = true;
-            this.uiManager.showUpdateDownloaded(`Update v${info.version} downloaded. Restart to install.`);
+            this.uiManager.showUpdateDownloaded(info);
         });
         // Fired when an error occurs during the update process.
         window.electron.onUpdateError((error) => {

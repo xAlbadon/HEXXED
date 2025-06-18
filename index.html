@@ -916,7 +916,7 @@
         background-color: rgba(30, 30, 40, 0.95);
         color: #e0e0e0;
         z-index: 2000;
-        display: none; /* Default to none, it will be set to flex by JS if needed */
+        /* display: none; <- This is set by JS, so we'll remove the redundant style */
         flex-direction: column;
         align-items: center;
         justify-content: center;
@@ -966,7 +966,7 @@
         cursor: pointer;
         transition: all 0.3s ease;
         box-shadow: 0 4px 15px rgba(84, 161, 154, 0.3);
-        display: none; /* Hidden by default */
+        /* display: none; <- This will be controlled by JS */
       }
       #restartButton:hover {
         transform: translateY(-2px) scale(1.03);
