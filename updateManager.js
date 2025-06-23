@@ -5,6 +5,7 @@ class UpdateManager {
         this.uiManager = uiManager;
         this.updateStateKnown = false;
         this.updateInProgress = false;
+        this.listenerCleanupFns = [];
         console.log('[UpdateManager] Initializing...');
 
         if (window.electron) {
@@ -30,15 +31,19 @@ class UpdateManager {
         this.handleUpdateDownloaded = this.onUpdateDownloaded.bind(this);
         this.handleUpdateError = this.onUpdateError.bind(this);
         this.handleUpdateProgress = this.onUpdateProgress.bind(this);
-        window.electron.onUpdateAvailable(this.handleUpdateAvailable);
-        window.electron.onUpdateNotAvailable(this.handleUpdateNotAvailable);
-        window.electron.onUpdateDownloaded(this.handleUpdateDownloaded);
-        window.electron.onUpdateError(this.handleUpdateError);
-        window.electron.onUpdateDownloadProgress(this.handleUpdateProgress);
+        this.listenerCleanupFns.push(window.electron.onUpdateAvailable(this.handleUpdateAvailable));
+        this.listenerCleanupFns.push(window.electron.onUpdateNotAvailable(this.handleUpdateNotAvailable));
+        this.listenerCleanupFns.push(window.electron.onUpdateDownloaded(this.handleUpdateDownloaded));
+        this.listenerCleanupFns.push(window.electron.onUpdateError(this.handleUpdateError));
+        this.listenerCleanupFns.push(window.electron.onUpdateDownloadProgress(this.handleUpdateProgress));
         
         document.getElementById('restartButton').addEventListener('click', () => {
-            console.log('[UpdateManager] Restart button clicked. Sending quit-and-install.');
-            window.electron.send('quit-and-install');
+            if (window.electron && typeof window.electron.send === 'function') {
+                console.log('[UpdateManager] Restart button clicked. Sending quit-and-install.');
+                window.electron.send('quit-and-install');
+            } else {
+                console.error('[UpdateManager] window.electron.send is not available to quit and install.');
+            }
         });
 
         // Set a timeout to hide the update screen if no response is received
@@ -63,7 +68,7 @@ class UpdateManager {
         console.log('[UpdateManager] Received onUpdateNotAvailable event.');
         this.updateStateKnown = true;
         this.updateInProgress = false;
-        this.uiManager.finishUpdateCheck();
+        this.uiManager.finishUpdateCheck(); // This should hide the "checking" screen
         clearTimeout(this.updateCheckTimeout);
     }
 
@@ -79,7 +84,8 @@ class UpdateManager {
         console.error('[UpdateManager] Received onUpdateError event:', err);
         this.updateStateKnown = true;
         this.updateInProgress = false;
-        this.uiManager.showUpdateError(err.message);
+        // Instead of showing a specific error, just hide the update UI as the check is complete.
+        this.uiManager.finishUpdateCheck();
         clearTimeout(this.updateCheckTimeout);
     }
 
@@ -100,9 +106,9 @@ class UpdateManager {
     cleanup() {
         if (window.electron) {
             console.log('[UpdateManager] Cleaning up event listeners.');
-            // The preload script already handles listener cleanup with removeAllListeners.
-            // There's no way to remove a specific listener from the renderer side with this setup.
-            // We just need to clear the timeout.
+            // Call all the cleanup functions returned by the listeners
+            this.listenerCleanupFns.forEach(cleanup => cleanup());
+            this.listenerCleanupFns = []; // Clear the array
             clearTimeout(this.updateCheckTimeout);
         }
     }

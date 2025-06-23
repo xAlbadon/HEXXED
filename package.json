@@ -1,6 +1,6 @@
 {
   "name": "hexxed",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "#HEXXED Game - Color Mixing Laboratory",
   "main": "electron-main.js",
   "scripts": {

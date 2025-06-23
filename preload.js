@@ -10,9 +10,29 @@ contextBridge.exposeInMainWorld('electron', {
         }
     },
     // --- Main to Renderer ---
-    onUpdateAvailable: (callback) => ipcRenderer.on('update-available', (event, ...args) => callback(...args)),
-    onUpdateNotAvailable: (callback) => ipcRenderer.on('update-not-available', (event, ...args) => callback(...args)),
-    onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', (event, ...args) => callback(...args)),
-    onUpdateError: (callback) => ipcRenderer.on('update-error', (event, ...args) => callback(...args)),
-    onUpdateDownloadProgress: (callback) => ipcRenderer.on('download-progress', (event, ...args) => callback(...args))
+    onUpdateAvailable: (callback) => {
+        const listener = (event, ...args) => callback(...args);
+        ipcRenderer.on('update-available', listener);
+        return () => ipcRenderer.removeListener('update-available', listener);
+    },
+    onUpdateNotAvailable: (callback) => {
+        const listener = (event, ...args) => callback(...args);
+        ipcRenderer.on('update-not-available', listener);
+        return () => ipcRenderer.removeListener('update-not-available', listener);
+    },
+    onUpdateDownloaded: (callback) => {
+        const listener = (event, ...args) => callback(...args);
+        ipcRenderer.on('update-downloaded', listener);
+        return () => ipcRenderer.removeListener('update-downloaded', listener);
+    },
+    onUpdateError: (callback) => {
+        const listener = (event, ...args) => callback(...args);
+        ipcRenderer.on('update-error', listener);
+        return () => ipcRenderer.removeListener('update-error', listener);
+    },
+    onUpdateDownloadProgress: (callback) => {
+        const listener = (event, ...args) => callback(...args);
+        ipcRenderer.on('download-progress', listener);
+        return () => ipcRenderer.removeListener('download-progress', listener);
+    }
 });
