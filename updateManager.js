@@ -7,16 +7,16 @@ class UpdateManager {
         this.updateInProgress = false;
         console.log('[UpdateManager] Initializing...');
 
-        if (window.electronAPI) {
+        if (window.electron) {
             console.log('[UpdateManager] Electron environment detected. Setting up for update checks.');
             this.setupElectronListeners();
             // Signal to the main process that the renderer is ready for update info
             console.log("[UpdateManager] Sending 'renderer-ready-for-updates' to main process.");
-            window.electronAPI.send('renderer-ready-for-updates');
+            window.electron.send('renderer-ready-for-updates');
             console.log('[UpdateManager] Calling uiManager.showCheckingForUpdate().');
             this.uiManager.showCheckingForUpdate();
         } else {
-            console.log('[UpdateManager] Not in Electron environment. Skipping update checks.');
+            console.log('[UpdateManager] Not in Electron environment or preload script failed. Skipping update checks.');
             this.updateStateKnown = true; // No updates to check, so state is "known"
         }
     }
@@ -30,16 +30,15 @@ class UpdateManager {
         this.handleUpdateDownloaded = this.onUpdateDownloaded.bind(this);
         this.handleUpdateError = this.onUpdateError.bind(this);
         this.handleUpdateProgress = this.onUpdateProgress.bind(this);
-
-        window.electronAPI.on('update-available', this.handleUpdateAvailable);
-        window.electronAPI.on('update-not-available', this.handleUpdateNotAvailable);
-        window.electronAPI.on('update-downloaded', this.handleUpdateDownloaded);
-        window.electronAPI.on('update-error', this.handleUpdateError);
-        window.electronAPI.on('download-progress', this.handleUpdateProgress);
+        window.electron.onUpdateAvailable(this.handleUpdateAvailable);
+        window.electron.onUpdateNotAvailable(this.handleUpdateNotAvailable);
+        window.electron.onUpdateDownloaded(this.handleUpdateDownloaded);
+        window.electron.onUpdateError(this.handleUpdateError);
+        window.electron.onUpdateDownloadProgress(this.handleUpdateProgress);
         
         document.getElementById('restartButton').addEventListener('click', () => {
             console.log('[UpdateManager] Restart button clicked. Sending quit-and-install.');
-            window.electronAPI.send('quit-and-install');
+            window.electron.send('quit-and-install');
         });
 
         // Set a timeout to hide the update screen if no response is received
@@ -99,13 +98,11 @@ class UpdateManager {
     }
 
     cleanup() {
-        if (window.electronAPI) {
+        if (window.electron) {
             console.log('[UpdateManager] Cleaning up event listeners.');
-            window.electronAPI.removeListener('update-available', this.handleUpdateAvailable);
-            window.electronAPI.removeListener('update-not-available', this.handleUpdateNotAvailable);
-            window.electronAPI.removeListener('update-downloaded', this.handleUpdateDownloaded);
-            window.electronAPI.removeListener('update-error', this.handleUpdateError);
-            window.electronAPI.removeListener('download-progress', this.handleUpdateProgress);
+            // The preload script already handles listener cleanup with removeAllListeners.
+            // There's no way to remove a specific listener from the renderer side with this setup.
+            // We just need to clear the timeout.
             clearTimeout(this.updateCheckTimeout);
         }
     }
