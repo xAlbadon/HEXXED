@@ -466,9 +466,44 @@
       .colorSwatch.pinned:hover {
         transform: scale(1.12); /* Slightly more emphasis on hover */
         box-shadow: 0 0 20px rgba(135, 206, 250, 0.9), 0 0 8px rgba(255, 105, 180, 0.5);
-      }
+}
+.colorSwatch .color-stat-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.65);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  border-radius: inherit; /* Match parent's border-radius */
+  font-size: 0.75em;
+  padding: 4px;
+  pointer-events: none; /* Let clicks pass through to the swatch */
+  line-height: 1.3;
+}
+.colorSwatch:hover .color-stat-overlay {
+  opacity: 1;
+}
+.color-stat-overlay strong {
+  color: #ffda77;
+  font-size: 1.1em;
+  display: block;
+  margin-bottom: 2px;
+}
+.colorSwatch.rare-color {
+  border: 3px solid transparent;
+  border-image: linear-gradient(45deg, #ffd700, #fffacd, #daa520) 1;
+  animation: none; /* Remove the old glow animation */
+}
 #colorInfo { /* Styles for colorInfo tooltip */
-    position: fixed; 
+    position: fixed;
     display: none;
     padding: 12px;
     background: rgba(10, 0, 20, 0.95); 
@@ -1919,6 +1954,8 @@
                 <option value="lightness_desc">Lightness (Light-Dark)</option>
                 <option value="mix_arity_asc">Complexity (Low-High)</option>
                 <option value="mix_arity_desc">Complexity (High-Low)</option>
+                <option value="rarity_asc">Rarest First</option>
+                <option value="rarity_desc">Rarest Last</option>
               </select>
               <label for="encyclopediaColorFilterInput" style="margin-left: 15px;">Filter by Name:</label>
               <input type="text" id="encyclopediaColorFilterInput" placeholder="e.g., 'Azure' or 'Sky'" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: white; padding: 8px 12px; font-size: 0.9em; outline: none;">

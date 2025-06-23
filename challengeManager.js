@@ -72,6 +72,7 @@ export class ChallengeManager {
     this.playerAchievementProgress = new Map();
     this.achievementsWithFullStats = []; // To store merged data
     this.totalPlayerCount = null; // To store the total number of players
+    this.colorDiscoveryStats = []; // To store color discovery stats
     this.initializeProgress();
   }
   setPlayerId(playerId) {
@@ -415,6 +416,31 @@ export class ChallengeManager {
       console.error('[ChallengeManager] Exception during fetchTotalPlayerCount:', err);
       this.totalPlayerCount = null;
       return null;
+    }
+  }
+  async fetchColorDiscoveryStats() {
+    console.log('[ChallengeManager] Fetching color discovery stats...');
+    try {
+        const { data, error } = await supabase.rpc('get_color_discovery_stats');
+        if (error) {
+            console.error('[ChallengeManager] Error fetching color discovery stats:', error);
+            this.colorDiscoveryStats = []; // Reset on error
+            return [];
+        }
+        if (data) {
+            console.log(`[ChallengeManager] Successfully fetched stats for ${data.length} colors.`);
+            // The data is an array of objects: { hex_code: string, discovery_count: number }
+            this.colorDiscoveryStats = data;
+            return data;
+        } else {
+            console.warn('[ChallengeManager] No data returned for color discovery stats.');
+            this.colorDiscoveryStats = [];
+            return [];
+        }
+    } catch (err) {
+        console.error('[ChallengeManager] Exception during fetchColorDiscoveryStats:', err);
+        this.colorDiscoveryStats = [];
+        return [];
     }
   }
 }

@@ -11,6 +11,8 @@ class AudioManager {
         this.achievementSoundsMuted = false;
         this.lastSelectSoundTime = 0;
         this.selectSoundDebounce = 50; // 50ms
+        this.lastAchievementSoundTime = 0;
+        this.achievementSoundDebounce = 100; // 100ms, adjust as needed
         this.loadSettings();
         // After loading settings, if a track is defined, play it.
         if (this.currentTrackPath && !this.backgroundMusic) {
@@ -55,7 +57,9 @@ class AudioManager {
         }
         const achievementSoundsMuted = localStorage.getItem('achievementSoundsMuted');
         if (achievementSoundsMuted !== null) {
-            this.achievementSoundsMuted = JSON.parse(achievementSoundsMuted);
+            const value = JSON.parse(achievementSoundsMuted);
+            // Ensure the value is explicitly boolean, defaults to false if parsing is ambiguous.
+            this.achievementSoundsMuted = typeof value === 'boolean' ? value : false;
         }
     }
     updateMusicVolume() {
@@ -139,14 +143,24 @@ class AudioManager {
         // Extract the base name if a full path is provided
         const baseSoundName = soundName.split('/').pop().replace(`.${extension}`, '');
         const isAchievementSound = baseSoundName.startsWith('Achievement');
-        if (isAchievementSound && this.achievementSoundsMuted) {
-            return; // Exit if achievement sounds are muted
+        if (isAchievementSound) {
+            if (this.achievementSoundsMuted) return;
+            const now = performance.now();
+            if (now - this.lastAchievementSoundTime < this.achievementSoundDebounce) {
+                return; // Debounce
+            }
+            this.lastAchievementSoundTime = now;
         }
         
         let volume;
         if (isAchievementSound) {
             volume = this.masterVolume * this.achievementVolume;
+        } else if (baseSoundName.startsWith('select')) {
+            // Select sounds are always SFX
+            volume = this.masterVolume * this.sfxVolume;
         } else {
+            // Default to sfxVolume, but can be overridden by achievement volume
+            // if the sound happens to be an achievement-related one not caught by the name.
             volume = this.masterVolume * this.sfxVolume;
         }
         
@@ -162,7 +176,7 @@ class AudioManager {
         this.lastSelectSoundTime = now;
         const soundIndex = Math.floor(Math.random() * 6) + 1; // 1 to 6
         const soundName = `select${soundIndex}`;
-        this.playSound(soundName, 'wav');
+        this.playSound(soundName, 'wav', { useSfxVolume: true });
         // Return the name of the sound played so it can be reused
         return soundName;
     }

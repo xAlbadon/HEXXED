@@ -326,13 +326,15 @@ setUpdateManager(updateManager) {
       this._updateAudioUI();
     }
   }
-  showEncyclopedia(show) {
+  async showEncyclopedia(show) {
     if (this.fullscreenEncyclopedia) {
         this.fullscreenEncyclopedia.style.display = show ? 'block' : 'none';
         if (show) {
-
-            this.setActiveEncyclopediaTab('colorGridTab'); 
-
+            if (this.game && this.game.challengeManager) {
+                await this.game.challengeManager.fetchTotalPlayerCount();
+                await this.game.challengeManager.fetchColorDiscoveryStats();
+            }
+            this.setActiveEncyclopediaTab('colorGridTab');
         }
     }
 
@@ -398,7 +400,11 @@ setUpdateManager(updateManager) {
     if (this.updateContainer && this.updateMessage) {
       this.updateMessage.innerHTML = message;
       this.updateContainer.style.display = 'block';
+      this.updateContainer.style.zIndex = '9999'; // Ensure it's on top
       this.hideTitleScreen();
+      if (this.gameArea) {
+        this.gameArea.style.display = 'none'; // Hide game area to prevent interference
+      }
     }
   }
   hideUpdater() {
@@ -503,15 +509,22 @@ setUpdateManager(updateManager) {
     if (preserveScroll && encyclopediaContent) {
         scrollPosition = encyclopediaContent.scrollTop;
     }
-    this.lastKnownDiscoveredColors = [...discoveredColors]; 
-    let sortedColors = [...discoveredColors]; 
-
+    this.lastKnownDiscoveredColors = [...discoveredColors];
+    let sortedColors = [...discoveredColors];
+    const statsMap = new Map(this.game.challengeManager.colorDiscoveryStats.map(s => [s.hex_code, s.discovery_count]));
+    const totalPlayers = this.game.challengeManager.totalPlayerCount;
     sortedColors.forEach(color => {
       if (!color.hsl && color.rgb && this.game && this.game.colorSystem && typeof this.game.colorSystem.rgbToHsl === 'function') {
         color.hsl = this.game.colorSystem.rgbToHsl(...color.rgb);
       } else if (!color.hsl) {
-
         color.hsl = { h: 0, s: 0, l: 0 };
+      }
+      if (color.isPrimary) {
+          color.discoveryCount = totalPlayers;
+          color.rarity = 100;
+      } else {
+          color.discoveryCount = statsMap.get(color.hex) || 0;
+          color.rarity = totalPlayers > 0 ? (color.discoveryCount / totalPlayers) * 100 : 0;
       }
     });
     const sortOrder = currentSortOrder || (this.sortColorsDropdown ? this.sortColorsDropdown.value : 'name_asc');
@@ -527,6 +540,12 @@ setUpdateManager(updateManager) {
         break;
       case 'discovered_desc':
         sortedColors.sort((a, b) => (b.discoveredTimestamp || 0) - (a.discoveredTimestamp || 0));
+        break;
+      case 'rarity_asc': // Rarest first
+        sortedColors.sort((a, b) => a.discoveryCount - b.discoveryCount);
+        break;
+      case 'rarity_desc': // Least rare first
+        sortedColors.sort((a, b) => b.discoveryCount - a.discoveryCount);
         break;
       case 'hue_asc':
         sortedColors.sort((a, b) => (a.hsl.h || 0) - (b.hsl.h || 0));
@@ -600,7 +619,7 @@ setUpdateManager(updateManager) {
     const startIndex = (this.colorGridCurrentPage - 1) * this.COLOR_GRID_PAGE_SIZE;
     const endIndex = startIndex + this.COLOR_GRID_PAGE_SIZE;
     const paginatedColors = filteredColors.slice(startIndex, endIndex);
-    this.gameColorGrid.innerHTML = ''; 
+    this.gameColorGrid.innerHTML = '';
     this._updateColorGridPaginationControls(filteredColors.length);
     if (paginatedColors.length === 0) {
         this.gameColorGrid.innerHTML = `<p class="no-results-message">No colors found matching the current filters.</p>`;
@@ -615,32 +634,34 @@ setUpdateManager(updateManager) {
       if (color.discoveredTimestamp && (sortOrder === 'discovered_asc' || sortOrder === 'discovered_desc')) {
         swatch.title += `\nDiscovered: ${new Date(color.discoveredTimestamp).toLocaleDateString()}`;
       }
-
+      if (totalPlayers && totalPlayers > 0) {
+        if (color.rarity <= 5 && color.rarity > 0) {
+          swatch.classList.add('rare-color');
+        }
+        
+        swatch.title += `\nDiscovered by ${color.discoveryCount}/${totalPlayers} players (${color.rarity.toFixed(4)}%)`;
+      }
       swatch.addEventListener('mouseenter', (event) => {
-
         if (!this.pinnedColorSwatch) {
             this.showColorInfo(color, event);
         }
       });
       swatch.addEventListener('mouseleave', () => {
-        this.hideColorInfo(); 
+        this.hideColorInfo();
       });
       swatch.addEventListener('click', (event) => {
-        event.stopPropagation(); 
+        event.stopPropagation();
         if (this.pinnedColorSwatch === swatch) {
-
-          swatch.classList.remove('pinned'); 
+          swatch.classList.remove('pinned');
           this.pinnedColorSwatch = null;
           this.hideColorInfo(true);
         } else {
-
           if (this.pinnedColorSwatch) {
             this.pinnedColorSwatch.classList.remove('pinned');
           }
-
           this.pinnedColorSwatch = swatch;
           this.pinnedColorSwatch.classList.add('pinned');
-          this.showColorInfo(color, event, true); 
+          this.showColorInfo(color, event, true);
         }
       });
       this.gameColorGrid.appendChild(swatch);
@@ -726,15 +747,42 @@ setUpdateManager(updateManager) {
     if (colorData.rgb && this.game && this.game.colorSystem && typeof this.game.colorSystem.rgbToHsl === 'function') {
         const hsl = this.game.colorSystem.rgbToHsl(...colorData.rgb);
         hslString = `HSL: ${Math.round(hsl.h)}, ${Math.round(hsl.s * 100)}%, ${Math.round(hsl.l * 100)}%`;
-    } else if (colorData.hsl) { 
+    } else if (colorData.hsl) {
         hslString = `HSL: ${Math.round(colorData.hsl.h)}, ${Math.round(colorData.hsl.s * 100)}%, ${Math.round(colorData.hsl.l * 100)}%`;
+    }
+    let discoveryStatString = '';
+    if (this.game && this.game.challengeManager) {
+        const statsMap = new Map(this.game.challengeManager.colorDiscoveryStats.map(s => [s.hex_code, s.discovery_count]));
+        const totalPlayers = this.game.challengeManager.totalPlayerCount;
+        if (totalPlayers > 0) {
+            let discoveryCount, percentage;
+            if (colorData.isPrimary) {
+                discoveryCount = totalPlayers;
+                percentage = 100;
+            } else {
+                discoveryCount = statsMap.get(colorData.hex) || 0;
+                percentage = (discoveryCount / totalPlayers) * 100;
+            }
+            let percentageText;
+            if (percentage === 100) {
+                percentageText = '100%';
+            } else if (percentage < 0.01 && percentage > 0) {
+                percentageText = '<0.01%';
+            } else if (percentage < 1 && percentage > 0) {
+                percentageText = `${percentage.toFixed(2)}%`;
+            } else {
+                percentageText = `${Math.round(percentage)}%`;
+            }
+            discoveryStatString = `Discovered by <strong>${percentageText}</strong> of players (${discoveryCount}/${totalPlayers}).<br>`;
+        }
     }
     this.gameColorInfo.innerHTML = `
       <strong>${colorData.name}</strong><br>
       HEX: ${colorData.hex}<br>
       RGB: (${colorData.rgb ? colorData.rgb.join(', ') : 'N/A'})<br>
       ${hslString}<br>
-      Mixed from ${colorData.mixArity || 'N/A'} colors.
+      Mixed from ${colorData.mixArity || 'N/A'} colors.<br>
+      ${discoveryStatString}
       ${colorData.mixedFrom ? `<br><small>Parents: ${colorData.mixedFrom.join(', ')}</small>` : ''}
       <button class="copy-hex-button" data-hex="${colorData.hex}">Copy Hex</button>
     `;
@@ -2305,10 +2353,10 @@ populateRingsManagementTab() {
     if (this.updateContainer) this.updateContainer.style.display = 'block';
     if (this.updateMessage) this.updateMessage.textContent = message;
     if (this.restartButton) this.restartButton.style.display = 'none';
+    this.hideTitleScreen();
   }
   showUpdateDownloaded(message) {
-    if (this.updateContainer) this.updateContainer.style.display = 'block';
-    if (this.updateMessage) this.updateMessage.textContent = message;
+    this.showUpdateMessage(message); // Use the centralized method
     if (this.restartButton) {
         this.restartButton.style.display = 'block';
         if (!this.restartButton.dataset.listenerAttached) {
