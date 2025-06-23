@@ -420,7 +420,15 @@ setUpdateManager(updateManager) {
     }
   }
   hideUpdater() {
-    this._showUpdateScreen(false);
+    if (this.updateScreen) {
+        this.updateScreen.style.transition = 'opacity 0.5s ease-out';
+        this.updateScreen.style.opacity = '0';
+        setTimeout(() => {
+            this._showUpdateScreen(false);
+            this.updateScreen.style.opacity = '1'; // Reset for next time
+            this.updateScreen.style.transition = ''; // Clean up transition
+        }, 500); // Corresponds to transition duration
+    }
     if (this.updateContainer) {
       this.updateContainer.style.display = 'none';
     }
@@ -2383,7 +2391,7 @@ populateRingsManagementTab() {
   hideUpdateMessage() {
     if (this.updateContainer) this.updateContainer.style.display = 'none';
   }
-  hideUpdater() {
-    this.hideUpdateMessage();
-  }
+  // This second hideUpdater seems redundant and was likely causing issues.
+  // The primary one at line 621 has been updated with the fade-out logic.
+  // We'll remove this to avoid conflicts.
 }
