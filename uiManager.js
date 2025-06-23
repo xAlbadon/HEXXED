@@ -121,6 +121,7 @@ export class UIManager {
     this.muteAchievementsButton = document.getElementById('muteAchievementsButton');
     this.achievementVolumeSlider = document.getElementById('achievementVolumeSlider');
     this.achievementVolumeValue = document.getElementById('achievementVolumeValue');
+    this.updateScreen = document.getElementById('updateScreen'); // The main container
     this.updateContainer = document.getElementById('update-notification');
     this.updateMessage = document.getElementById('update-message');
     this.restartButton = document.getElementById('restart-button');
@@ -396,18 +397,30 @@ setUpdateManager(updateManager) {
     this.gameArea.appendChild(this.mixButtonContainer); 
     this.updateMixButtonPosition(); 
   }
+  _showUpdateScreen(show) {
+    if (this.updateScreen) {
+        if (show) {
+            this.updateScreen.style.display = 'flex';
+            this.updateScreen.style.alignItems = 'center';
+            this.updateScreen.style.justifyContent = 'center';
+        } else {
+            this.updateScreen.style.display = 'none';
+        }
+    }
+  }
   showUpdater(message) {
+    this._showUpdateScreen(true);
     if (this.updateContainer && this.updateMessage) {
       this.updateMessage.innerHTML = message;
       this.updateContainer.style.display = 'block';
-      this.updateContainer.style.zIndex = '9999'; // Ensure it's on top
       this.hideTitleScreen();
       if (this.gameArea) {
-        this.gameArea.style.display = 'none'; // Hide game area to prevent interference
+        this.gameArea.style.display = 'none';
       }
     }
   }
   hideUpdater() {
+    this._showUpdateScreen(false);
     if (this.updateContainer) {
       this.updateContainer.style.display = 'none';
     }

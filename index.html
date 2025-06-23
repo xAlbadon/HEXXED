@@ -943,6 +943,7 @@
       /* Update Screen Styles */
       .update-screen-container {
         display: none; /* Hidden by default, shown by JS */
+        /* Flex properties will be added dynamically by JS to show the screen */
         position: fixed;
         top: 0;
         left: 0;
@@ -951,7 +952,6 @@
         background-color: rgba(30, 30, 40, 0.95);
         color: #e0e0e0;
         z-index: 2000;
-        /* display: none; <- This is set by JS, so we'll remove the redundant style */
         flex-direction: column;
         align-items: center;
         justify-content: center;
@@ -1890,7 +1890,7 @@
   <body>
     <canvas id="titleParticlesCanvas"></canvas>
     <!-- Update Screen -->
-    <div id="updateScreen" class="update-screen-container">
+    <div id="updateScreen" class="update-screen-container" style="display: none;">
         <div class="update-modal-content">
             <h2 id="updateTitle">Game Update</h2>
             <p id="updateMessage"></p>
