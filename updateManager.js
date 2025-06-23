@@ -68,7 +68,7 @@ class UpdateManager {
         console.log('[UpdateManager] Received onUpdateNotAvailable event.');
         this.updateStateKnown = true;
         this.updateInProgress = false;
-        this.uiManager.hideUpdater(); // This should hide all update-related UI
+        this.uiManager.finishUpdateCheck();
         clearTimeout(this.updateCheckTimeout);
     }
 
@@ -85,7 +85,7 @@ class UpdateManager {
         this.updateStateKnown = true;
         this.updateInProgress = false;
         // Instead of showing a specific error, just hide the update UI as the check is complete.
-        this.uiManager.hideUpdater();
+        this.uiManager.finishUpdateCheck();
         clearTimeout(this.updateCheckTimeout);
     }
 

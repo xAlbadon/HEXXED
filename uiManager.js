@@ -354,19 +354,40 @@ setUpdateManager(updateManager) {
         this.gameLeaderboardPanelEl.style.display = 'none';
     }
   }
-  hideTitleScreen() {
+  hideTitleScreen(fast = false) {
     if (this.titleScreen) {
-        this.titleScreen.style.display = 'none';
+        if (fast) {
+            this.titleScreen.style.display = 'none';
+            this.titleScreen.style.opacity = '0';
+            return;
+        }
+        this.titleScreen.style.transition = 'opacity 0.3s ease-out';
+        this.titleScreen.style.opacity = '0';
+        setTimeout(() => {
+            this.titleScreen.style.display = 'none';
+        }, 300);
     }
   }
   showTitleScreen() {
     if (this.titleScreen) {
-      this.titleScreen.style.display = 'flex';
+        this.titleScreen.style.display = 'flex';
+        this.titleScreen.style.transition = 'opacity 0.5s ease-in';
+        this.titleScreen.style.opacity = '0';
+        requestAnimationFrame(() => {
+            this.titleScreen.style.opacity = '1';
+        });
     }
   }
   finishUpdateCheck() {
-    this.hideUpdater();
-    this.showTitleScreen();
+    this.hideUpdater(() => {
+        // Check if another screen (like lobby or battle) isn't supposed to be active
+        const isGameAreaVisible = this.gameArea.style.display === 'block';
+        const isLobbyVisible = this.lobbyScreen.style.display === 'flex';
+        const isBattleVisible = this.battleModeScreen.style.display === 'flex';
+        if (!isGameAreaVisible && !isLobbyVisible && !isBattleVisible) {
+            this.showTitleScreen();
+        }
+    });
   }
   showGameArea(currentPlayerUsername) {
     this.hideTitleScreen();
@@ -409,29 +430,46 @@ setUpdateManager(updateManager) {
     }
   }
   showUpdater(message) {
+    this.hideTitleScreen(true); // fast hide
     this._showUpdateScreen(true);
+    if (this.updateScreen) {
+        this.updateScreen.style.opacity = '0';
+        requestAnimationFrame(() => {
+            this.updateScreen.style.transition = 'opacity 0.5s ease-in';
+            this.updateScreen.style.opacity = '1';
+        });
+    }
     if (this.updateContainer && this.updateMessage) {
       this.updateMessage.innerHTML = message;
       this.updateContainer.style.display = 'block';
-      this.hideTitleScreen();
       if (this.gameArea) {
         this.gameArea.style.display = 'none';
       }
     }
   }
-  hideUpdater() {
-    if (this.updateScreen) {
-        this.updateScreen.style.transition = 'opacity 0.5s ease-out';
-        this.updateScreen.style.opacity = '0';
-        setTimeout(() => {
-            this._showUpdateScreen(false);
-            this.updateScreen.style.opacity = '1'; // Reset for next time
-            this.updateScreen.style.transition = ''; // Clean up transition
-        }, 500); // Corresponds to transition duration
-    }
-    if (this.updateContainer) {
-      this.updateContainer.style.display = 'none';
-    }
+  hideUpdater(callback) {
+      if (this.updateScreen && this.updateScreen.style.display !== 'none') {
+          this.updateScreen.style.transition = 'opacity 0.5s ease-out';
+          this.updateScreen.style.opacity = '0';
+          const onFadeOutComplete = () => {
+              this.updateScreen.removeEventListener('transitionend', onFadeOutComplete);
+              this._showUpdateScreen(false);
+              this.updateScreen.style.opacity = '1';
+              this.updateScreen.style.transition = '';
+              if (this.updateContainer) {
+                  this.updateContainer.style.display = 'none';
+              }
+              if (callback) callback();
+          };
+          // Use transitionend for accuracy, with a timeout fallback.
+          this.updateScreen.addEventListener('transitionend', onFadeOutComplete, { once: true });
+          setTimeout(() => onFadeOutComplete(), 550); // Fallback
+      } else {
+          if (this.updateContainer) {
+              this.updateContainer.style.display = 'none';
+          }
+          if (callback) callback();
+      }
   }
   showCheckingForUpdate() {
     this.showUpdater('Checking for updates...');
@@ -2377,7 +2415,7 @@ populateRingsManagementTab() {
     this.hideTitleScreen();
   }
   showUpdateDownloaded(message) {
-    this.showUpdateMessage(message); // Use the centralized method
+    this.showUpdater(message); // Use the centralized method
     if (this.restartButton) {
         this.restartButton.style.display = 'block';
         if (!this.restartButton.dataset.listenerAttached) {
@@ -2388,10 +2426,4 @@ populateRingsManagementTab() {
         }
     }
   }
-  hideUpdateMessage() {
-    if (this.updateContainer) this.updateContainer.style.display = 'none';
-  }
-  // This second hideUpdater seems redundant and was likely causing issues.
-  // The primary one at line 621 has been updated with the fade-out logic.
-  // We'll remove this to avoid conflicts.
 }
