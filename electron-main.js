@@ -69,9 +69,9 @@ autoUpdater.on('update-downloaded', (info) => {
     mainWindow.webContents.send('update-downloaded', info);
   }
 });
-// Listen for a message from renderer to quit and install the update
-ipcMain.on('user-triggered-restart-for-update', () => {
-  autoUpdater.logger.info('User triggered restart for update. Quitting and installing...');
+// Listen for the renderer process to signal that the user wants to quit and install the update.
+ipcMain.on('quit-and-install', () => {
+  autoUpdater.logger.info('User triggered quit and install. Quitting and installing...');
   autoUpdater.quitAndInstall();
 });
 // This method will be called when Electron has finished

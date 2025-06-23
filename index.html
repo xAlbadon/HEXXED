@@ -1895,7 +1895,7 @@
             <h2 id="updateTitle">Game Update</h2>
             <p id="updateMessage"></p>
             <div class="update-actions">
-                <button id="restartButton">Restart and Install</button>
+                <button id="restartButton" onclick="window.electronAPI.quitAndInstall()">Restart and Install</button>
             </div>
             <p class="update-version-info" id="updateVersionInfo"></p>
         </div>
