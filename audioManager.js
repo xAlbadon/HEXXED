@@ -138,32 +138,22 @@ class AudioManager {
         return this.currentTrackPath;
     }
     
-    playSound(soundName, extension = 'wav') {
+    playSound(soundName, options = {}) {
         if (this.isMuted) return;
-        // Extract the base name if a full path is provided
+        const { extension = 'wav', category = 'sfx' } = options;
         const baseSoundName = soundName.split('/').pop().replace(`.${extension}`, '');
-        const isAchievementSound = baseSoundName.startsWith('Achievement');
-        if (isAchievementSound) {
+        let volume;
+        if (category === 'achievement') {
             if (this.achievementSoundsMuted) return;
             const now = performance.now();
             if (now - this.lastAchievementSoundTime < this.achievementSoundDebounce) {
                 return; // Debounce
             }
             this.lastAchievementSoundTime = now;
-        }
-        
-        let volume;
-        if (isAchievementSound) {
             volume = this.masterVolume * this.achievementVolume;
-        } else if (baseSoundName.startsWith('select')) {
-            // Select sounds are always SFX
-            volume = this.masterVolume * this.sfxVolume;
-        } else {
-            // Default to sfxVolume, but can be overridden by achievement volume
-            // if the sound happens to be an achievement-related one not caught by the name.
+        } else { // Default to 'sfx'
             volume = this.masterVolume * this.sfxVolume;
         }
-        
         const sound = new Audio(`./assets/sounds/${baseSoundName}.${extension}`);
         sound.volume = volume;
         sound.play().catch(e => console.error(`Error playing sound ${baseSoundName}:`, e));
@@ -176,7 +166,7 @@ class AudioManager {
         this.lastSelectSoundTime = now;
         const soundIndex = Math.floor(Math.random() * 6) + 1; // 1 to 6
         const soundName = `select${soundIndex}`;
-        this.playSound(soundName, 'wav', { useSfxVolume: true });
+        this.playSound(soundName, { extension: 'wav', category: 'sfx' });
         // Return the name of the sound played so it can be reused
         return soundName;
     }

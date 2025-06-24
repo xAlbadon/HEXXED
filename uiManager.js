@@ -957,7 +957,7 @@ setUpdateManager(updateManager) {
     document.body.appendChild(this.sideNotificationContainer);
   }
   showAchievement(message) {
-    audioManager.playSound('Achievement', 'achievement');
+    audioManager.playSound('Achievement', { category: 'achievement' });
     const notificationElement = document.createElement('div');
     notificationElement.className = 'side-notification';
     notificationElement.textContent = message;
@@ -1914,14 +1914,13 @@ populateRingsManagementTab() {
                             (!this.game.isLocalPlayerOne && winnerMessage.includes('Player 1 Wins')) ||
                             winnerMessage.includes('You Lose');
     if (localPlayerLost) {
-        audioManager.playSound('Loss');
+        audioManager.playSound('Loss', { category: 'sfx' });
     }
     const localPlayerWon = (this.game.isLocalPlayerOne && winnerMessage.includes('Player 1 Wins')) ||
                            (!this.game.isLocalPlayerOne && winnerMessage.includes('Player 2 Wins')) ||
                            winnerMessage.includes('You Win!');
-                           
     if (localPlayerWon) {
-        audioManager.playSound('Achievement');
+        audioManager.playSound('Win', { category: 'sfx' });
     }
 
     if (this.game && this.game.isLocalPlayerOne !== null) {
