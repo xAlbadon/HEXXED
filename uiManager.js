@@ -957,7 +957,7 @@ setUpdateManager(updateManager) {
     document.body.appendChild(this.sideNotificationContainer);
   }
   showAchievement(message) {
-    audioManager.playSound('Achievement');
+    audioManager.playSound('Achievement', 'achievement');
     const notificationElement = document.createElement('div');
     notificationElement.className = 'side-notification';
     notificationElement.textContent = message;

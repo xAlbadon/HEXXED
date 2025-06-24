@@ -14,8 +14,7 @@ class UpdateManager {
             // Signal to the main process that the renderer is ready for update info
             console.log("[UpdateManager] Sending 'renderer-ready-for-updates' to main process.");
             window.electron.send('renderer-ready-for-updates');
-            console.log('[UpdateManager] Calling uiManager.showCheckingForUpdate().');
-            this.uiManager.showCheckingForUpdate();
+            this.showUpdateScreen(); // Show screen initially
         } else {
             console.log('[UpdateManager] Not in Electron environment or preload script failed. Skipping update checks.');
             this.updateStateKnown = true; // No updates to check, so state is "known"
@@ -55,7 +54,12 @@ class UpdateManager {
             }
         }, 10000);
     }
-
+    showUpdateScreen() {
+        console.log("[UpdateManager] Sending 'renderer-ready-for-updates' to main process.");
+        window.electron.send('renderer-ready-for-updates');
+        console.log('[UpdateManager] Calling uiManager.showCheckingForUpdate().');
+        this.uiManager.showCheckingForUpdate(); // This should make the screen visible and start animations.
+    }
     onUpdateAvailable(info) {
         console.log('[UpdateManager] Received onUpdateAvailable event:', info);
         this.updateStateKnown = true;
