@@ -1,7 +1,11 @@
 {
   "name": "#HEXXED",
-  "revisionLabel": "Autosaved",
-  "description": "",
+  "revisionLabel": "Saved package.json changes",
+  "description": "Remixed from Rosebud AI Universal Project",
   "mode": "Universal",
-  "exportDate": "2025-06-06T22:51:38.028Z"
+  "exportDate": "2025-10-18T15:31:59.632Z",
+  "assetCount": 18,
+  "assetTypes": [
+    "png"
+  ]
 }

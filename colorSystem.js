@@ -125,15 +125,39 @@ export class ColorSystem {
   }
   generateColorName(r, g, b) {
     const hsl = this.rgbToHsl(r, g, b);
-    const h = hsl.h; // 0-360
+    let h = hsl.h; // 0-360
     const s = hsl.s; // 0-1
     const l = hsl.l; // 0-1
+    
+    // Normalize hue to ensure it's strictly within 0-360 range
+    // This prevents floating-point edge cases from reaching the Chroma fallback
+    h = h % 360;
+    if (h < 0) h += 360;
+    
+    // Check for exact base primary colors first (no "Vivid" prefix for pure primaries)
+    const hexColor = this.rgbToHex(r, g, b);
+    if (hexColor === '#FF0000') return 'Red';
+    if (hexColor === '#0000FF') return 'Blue';
+    if (hexColor === '#FFFF00') return 'Yellow';
+    if (hexColor === '#00FF00') return 'Lime'; // Pure green is actually lime in HSL
     // 1. Grayscale check
     // 1. Grayscale check (more refined)
     if (s < 0.08) { // Slightly lower threshold for considering grayscale
       if (l >= 0.96) return 'White';
       if (l >= 0.88) return 'Off-White';
-      if (l >= 0.75) return 'Pale Gray'; // New
+      
+      // Silver check within grayscale - prioritize Silver for its lightness range
+      if (l >= 0.72 && l < 0.88) {
+        // Traditional silvers include pure grays (S=0) and very desaturated colors
+        if (s >= 0.0 && s < 0.08) {
+          let tint = '';
+          if (h >= 40 && h < 60 && s >= 0.03) tint = 'Golden ';
+          else if (h >= 200 && h < 240 && s >= 0.03) tint = 'Bluish ';
+          return `${tint}Silver`;
+        }
+      }
+      
+      if (l >= 0.75) return 'Pale Gray';
       if (l >= 0.60) return 'Light Gray';
       if (l >= 0.40) return 'Gray';
       if (l >= 0.25) return 'Dark Gray';
@@ -142,75 +166,186 @@ export class ColorSystem {
     }
     // Metallic-like colors (Gold, Silver - checked before general hues)
     // Gold & Dark Gold: Metallic yellow-orange hues with high saturation.
-    // "Dark Gold" is used for lower lightness values within this range.
-    if (h >= 36 && h < 53 && s >= 0.60 && s <= 1.0 && l >= 0.30 && l <= 0.80) { // Adjusted h < 55 to h < 53
+    // Narrowed range to 40-53° to avoid catching oranges (like #FFA500)
+    // Gold should be brighter (L >= 0.55) to appear metallic and shiny
+    // Darker yellows (L < 0.48) should fall through to Mustard
+    if (h >= 40 && h < 53 && s >= 0.60 && s <= 1.0 && l >= 0.30 && l <= 0.80) {
         let prefix = '';
         if (s >= 0.80) { // Apply Vivid for high saturation
             prefix = 'Vivid ';
         }
-        if (l < 0.48) { // Threshold for "Dark Gold"
+        // Dark Gold for darker but still metallic golds (L: 0.30-0.48)
+        // Adjusted threshold to avoid calling standard gold "dark"
+        if (l < 0.48) {
             return prefix + 'Dark Gold';
         }
+        // Regular Gold for brighter, shinier golds (L >= 0.55)
         return prefix + 'Gold';
     }
     // Silver: Low saturation, very high lightness for a brighter, more metallic feel
-    if (s >= 0.03 && s < 0.18 && l >= 0.78 && l <= 0.94) {
-        // Add hue descriptor for very faint tint if any, with narrower hue bands
-        let tint = '';
-        if (h >= 40 && h < 60 && s >= 0.08) tint = 'Golden '; // More specific yellow hue for golden tint
-        else if (h >= 200 && h < 240 && s >= 0.08) tint = 'Bluish '; // Standard blue hue for bluish tint
-        return `${tint}Silver`;
-    }
-    // Beige and Cream tones: Light, desaturated yellow-orange/yellows
-    // H (35-60: Yellow to Greenish-Yellow), S (0.10-0.60: Low to Moderate-Low), L (0.65-0.93: Light to Very Light)
-    if (h >= 35 && h <= 60 && s >= 0.10 && s <= 0.60 && l >= 0.65 && l < 0.93) {
-        // Avoid classifying more saturated "Pale Yellow" or "Light Yellow" as Beige
-        if (l >= 0.80 && s > 0.45) {
-            // Let it fall through to be named "Pale Yellow" or "Light Yellow" etc.
-        } else if (l >= 0.75 && s < 0.20) { // Very desaturated and light could be "Off-White" or "Pale Gray" like
-             // Let it fall through to grayscale if s is very low, or specific light/pale descriptor
+    // Expanded to catch pale silvery colors with moderate saturation at very high lightness
+    // Extended to include true grayscale silvers (S=0) for colors like #C0C0C0
+    // Upper boundary lowered to 0.88 to avoid nearly-white colors being called Silver
+    // Lower boundary lowered to 0.72 to include desaturated mid-light colors
+    // Silver: For moderately saturated colors (above grayscale threshold)
+    // that still appear silvery due to very high lightness
+    if (l >= 0.72 && l < 0.88 && s >= 0.08 && s < 0.65) {
+        // Only the more saturated silvers remain here
+        // Very low saturation silvers (S < 0.08) are handled in grayscale block
+        if (s >= 0.08 && s < 0.18) {
+            let tint = '';
+            if (h >= 40 && h < 60) tint = 'Golden ';
+            else if (h >= 200 && h < 240) tint = 'Bluish ';
+            return `${tint}Silver`;
         }
-        else {
+        // Pale silvery colors with moderate saturation but still appear silvery due to high lightness
+        else if (s >= 0.18 && s < 0.65 && l >= 0.83 && l < 0.88) {
+            let tint = '';
+            if (h >= 35 && h < 65) tint = 'Golden ';
+            else if (h >= 200 && h < 260) tint = 'Bluish ';
+            else if (h >= 130 && h < 180) tint = 'Greenish ';
+            else if (h >= 300 && h < 330) tint = 'Pinkish ';
+            return `${tint}Silver`;
+        }
+    }
+    // Beige and Cream tones: Light, desaturated yellow-orange/yellows and peachy-beiges
+    // H (12-50: Red-Orange to Warm Yellow), S (0.10-0.60: Low to Moderate-Low), L (0.60-0.93: Light to Very Light)
+    // Narrowed upper hue limit to 50° to avoid capturing lime/yellow-green colors
+    if (h >= 12 && h <= 50 && s >= 0.10 && s <= 0.60 && l >= 0.60 && l < 0.93) {
+        // Avoid classifying more saturated colors as Beige
+        // Raised threshold to s > 0.60 to catch #F5F5DC (Beige, S=0.56)
+        if (l >= 0.80 && s > 0.60) {
+            // Let it fall through to be named "Pale Yellow" or "Light Yellow" etc.
+        } else if (l >= 0.75 && s < 0.15) {
+            // Very desaturated and light - let it fall through to grayscale or pale descriptors
+        } else {
             return 'Beige';
         }
+    }
+    
+    // Tan: Light, desaturated browns/beiges
+    // H (25-40), S (0.20-0.45), L (0.55-0.72)
+    // Between Beige and Light Brown
+    if (h >= 25 && h < 40 && s >= 0.20 && s <= 0.45 && l >= 0.55 && l < 0.72) {
+        return 'Tan';
+    }
+    
+    // Khaki: Pale yellow-brown
+    // H (40-55°), S (0.25-0.45), L (0.60-0.75)
+    if (h >= 40 && h < 55 && s >= 0.25 && s <= 0.45 && l >= 0.60 && l < 0.75) {
+        return 'Khaki';
+    }
+    
+    // Dark Orange: Highly saturated, darker oranges (not browns)
+    // H (25-40°: Orange range), S (0.85-1.0: Very saturated), L (0.40-0.55: Medium-dark, not too dark)
+    // Adjusted to avoid catching browns - browns are darker and/or less saturated in this hue range
+    if (h >= 25 && h < 40 && s >= 0.85 && s <= 1.0 && l >= 0.40 && l < 0.55) {
+        return 'Dark Orange';
     }
     
     // 2. Determine Hue Name (Expanded and Adjusted)
     let hueName = '';
     // Brown: specific conditions for orange/red-orange hues with lower saturation/lightness
-    // Brown: specific conditions for orange/red-orange hues with lower saturation/lightness.
-    // Expanded saturation range (up to 0.95) to catch highly saturated dark yellows/oranges that appear brown.
-    // Expanded saturation range (up to 0.95) and lowered minimum lightness (to 0.03) to catch highly saturated dark yellows/oranges that appear brown.
-    // Adjusted Brown condition: removed max saturation (s <= 0.95) here, will be handled by inner logic.
-    // Expanded Brown hue range to h < 48 to include dark, saturated yellows.
-    if ((h >= 10 && h < 48) && (s >= 0.25) && (l >= 0.03 && l < 0.55)) { 
-        // If the color is highly saturated (s > 0.80) AND has medium lightness (l >= 0.40)
-        // for this hue range, it's more likely a vivid Orange/Red-Orange than Brown.
-        // In this case, we let it "fall through" to be classified by the general hue rules later.
-        if (s > 0.80 && l >= 0.40) {
-            // This color will be named by subsequent hue checks (e.g., Orange, Red-Orange).
-        } else {
-            // Otherwise, it's a genuine Brown variant.
-            let prefix = '';
-            const coreName = 'Brown';
-            if (s > 0.75) { // For highly saturated browns (that are not vivid oranges)
-                prefix = 'Vivid ';
-            }
-            // Note: Order of these checks matters. Dark/Light classifications are more specific.
-            // Adjusted Dark Brown threshold to l < 0.26.
-            // This makes colors like L=0.28 (like the user's example) "Brown" instead of "Dark Brown".
-            if (l < 0.26) { 
-                return prefix + 'Dark ' + coreName; 
-            }
-            if (l >= 0.45 && s < 0.55) { // Light Brown
-                return 'Light Brown'; 
-            }
-            return prefix + coreName; // Default Brown or Vivid Brown
+    // Brown: True browns are darker, muted orange-red hues
+    // Browns: True browns are darker, can be moderately to highly saturated in orange-red hues
+    // Extended to include desaturated reds (H=0) to catch colors like #A52A2A (Brown)
+    // Extended saturation range to catch vivid dark browns that were incorrectly labeled as "Dark Orange"
+    // Hue: 0-38° (red through orange-red range)
+    // Saturation: 0.30-1.0 (muted to highly saturated)
+    // Lightness: 0.15-0.48 (dark to medium-dark)
+    const isVividDarkBrown = ((h >= 0 && h < 10) || (h >= 350 && h <= 360) || (h >= 18 && h < 38)) && s > 0.65 && s <= 1.0 && l >= 0.15 && l < 0.40;
+    const isStandardBrown = ((h >= 0 && h < 10) || (h >= 350 && h <= 360) || (h >= 18 && h < 38)) && s >= 0.30 && s <= 0.65 && l >= 0.15 && l < 0.48;
+    
+    if (isVividDarkBrown || isStandardBrown) {
+        let prefix = '';
+        const coreName = 'Brown';
+        
+        // Vivid Brown for higher saturation within brown range (0.65-0.80)
+        if (s >= 0.65 && s <= 0.80) {
+            prefix = 'Vivid ';
         }
+        
+        // Dark Brown for lower lightness
+        if (l < 0.26) {
+            return prefix + 'Dark ' + coreName;
+        }
+        
+        // For vivid dark browns specifically (darker + more saturated within brown range)
+        if (isVividDarkBrown) {
+            return 'Vivid ' + coreName;
+        }
+        
+        // Light Brown for higher lightness and lower saturation
+        if (l >= 0.40 && s < 0.50) {
+            return 'Light Brown';
+        }
+        
+        return prefix + coreName;
     }
+    
+    // Rust: Dark orange-red
+    // H (15-25°), S (0.60-0.85), L (0.35-0.50)
+    // Falls between Red-Orange and Brown
+    if (h >= 15 && h < 25 && s >= 0.60 && s <= 0.85 && l >= 0.35 && l < 0.50) {
+        return 'Rust';
+    }
+    
+    // Terracotta: Reddish brown
+    // H (10-20°), S (0.50-0.75), L (0.40-0.55)
+    if (h >= 10 && h < 20 && s >= 0.50 && s <= 0.75 && l >= 0.40 && l < 0.55) {
+        return 'Terracotta';
+    }
+    
+    // Copper: Like rust but lighter
+    // H (20-30°), S (0.70-0.95), L (0.45-0.60)
+    if (h >= 20 && h < 30 && s >= 0.70 && s <= 0.95 && l >= 0.45 && l < 0.60) {
+        return 'Copper';
+    }
+    
+    // Maroon/Burgundy: Dark, moderately saturated reds
+    // H (350-10°), S (0.40-0.70), L (0.20-0.35)
+    // Wine colors distinct from both Brown and Dark Red
+    const isMaroonHue = (h >= 350 && h <= 360) || (h >= 0 && h < 10);
+    if (isMaroonHue && s >= 0.40 && s <= 0.70 && l >= 0.20 && l < 0.35) {
+        return 'Maroon';
+    }
+    
+    // Crimson: Vivid dark reds
+    // Extended to H=340° to catch colors like #DC143C (H=348°)
+    // H (340-10°), S (0.80-1.0), L (0.35-0.50)
+    // More specific than "Vivid Dark Red"
+    // IMPORTANT: Checked BEFORE Hot Pink to take priority
+    const isCrimsonHue = (h >= 340 && h <= 360) || (h >= 0 && h < 10);
+    if (isCrimsonHue && s >= 0.80 && s <= 1.0 && l >= 0.35 && l < 0.50) {
+        return 'Crimson';
+    }
+    
+    // Violet: Traditional violet range (285-310°) with moderate-high lightness
+    // This distinguishes colors like #EE82EE (Violet/Plum) from Pink
+    // H (285-310°), S (0.40-1.0), L (0.55-0.88)
+    if (h >= 285 && h < 310 && s >= 0.40 && l >= 0.55 && l < 0.88) {
+        let prefix = '';
+        if (l >= 0.80) prefix = 'Pale ';
+        else if (l >= 0.72) prefix = 'Light ';
+        if (s >= 0.80 && l >= 0.60 && l < 0.80) prefix = 'Vivid ';
+        return prefix + 'Violet';
+    }
+    
+    // Hot Pink / Vivid Pink: Saturated medium-dark pinks in the pink-magenta range
+    // H (330-350: Deep pink/hot pink range), S (>=0.75: Highly saturated), L (0.38-0.60: Medium to medium-dark)
+    if (h >= 330 && h < 350 && s >= 0.75 && l >= 0.38 && l < 0.60) {
+        if (s >= 0.90) {
+            return 'Vivid Pink';
+        }
+        return 'Hot Pink';
+    }
+    
     // Pink: for lighter/desaturated reds and magentas. Catches hues that might otherwise be Magenta/Violet/Red if very pale.
-    // Hue condition for pinkish colors (Reds, Magentas, some Violets):
-    const isPinkHue = ((h >= 330 && h <= 360) || (h >= 0 && h < 20) || (h >= 300 && h < 330));
+    // Hue condition for pinkish colors (true Reds and Magentas only, excluding red-orange/peach range):
+    // Narrowed to exclude 10-20° range which contains peachy/beige tones
+    // Extended to 345 to cover the 340-345° gap for darker/muted pinks
+    // Now excludes 285-310° (traditional violet range) by starting at 310° instead of 300°
+    const isPinkHue = ((h >= 345 && h <= 360) || (h >= 0 && h < 10) || (h >= 310 && h < 345));
     // Extended upper lightness boundary to cover very pale pinks up to L=0.95 (exclusive of 0.96, which is White)
     if (isPinkHue && s >= 0.30 && l >= 0.60 && l < 0.96) {
         if (l >= 0.90) { // For L from 0.90 to 0.95 (Very Pale Pinks)
@@ -238,6 +373,42 @@ export class ColorSystem {
             }
         }
     }
+    
+    // Salmon: Light pinkish-orange with descriptors
+    // H (0-12°), S (0.65-0.92), L (0.65-0.85)
+    // Lighter and pinker than Coral
+    if (h >= 0 && h < 12 && s >= 0.65 && s <= 0.92 && l >= 0.65 && l < 0.85) {
+        let prefix = '';
+        if (l >= 0.78) prefix = 'Pale ';
+        else if (l < 0.70) prefix = 'Deep ';
+        if (s >= 0.85) prefix = 'Vivid ';
+        return prefix + 'Salmon';
+    }
+    
+    // Coral: Light orange-pinks with descriptors
+    // H (5-20°), S (0.55-0.92), L (0.60-0.82)
+    // Different from both Peach and Pink
+    if (h >= 5 && h < 20 && s >= 0.55 && s <= 0.92 && l >= 0.60 && l < 0.82) {
+        let prefix = '';
+        if (l >= 0.76) prefix = 'Pale ';
+        else if (l >= 0.70 && l < 0.76) prefix = 'Light ';
+        else if (l < 0.65) prefix = 'Deep ';
+        if (s >= 0.82 && l >= 0.62 && l < 0.76) prefix = 'Vivid ';
+        return prefix + 'Coral';
+    }
+    
+    // Rose: Light pink-red with descriptors
+    // H (345-10°), S (0.45-0.85), L (0.55-0.78)
+    // Different from Pink
+    const isRoseHue = (h >= 345 && h <= 360) || (h >= 0 && h < 10);
+    if (isRoseHue && s >= 0.45 && s <= 0.85 && l >= 0.55 && l < 0.78) {
+        let prefix = '';
+        if (l >= 0.72) prefix = 'Pale ';
+        else if (l < 0.62) prefix = 'Deep ';
+        if (s >= 0.75 && l >= 0.60 && l < 0.72) prefix = 'Vivid ';
+        return prefix + 'Rose';
+    }
+    
     // Seafoam Green: Pale, desaturated green-blues/greens
     // Hue (130-175: Greenish to Cyanish-Green), Sat (0.20-0.55: Muted), Light (0.70-0.92: Light to Pale)
     if (h >= 130 && h < 175 && s >= 0.20 && s < 0.55 && l >= 0.70 && l < 0.92) {
@@ -249,6 +420,36 @@ export class ColorSystem {
             return 'Seafoam Green';
         }
     }
+    
+    // Mint: Pale cyan-greens with descriptors for range
+    // H (150-170°), S (0.30-0.60), L (0.70-0.90)
+    // Distinct from Seafoam (which is greener)
+    if (h >= 150 && h < 170 && s >= 0.30 && s <= 0.60 && l >= 0.70 && l < 0.90) {
+        let prefix = '';
+        if (l >= 0.85) prefix = 'Pale ';
+        else if (l >= 0.78) prefix = 'Light ';
+        if (l < 0.75 && s >= 0.45) prefix = 'Vivid ';
+        return prefix + 'Mint';
+    }
+    
+    // Jade: Medium-light green with descriptors
+    // H (150-170°), S (0.40-0.70), L (0.55-0.78)
+    // Warmer than Mint
+    if (h >= 150 && h < 170 && s >= 0.40 && s <= 0.70 && l >= 0.55 && l < 0.78) {
+        let prefix = '';
+        if (l >= 0.72) prefix = 'Light ';
+        else if (l < 0.62) prefix = 'Dark ';
+        if (s >= 0.62 && l >= 0.60 && l < 0.72) prefix = 'Vivid ';
+        return prefix + 'Jade';
+    }
+    
+    // Emerald: Vivid green
+    // H (140-155°), S (0.75-1.0), L (0.40-0.60)
+    // More specific than generic "Vivid Green"
+    if (h >= 140 && h < 155 && s >= 0.75 && s <= 1.0 && l >= 0.40 && l < 0.60) {
+        return 'Emerald';
+    }
+    
     // Olive: Dark, saturated yellow-greens
     // H (50-85: Yellow-Green to Greenish), S (>=0.30: at least somewhat saturated), L (0.15-0.40: Darkish)
     if (h >= 50 && h < 85 && s >= 0.30 && l >= 0.15 && l < 0.40) {
@@ -262,7 +463,25 @@ export class ColorSystem {
             return prefix + 'Dark Olive';
         }
         return prefix + 'Olive';
-    } 
+    }
+    
+    // Forest Green: Dark, somewhat desaturated greens
+    // H (110-140°), S (0.35-0.65), L (0.18-0.35)
+    if (h >= 110 && h < 140 && s >= 0.35 && s <= 0.65 && l >= 0.18 && l < 0.35) {
+        return 'Forest Green';
+    }
+    
+    // Chartreuse: Vivid yellow-green with descriptors
+    // H (65-80°), S (0.65-1.0), L (0.45-0.75)
+    // The gap between Yellow and Lime
+    if (h >= 65 && h < 80 && s >= 0.65 && s <= 1.0 && l >= 0.45 && l < 0.75) {
+        let prefix = '';
+        if (l >= 0.68) prefix = 'Light ';
+        else if (l < 0.55) prefix = 'Dark ';
+        if (s >= 0.88) prefix = 'Vivid ';
+        return prefix + 'Chartreuse';
+    }
+    
     // Peach tones
     // H (25-40: Orangey), S (0.50-1.0: Moderate to High Saturation), L (0.70-0.85: Light)
     if (h >= 25 && h < 40 && s >= 0.50 && l >= 0.70 && l < 0.85) {
@@ -279,12 +498,128 @@ export class ColorSystem {
         }
         return prefix + 'Peach';
     }
+    
+    // Amber: Warm orange-yellow with descriptors
+    // H (35-45°), S (0.70-1.0), L (0.50-0.75)
+    if (h >= 35 && h < 45 && s >= 0.70 && s <= 1.0 && l >= 0.50 && l < 0.75) {
+        let prefix = '';
+        if (l >= 0.68) prefix = 'Light ';
+        else if (l < 0.58) prefix = 'Dark ';
+        return prefix + 'Amber';
+    }
+    
+    // Mustard: Dull dark yellow
+    // H (40-60°): Extended to catch darker yellows at the orange-yellow boundary
+    // S (0.60-0.90): Moderate to high saturation but not as bright as gold
+    // L (0.40-0.55): Dark yellows that are too dark to be gold
+    // Catches colors that failed the Gold lightness test (L < 0.55)
+    if (h >= 40 && h < 60 && s >= 0.60 && s <= 0.90 && l >= 0.40 && l < 0.55) {
+        return 'Mustard';
+    }
+    
+    // Brass: Yellow-gold
+    // H (45-55°), S (0.60-0.90), L (0.50-0.65)
+    if (h >= 45 && h < 55 && s >= 0.60 && s <= 0.90 && l >= 0.50 && l < 0.65) {
+        return 'Brass';
+    }
+    
+    // Slate: Blue-gray with descriptors
+    // H (200-220°), S (0.08-0.30), L (0.35-0.68)
+    if (h >= 200 && h < 220 && s >= 0.08 && s <= 0.30 && l >= 0.35 && l < 0.68) {
+        let prefix = '';
+        if (l >= 0.58) prefix = 'Light ';
+        else if (l < 0.45) prefix = 'Dark ';
+        return prefix + 'Slate';
+    }
+    
+    // Navy: Very dark blues
+    // H (220-245°), S (0.50-1.0), L (0.10-0.25)
+    // Much more specific than "Deep Blue"
+    // Added epsilon tolerance to catch #000080 (Navy, L≈0.2509)
+    if (h >= 220 && h < 245 && s >= 0.50 && s <= 1.0 && l >= 0.10 && l <= 0.25) {
+        return 'Navy';
+    }
+    
+    // Sapphire: Deep vivid blue
+    // Adjusted to avoid catching pure blue (#0000FF which has L=0.5)
+    // H (235-245°), S (0.80-1.0), L (0.40-0.48)
+    // Between Navy and Blue, gemstone-like
+    if (h >= 235 && h < 245 && s >= 0.80 && s <= 1.0 && l >= 0.40 && l < 0.48) {
+        return 'Sapphire';
+    }
+    
+    // Sky Blue: Light blue with specific characteristics
+    // H (190-210°), S (0.45-0.75), L (0.70-0.85)
+    // Common color like #87CEEB
+    if (h >= 190 && h < 210 && s >= 0.45 && s <= 0.75 && l >= 0.70 && l < 0.85) {
+        return 'Sky Blue';
+    }
+    
+    // Indigo: The gap between Blue and Purple for darker, saturated hues
+    // Extended range to 245-280° to better capture indigo colors like #4B0082
+    // H (245-280°), S (0.60-1.0), L (0.25-0.45)
+    if (h >= 245 && h < 280 && s >= 0.60 && s <= 1.0 && l >= 0.25 && l < 0.45) {
+        return 'Indigo';
+    }
+    
+    // Periwinkle: Light blue-purple with descriptors
+    // H (245-260°), S (0.40-0.70), L (0.65-0.88)
+    // Gap between Light Blue and Lavender
+    if (h >= 245 && h < 260 && s >= 0.40 && s <= 0.70 && l >= 0.65 && l < 0.88) {
+        let prefix = '';
+        if (l >= 0.82) prefix = 'Pale ';
+        else if (l < 0.70) prefix = 'Dark ';
+        if (s >= 0.62 && l >= 0.70 && l < 0.82) prefix = 'Vivid ';
+        return prefix + 'Periwinkle';
+    }
+    
+    // Lavender: Light purple/violets with descriptors
+    // H (260-290°), S (0.30-0.70), L (0.65-0.88)
+    // Very recognizable color, more specific than "Light Purple"
+    if (h >= 260 && h < 290 && s >= 0.30 && s <= 0.70 && l >= 0.65 && l < 0.88) {
+        let prefix = '';
+        if (l >= 0.82) prefix = 'Pale ';
+        else if (l >= 0.78 && l < 0.82) prefix = 'Light ';
+        else if (l < 0.72) prefix = 'Deep ';
+        if (s >= 0.60 && l >= 0.70 && l < 0.82) prefix = 'Vivid ';
+        else if (s < 0.40) prefix = 'Muted ' + (prefix || '');
+        return prefix.trim() + (prefix ? ' ' : '') + 'Lavender';
+    }
+    
+    // Plum: Dark purples with descriptors
+    // H (285-310°), S (0.45-0.75), L (0.22-0.45)
+    if (h >= 285 && h < 310 && s >= 0.45 && s <= 0.75 && l >= 0.22 && l < 0.45) {
+        let prefix = '';
+        if (l < 0.28) prefix = 'Deep ';
+        else if (l >= 0.38) prefix = 'Light ';
+        if (s >= 0.68) prefix = 'Vivid ';
+        return prefix + 'Plum';
+    }
+    
+    // Mauve: Desaturated purples with descriptors
+    // H (285-310°), S (0.15-0.40), L (0.50-0.80)
+    // Muted but not dark
+    if (h >= 285 && h < 310 && s >= 0.15 && s <= 0.40 && l >= 0.50 && l < 0.80) {
+        let prefix = '';
+        if (l >= 0.72) prefix = 'Pale ';
+        else if (l >= 0.65) prefix = 'Light ';
+        else if (l < 0.58) prefix = 'Dark ';
+        return prefix + 'Mauve';
+    }
+    
+    // Fuchsia: Vivid magenta
+    // H (320-340°), S (0.85-1.0), L (0.50-0.65)
+    // More specific than "Vivid Magenta"
+    if (h >= 320 && h < 340 && s >= 0.85 && s <= 1.0 && l >= 0.50 && l < 0.65) {
+        return 'Fuchsia';
+    }
+    
     // Define Red-Orange hue range
-    const redOrangeHueStart = 12;
-    const redOrangeHueEnd = 17; // Adjusted: Red-Orange now ends before hue 17
-    if (h >= 345 || h < redOrangeHueStart) hueName = 'Red'; // Red ends before Red-Orange
-    else if (h >= redOrangeHueStart && h < redOrangeHueEnd) hueName = 'Red-Orange'; // Red-Orange is now h 12 to <17
-    else if (h >= redOrangeHueEnd && h < 35) hueName = 'Orange'; // Orange now starts at h 17
+    const redOrangeHueStart = 10;
+    const redOrangeHueEnd = 22; // Red-Orange spans from 10° to 22°
+    if (h >= 350 || h < redOrangeHueStart) hueName = 'Red'; // Red: 350-360° and 0-10°
+    else if (h >= redOrangeHueStart && h < redOrangeHueEnd) hueName = 'Red-Orange'; // Red-Orange: 10-22°
+    else if (h >= redOrangeHueEnd && h < 40) hueName = 'Orange'; // Orange: 22-40°
     else if (h >= 35 && h < 68) hueName = 'Yellow';  // Yellow now extends up to (but not including) 68
     else if (h >= 68 && h < 80) hueName = 'Lime';    // Lime now starts at 68
     else if (h >= 80 && h < 145) hueName = 'Green';  // Green ends before 145
@@ -293,18 +628,23 @@ export class ColorSystem {
     else if (h >= 195 && h < 210) hueName = 'Cyan';   // Cyan: 195 to <210
     else if (h >= 210 && h < 235) hueName = 'Azure';  // Azure: 210 to <235
     else if (h >= 235 && h < 250) hueName = 'Blue';   // Blue: 235 to <250
-    else if (h >= 250 && h < 285) hueName = 'Purple'; // Purple now starts at 250
-    else if (h >= 285 && h < 310) hueName = 'Violet'; // Violet shifted
-    else if (h >= 310 && h < 340) hueName = 'Magenta';// Magenta shifted, end remains
-    // Removed Rose, covered by Pink or Red variations
-    else hueName = 'Chroma'; // Fallback for unclassified vivid hues
+    else if (h >= 250 && h < 285) hueName = 'Purple'; // Purple: 250 to <285 (extended to cover #800080)
+    else if (h >= 285 && h < 295) hueName = 'Violet'; // Violet: narrowed range
+    else if (h >= 295 && h < 350) hueName = 'Magenta';// Magenta: extended to 295-350 (covers #FF00FF at H=300)
+    else {
+      // This should NEVER be reached as all hues 0-360 are covered above
+      // If this executes, there's a floating-point precision bug
+      console.error(`[ColorSystem] UNEXPECTED: Hue ${h}° fell through to Chroma fallback. Using Red as safety fallback.`);
+      hueName = 'Red'; // Safety fallback - use Red instead of Chroma
+    }
     // 3. Determine Lightness Descriptor (Adjusted thresholds)
     let lightnessDesc = '';
     if (l >= 0.83) lightnessDesc = 'Pale';         // Pale now starts at L=0.83
-    else if (l >= 0.70 && l < 0.83) lightnessDesc = 'Light'; // Light now ends before L=0.83
-    else if (l > 0.35 && l < 0.70) lightnessDesc = '';    // Mid-tones, no descriptor
+    else if (l >= 0.63 && l < 0.83) lightnessDesc = 'Light'; // Light now starts at L=0.63
+    else if (l > 0.35 && l < 0.63) lightnessDesc = '';    // Mid-tones, no descriptor
     else if (l >= 0.18 && l <= 0.35) lightnessDesc = 'Dark'; // Adjusted range
     else if (l < 0.18) lightnessDesc = 'Deep';        // Lowered threshold
+    
     // 4. Determine Saturation Descriptor (Adjusted thresholds)
     let saturationDesc = '';
     if (s >= 0.80) {
@@ -323,15 +663,24 @@ export class ColorSystem {
     else if (s >= 0.50 && s < 0.80) saturationDesc = ''; // Moderate saturation, no descriptor
     else if (s >= 0.15 && s < 0.50) saturationDesc = 'Muted'; // Adjusted range (0.08-0.15 is near-grayscale)
     
+    // Check for "Bright" - high lightness + high saturation
+    // This replaces "Light" + "Vivid" with a single "Bright" descriptor
+    const isBright = l >= 0.70 && l < 0.83 && s >= 0.75;
+    
     // 5. Combine names
     const parts = [];
     if (saturationDesc && lightnessDesc === 'Pale' && s < 0.3) {
         // Avoid "Muted Pale Pink", prefer "Pastel Pink" or just "Pale Pink"
         // If it's already "Pastel Pink" from above, this won't apply
+    } else if (isBright) {
+        // Use "Bright" instead of "Light" + "Vivid" for highly saturated light colors
+        parts.push('Bright');
     } else if (saturationDesc) {
         parts.push(saturationDesc);
     }
-    if (lightnessDesc) parts.push(lightnessDesc);
+    
+    // Add lightness descriptor unless it's being replaced by "Bright"
+    if (lightnessDesc && !isBright) parts.push(lightnessDesc);
     
     parts.push(hueName);
     

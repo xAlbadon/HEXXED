@@ -12,7 +12,32 @@ class AudioManager {
         this.lastSelectSoundTime = 0;
         this.selectSoundDebounce = 50; // 50ms
         this.lastAchievementSoundTime = 0;
-        this.achievementSoundDebounce = 100; // 100ms, adjust as needed
+        this.achievementSoundDebounce = 300; // Increased to 300ms to prevent overlapping achievement sounds
+        
+        // Asset URL mappings for web environment
+        this.assetUrls = {
+            music: {
+                'Mixin_Melody': 'https://play.rosebud.ai/assets/Mixin_Melody.mp3?p7h5',
+                'Chromatic_Cascade': 'https://play.rosebud.ai/assets/Chromatic_Cascade.mp3?N1nJ'
+            },
+            sounds: {
+                'select1': 'https://play.rosebud.ai/assets/select1.wav?GAQa',
+                'select2': 'https://play.rosebud.ai/assets/select2.wav?k6Qb',
+                'select3': 'https://play.rosebud.ai/assets/select3.wav?LY7D',
+                'select4': 'https://play.rosebud.ai/assets/select4.wav?gGhL',
+                'select5': 'https://play.rosebud.ai/assets/select5.wav?rDAR',
+                'click1': 'https://play.rosebud.ai/assets/click1.wav?QuL4',
+                'RemoveColor': 'https://play.rosebud.ai/assets/RemoveColor.wav?eQmp',
+                'NewColor': 'https://play.rosebud.ai/assets/NewColor.wav?ybBa',
+                'Achievement': 'https://play.rosebud.ai/assets/Achievement.wav?OIeT',
+                'AddColor': 'https://play.rosebud.ai/assets/AddColor.wav?R7tO',
+                'Loss': 'https://play.rosebud.ai/assets/Loss.wav?xuYA'
+            }
+        };
+        
+        // Detect if running in Electron environment
+        this.isElectron = typeof window !== 'undefined' && window.electron !== undefined;
+        
         this.loadSettings();
         // After loading settings, if a track is defined, play it.
         if (this.currentTrackPath && !this.backgroundMusic) {
@@ -73,7 +98,7 @@ class AudioManager {
             return;
         }
         
-        const trackName = trackPath.split('/').pop();
+        const trackName = trackPath.split('/').pop().replace(`.${extension}`, '');
         const fullTrackName = `${trackName}.${extension}`;
         
         if (this.backgroundMusic && this.backgroundMusic.src.endsWith(fullTrackName)) {
@@ -84,8 +109,17 @@ class AudioManager {
             this.backgroundMusic.pause();
         }
         this.currentTrackPath = trackPath;
-        // Construct a relative path to the assets folder
-        const fullPath = `./assets/music/${fullTrackName}`;
+        
+        // Determine the audio path based on environment
+        let fullPath;
+        if (this.isElectron) {
+            // Use local file path for Electron
+            fullPath = `./assets/music/${fullTrackName}`;
+        } else {
+            // Use asset URL for web environment
+            fullPath = this.assetUrls.music[trackName] || `./assets/music/${fullTrackName}`;
+        }
+        
         this.backgroundMusic = new Audio(fullPath);
         this.backgroundMusic.loop = true;
         this.updateMusicVolume();
@@ -147,14 +181,27 @@ class AudioManager {
             if (this.achievementSoundsMuted) return;
             const now = performance.now();
             if (now - this.lastAchievementSoundTime < this.achievementSoundDebounce) {
-                return; // Debounce
+                console.log(`[AudioManager] Debouncing achievement sound: ${baseSoundName} (${Math.round(now - this.lastAchievementSoundTime)}ms since last)`);
+                return; // Debounce to prevent audio overlap
             }
             this.lastAchievementSoundTime = now;
-            volume = this.masterVolume * this.achievementVolume;
+            // Reduce achievement volume by 40% to make it less harsh
+            volume = this.masterVolume * this.achievementVolume * 0.6;
         } else { // Default to 'sfx'
             volume = this.masterVolume * this.sfxVolume;
         }
-        const sound = new Audio(`./assets/sounds/${baseSoundName}.${extension}`);
+        
+        // Determine the audio path based on environment
+        let soundPath;
+        if (this.isElectron) {
+            // Use local file path for Electron
+            soundPath = `./assets/sounds/${baseSoundName}.${extension}`;
+        } else {
+            // Use asset URL for web environment
+            soundPath = this.assetUrls.sounds[baseSoundName] || `./assets/sounds/${baseSoundName}.${extension}`;
+        }
+        
+        const sound = new Audio(soundPath);
         sound.volume = volume;
         sound.play().catch(e => console.error(`Error playing sound ${baseSoundName}:`, e));
     }
@@ -164,7 +211,7 @@ class AudioManager {
             return; // Debounce
         }
         this.lastSelectSoundTime = now;
-        const soundIndex = Math.floor(Math.random() * 6) + 1; // 1 to 6
+        const soundIndex = Math.floor(Math.random() * 5) + 1; // 1 to 5 (we have select1-5)
         const soundName = `select${soundIndex}`;
         this.playSound(soundName, { extension: 'wav', category: 'sfx' });
         // Return the name of the sound played so it can be reused

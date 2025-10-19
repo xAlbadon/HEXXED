@@ -409,7 +409,9 @@ class ChromaLabGame {
     } else { // Discovery Mode
         console.log('[ChromaLabGame.mixSelectedColors] Discovery Mode Active.');
         if (newColor) {
-            if (this.colorSystem.isNewColor(newColor)) {
+            const isNewDiscovery = this.colorSystem.isNewColor(newColor);
+            
+            if (isNewDiscovery) {
                 this.colorSystem.addDiscoveredColor(newColor);
                 await this.saveDiscoveredColor(newColor);
                 this.createNewColorOrb(newColor);
@@ -420,23 +422,22 @@ class ChromaLabGame {
                 // Trigger particle burst for a new color discovery
                 const centralPoint = this.linePreviewSystem.getCentralPoint() || new THREE.Vector3(0, 1, 0);
                 if (this.particleSystem) this.particleSystem.createBurst(centralPoint, newColor);
-                const totalDiscovered = this.colorSystem.getDiscoveredColors().length;
-                const achievementProgressMade = this.challengeManager.updateProgress(newColor, totalDiscovered);
-                if (achievementProgressMade) {
-                    this.uiManager.showAchievement("Achievement progress updated!");
-                    if (this.uiManager.fullscreenEncyclopedia && 
-                        this.uiManager.fullscreenEncyclopedia.style.display === 'block' &&
-                        this.uiManager.encyclopediaTabsContainer.querySelector('[data-tab="achievementsTab"].active')) {
-                        this.uiManager.populateAchievementsTab();
-                    }
-                }
-                this.uiManager.updateChallengeDisplay();
             } else { // Color already discovered
-                this.uiManager.showAchievement(`${newColor.name} already discovered.`);
+                this.uiManager.showColorDiscovered(newColor, false); // false = not first discovery
                 // Trigger particle burst for re-mixing an existing color
                 const centralPoint = this.linePreviewSystem.getCentralPoint() || new THREE.Vector3(0, 1, 0);
                 if (this.particleSystem) this.particleSystem.createBurst(centralPoint, newColor);
             }
+            
+            // Update achievement progress for EVERY mix (both new discoveries and re-mixes)
+            const totalDiscovered = this.colorSystem.getDiscoveredColors().length;
+            const achievementProgressMade = this.challengeManager.updateProgress(newColor, totalDiscovered, isNewDiscovery);
+            if (achievementProgressMade) {
+                console.log('[ChromaLabGame] Achievement progress made, UI will refresh if tab is visible');
+                // Don't call populateAchievementsTab here - the challengeManager already handles
+                // refreshing via refreshAchievementsIfVisible() which is smarter about when to update
+            }
+            this.uiManager.updateChallengeDisplay();
         } else { // Mix failed
             this.uiManager.showAchievement("Mix Failed! Try different colors.");
         }
@@ -536,14 +537,45 @@ class ChromaLabGame {
 
   // Event listeners specific to the game (after login)
   setupGameEventListeners() {
+    // Debounced resize handler to avoid too many updates
+    let resizeTimeout;
     window.addEventListener('resize', () => {
-      if (this.gameWorld) this.gameWorld.handleResize();
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        this.handleWindowResize();
+      }, 100); // Debounce by 100ms
     });
     
     // Add mix button functionality
     this.uiManager.onMixButtonClick(() => {
       this.mixSelectedColors();
     });
+  }
+  // Comprehensive resize handler for all game systems
+  handleWindowResize() {
+    console.log('[ChromaLabGame] Window resized. Updating all systems...');
+    
+    // Update game world (camera, renderer)
+    if (this.gameWorld) {
+      this.gameWorld.handleResize();
+    }
+    
+    // Update orb manager for raycasting with new dimensions
+    if (this.orbManager && typeof this.orbManager.handleResize === 'function') {
+      this.orbManager.handleResize();
+    }
+    
+    // Update UI manager for any responsive UI elements
+    if (this.uiManager && typeof this.uiManager.handleResize === 'function') {
+      this.uiManager.handleResize();
+    }
+    
+    // Update line preview system
+    if (this.linePreviewSystem && typeof this.linePreviewSystem.handleResize === 'function') {
+      this.linePreviewSystem.handleResize();
+    }
+    
+    console.log('[ChromaLabGame] Resize handling complete.');
   }
   animate() {
     // The requestAnimationFrame for the main loop is now handled by globalAnimate()
@@ -678,20 +710,7 @@ class ChromaLabGame {
   }
   async loadCompletedChallenges() {
     if (!this.playerId) return;
-    const { data, error } = await supabase
-      .from('player_completed_challenges')
-      .select('challenge_id') // challenge_id is the color hex for now
-      .eq('player_id', this.playerId);
-    if (error) {
-      console.error('Error loading completed challenges:', error);
-      return;
-    }
-    if (data) {
-      data.forEach(item => {
-        this.challengeManager.completedChallenges.add(item.challenge_id);
-      });
-    }
-    console.log('Completed challenges (legacy system) loaded:', this.challengeManager.completedChallenges ? this.challengeManager.completedChallenges.size : 'N/A');
+    // The old completedChallenges Set is no longer used with the new achievement system
     // Load player achievement progress from Supabase (new system)
     if (this.challengeManager && this.playerId) {
         await this.challengeManager.loadPlayerProgress(this.playerId);
@@ -829,6 +848,8 @@ class ChromaLabGame {
         }
         if (this.uiManager) {
             this.uiManager.updatePlayerOneBattleScoreDisplay(this.playerOneBattleScore);
+            // Update comparison orbs in 3D
+            this.uiManager.updateBattleComparisonOrbs();
         }
     } else {
         if (!this.currentSessionData || this.isLocalPlayerOne) {
@@ -869,6 +890,8 @@ class ChromaLabGame {
         }
         if (this.uiManager && typeof this.uiManager.updatePlayerTwoBattleScoreDisplay === 'function') {
             this.uiManager.updatePlayerTwoBattleScoreDisplay(this.playerTwoBattleScore);
+            // Update comparison orbs in 3D
+            this.uiManager.updateBattleComparisonOrbs();
         }
     } else {
         if (!this.currentSessionData || !this.isLocalPlayerOne) {
@@ -1351,12 +1374,20 @@ class ChromaLabGame {
       if (opponentData.difference < (this.playerOneBestAttempt ? this.playerOneBestAttempt.difference : Infinity)) {
         this.playerOneBestAttempt = { colorData: opponentData.mixedColorData, difference: opponentData.difference };
         console.log(`[Battle Sync] Updated P1 (Opponent) Best Attempt: ${opponentData.mixedColorData.name}, Diff: ${opponentData.difference}`);
+        // Update comparison orbs immediately when opponent makes new best
+        if (this.uiManager) {
+          this.uiManager.updateBattleComparisonOrbs();
+        }
       }
       this.uiManager.updateOpponentMixDisplay('player_one', opponentData.mixedColorData, opponentData.difference);
     } else if (opponentData.playerId === this.currentSessionData.player_two_id && opponentData.playerId !== this.playerId) {
       if (opponentData.difference < (this.playerTwoBestAttempt ? this.playerTwoBestAttempt.difference : Infinity)) {
         this.playerTwoBestAttempt = { colorData: opponentData.mixedColorData, difference: opponentData.difference };
         console.log(`[Battle Sync] Updated P2 (Opponent) Best Attempt: ${opponentData.mixedColorData.name}, Diff: ${opponentData.difference}`);
+        // Update comparison orbs immediately when opponent makes new best
+        if (this.uiManager) {
+          this.uiManager.updateBattleComparisonOrbs();
+        }
       }
       this.uiManager.updateOpponentMixDisplay('player_two', opponentData.mixedColorData, opponentData.difference);
     }

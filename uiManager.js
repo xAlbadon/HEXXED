@@ -1,5 +1,7 @@
 import { Leaderboard } from './leaderboard.js';
 import audioManager from './audioManager.js';
+import { BattleWorld } from './battleWorld.js';
+
 export class UIManager {
   constructor(gameInstance, loginCallback, signupCallback, updateManager) {
     this.game = gameInstance;
@@ -23,7 +25,8 @@ export class UIManager {
     this.closeEncyclopediaButton = document.getElementById('closeEncyclopediaButton');
     this.leaderboardToggleButton = document.getElementById('leaderboardToggleButton'); // New button
     this.battleModeButton = document.getElementById('battleModeButton'); 
-    this.battleModeScreen = document.getElementById('battleModeScreen'); 
+    this.battleModeScreen = document.getElementById('battleModeScreen');
+    this.battleModeCanvasContainer = document.getElementById('battleModeCanvas');
 
     this.battleModeActionButton = document.getElementById('battleModeActionButton'); 
     this.battleModeTimerDisplay = document.getElementById('battleModeTimerDisplay');
@@ -46,7 +49,18 @@ export class UIManager {
     this.playerOneReadyButton = document.getElementById('playerOneReadyButton');
     this.playerTwoReadyButton = document.getElementById('playerTwoReadyButton');
     this.playerOneReadyStatus = document.getElementById('playerOneReadyStatus'); 
-    this.playerTwoReadyStatus = document.getElementById('playerTwoReadyStatus'); 
+    this.playerTwoReadyStatus = document.getElementById('playerTwoReadyStatus');
+    
+    // Opponent notification elements
+    this.opponentNotification = document.getElementById('opponentNotification');
+    this.opponentColorSwatch = document.getElementById('opponentColorSwatch');
+    this.opponentColorName = document.getElementById('opponentColorName');
+    this.opponentColorDetails = document.getElementById('opponentColorDetails');
+    this.opponentScoreValue = document.getElementById('opponentScoreValue');
+    this.opponentNotificationTimeout = null;
+    
+    // Battle World instance
+    this.battleWorld = null; 
 
     this.battleResultsScreen = document.getElementById('battleResultsScreen');
     this.battleWinnerMessage = document.getElementById('battleWinnerMessage');
@@ -110,6 +124,8 @@ export class UIManager {
 
     this.sideNotificationContainer = null;
     this._createSideNotificationContainer();
+    this.encyclopediaInfoIcon = null;
+    this._createEncyclopediaInfoIcon();
     this.muteButton = document.getElementById('muteButton');
     this.masterVolumeSlider = document.getElementById('masterVolumeSlider');
     this.masterVolumeValue = document.getElementById('masterVolumeValue');
@@ -151,8 +167,10 @@ export class UIManager {
     this.currentBattleSessionData = null;
     this.localPlayerIsOne = null;
     this.pinnedColorSwatch = null;
-this.previousSelectedOrbsCount = 0;
-}
+    this.previousSelectedOrbsCount = 0;
+    this.achievementsTabIsActive = false; // Track if achievements tab is currently visible
+    this.lastActiveEncyclopediaTab = 'colorGridTab'; // Remember last viewed tab
+  }
 setUpdateManager(updateManager) {
     this.updateManager = updateManager;
     if (this.updateManager && this.updateManager.isBlockingUI()) {
@@ -309,6 +327,16 @@ setUpdateManager(updateManager) {
     }
   }
   setActiveEncyclopediaTab(tabId) {
+    // Store the active tab for next time
+    this.lastActiveEncyclopediaTab = tabId;
+    
+    // Clean up pinned color swatch when switching tabs
+    if (this.pinnedColorSwatch) {
+      this.pinnedColorSwatch.classList.remove('pinned');
+      this.pinnedColorSwatch = null;
+    }
+    this.hideColorInfo(true);
+    
     this.encyclopediaTabButtons.forEach(button => {
       button.classList.toggle('active', button.dataset.tab === tabId);
     });
@@ -316,12 +344,19 @@ setUpdateManager(updateManager) {
       panel.classList.toggle('active', panel.id === tabId);
     });
     if (tabId === 'colorGridTab' && this.lastKnownDiscoveredColors) {
-
       this.updateEncyclopedia(this.lastKnownDiscoveredColors);
     } else if (tabId === 'colorRingsTab') {
       this.populateRingsManagementTab();
     } else if (tabId === 'achievementsTab') {
-      this.populateAchievementsTab();
+      // Mark that achievements tab is currently active for live updates
+      this.achievementsTabIsActive = true;
+      // Fetch fresh global stats from database when opening the tab
+      this.populateAchievementsTab(true);
+    } else {
+      // Mark achievements tab as inactive when switching away
+      if (this.achievementsTabIsActive) {
+        this.achievementsTabIsActive = false;
+      }
     }
     if (tabId === 'settingsTab') {
       this._updateAudioUI();
@@ -335,7 +370,14 @@ setUpdateManager(updateManager) {
                 await this.game.challengeManager.fetchTotalPlayerCount();
                 await this.game.challengeManager.fetchColorDiscoveryStats();
             }
-            this.setActiveEncyclopediaTab('colorGridTab');
+            this.setActiveEncyclopediaTab(this.lastActiveEncyclopediaTab);
+        } else {
+            // Clean up when closing encyclopedia
+            if (this.pinnedColorSwatch) {
+                this.pinnedColorSwatch.classList.remove('pinned');
+                this.pinnedColorSwatch = null;
+            }
+            this.hideColorInfo(true);
         }
     }
 
@@ -725,14 +767,21 @@ setUpdateManager(updateManager) {
       });
       this.gameColorGrid.appendChild(swatch);
     });
-
-    this.gameColorGrid.addEventListener('click', () => {
+    // Remove existing grid click listener before adding a new one
+    if (this.gameColorGrid._unpinListener) {
+        this.gameColorGrid.removeEventListener('click', this.gameColorGrid._unpinListener);
+    }
+    
+    // Create and store the listener so we can remove it later
+    this.gameColorGrid._unpinListener = () => {
         if (this.pinnedColorSwatch) {
             this.pinnedColorSwatch.classList.remove('pinned');
             this.pinnedColorSwatch = null;
             this.hideColorInfo(true);
         }
-    });
+    };
+    
+    this.gameColorGrid.addEventListener('click', this.gameColorGrid._unpinListener);
     if (preserveScroll && encyclopediaContent) {
 
         requestAnimationFrame(() => {
@@ -901,40 +950,106 @@ setUpdateManager(updateManager) {
             }
         }
     }
-  }
-  showColorDiscovered(colorData) {
-    audioManager.playSound('NewColor');
+}
+showColorDiscovered(colorData, isFirstDiscovery = true) {
+    // Play different sounds based on whether this is a new discovery or re-mix
+    if (isFirstDiscovery) {
+        audioManager.playSound('NewColor', { category: 'achievement' });
+    } else {
+        audioManager.playSound('RemoveColor', { category: 'sfx' });
+    }
     const notification = document.createElement('div');
     notification.style.cssText = `
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: linear-gradient(135deg, ${colorData.hex}, #ffffff);
-      color: white;
-      padding: 20px;
-      border-radius: 15px;
-      font-size: 18px;
-      font-weight: bold;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+      bottom: 20px;
+      left: -300px;
+      width: 280px;
+      background: linear-gradient(135deg, rgba(45, 27, 105, 0.95), rgba(74, 74, 122, 0.95));
+      border: 2px solid ${colorData.hex};
+      border-radius: 12px;
+      padding: 15px;
       z-index: 1000;
       pointer-events: none;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 20px ${colorData.hex}40;
+      backdrop-filter: blur(10px);
+      transition: left 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     `;
-    notification.textContent = `Discovered: ${colorData.name}!`;
+    
+    const colorSwatch = document.createElement('div');
+    colorSwatch.style.cssText = `
+      width: 50px;
+      height: 50px;
+      background: ${colorData.hex};
+      border-radius: 8px;
+      float: left;
+      margin-right: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    `;
+    
+    const textContent = document.createElement('div');
+    textContent.style.cssText = `
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+    `;
+    
+    const statusLabel = document.createElement('div');
+    statusLabel.style.cssText = `
+      font-size: 11px;
+      opacity: 0.8;
+      margin-bottom: 4px;
+      color: ${isFirstDiscovery ? '#6bff6b' : '#ffa366'};
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    `;
+    statusLabel.textContent = isFirstDiscovery ? '✨ New Discovery!' : '🔄 Already Known';
+    
+    const colorName = document.createElement('div');
+    colorName.style.cssText = `
+      font-size: 15px;
+      margin-bottom: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    `;
+    colorName.textContent = colorData.name;
+    
+    const hexCode = document.createElement('div');
+    hexCode.style.cssText = `
+      font-size: 12px;
+      opacity: 0.9;
+      font-weight: normal;
+      font-family: monospace;
+    `;
+    hexCode.textContent = colorData.hex;
+    
+    textContent.appendChild(statusLabel);
+    textContent.appendChild(colorName);
+    textContent.appendChild(hexCode);
+    
+    notification.appendChild(colorSwatch);
+    notification.appendChild(textContent);
     
     document.body.appendChild(notification);
     
-    // Animate and remove
+    // Slide in animation
+    requestAnimationFrame(() => {
+        notification.style.left = '20px';
+    });
+    
+    // Slide out and remove
     setTimeout(() => {
-      notification.style.transition = 'all 0.5s ease';
+      notification.style.transition = 'all 0.4s ease';
       notification.style.opacity = '0';
-      notification.style.transform = 'translate(-50%, -60%) scale(0.8)';
+      notification.style.left = '-300px';
       
       setTimeout(() => {
-        document.body.removeChild(notification);
-      }, 500);
-    }, 2000);
+        if (notification.parentNode) {
+            document.body.removeChild(notification);
+        }
+      }, 400);
+    }, 2500);
   }
   _createSideNotificationContainer() {
     if (document.getElementById('side-notification-container')) {
@@ -945,16 +1060,140 @@ setUpdateManager(updateManager) {
     this.sideNotificationContainer.id = 'side-notification-container';
     this.sideNotificationContainer.style.cssText = `
         position: fixed;
-        top: 100px;
-        right: 20px;
+        bottom: 120px;
+        left: 20px;
         z-index: 1000;
         display: flex;
         flex-direction: column;
-        align-items: flex-end;
+        align-items: flex-start;
         gap: 10px;
         pointer-events: none;
     `;
     document.body.appendChild(this.sideNotificationContainer);
+  }
+  _createEncyclopediaInfoIcon() {
+    if (!this.fullscreenEncyclopedia) return;
+    // Create info icon container
+    const infoIconContainer = document.createElement('div');
+    infoIconContainer.id = 'encyclopedia-info-icon';
+    
+    // Check if mobile
+    const isMobile = window.innerWidth <= 768;
+    
+    infoIconContainer.style.cssText = `
+        position: absolute;
+        top: ${isMobile ? '65px' : '30px'};
+        left: ${isMobile ? '10px' : '340px'};
+        transform: none;
+        width: ${isMobile ? '24px' : '28px'};
+        height: ${isMobile ? '24px' : '28px'};
+        background: rgba(74, 74, 122, 0.8);
+        border: 2px solid rgba(255, 215, 0, 0.6);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: help;
+        font-size: ${isMobile ? '14px' : '16px'};
+        font-weight: bold;
+        color: #ffd700;
+        z-index: 1000;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    `;
+    infoIconContainer.textContent = 'i';
+    // Create tooltip
+    const tooltip = document.createElement('div');
+    tooltip.id = 'encyclopedia-info-tooltip';
+    
+    tooltip.style.cssText = `
+        position: absolute;
+        top: 40px;
+        left: 0;
+        min-width: ${isMobile ? '315px' : '350px'};
+        max-width: ${isMobile ? '360px' : '400px'};
+        background: linear-gradient(135deg, rgba(45, 27, 105, 0.98), rgba(74, 74, 122, 0.98));
+        border: 2px solid rgba(255, 215, 0, 0.6);
+        border-radius: 12px;
+        padding: ${isMobile ? '14px' : '16px'};
+        color: #ffffff;
+        font-size: ${isMobile ? '12px' : '13px'};
+        line-height: ${isMobile ? '1.5' : '1.6'};
+        z-index: 1001;
+        pointer-events: none;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(10px);
+    `;
+    const headerFontSize = isMobile ? '13px' : '14px';
+    const sectionMargin = isMobile ? '9px' : '10px';
+    const bottomMargin = isMobile ? '11px' : '12px';
+    const bottomPadding = isMobile ? '7px' : '8px';
+    const tipFontSize = isMobile ? '11px' : '12px';
+    
+    tooltip.innerHTML = `
+        <div style="margin-bottom: ${bottomMargin}; padding-bottom: ${bottomPadding}; border-bottom: 1px solid rgba(255, 215, 0, 0.3);">
+            <strong style="color: #ffd700; font-size: ${headerFontSize};">📖 #HEXXED Codex Guide</strong>
+        </div>
+        
+        <div style="margin-bottom: ${sectionMargin};">
+            <strong style="color: #6bff6b;">🎨 Color Grid Tab:</strong><br>
+            <span style="opacity: 0.9;">Browse all discovered colors with sorting, filtering, and search. Click any color to pin info and copy hex codes.</span>
+        </div>
+        
+        <div style="margin-bottom: ${sectionMargin};">
+            <strong style="color: #6bff6b;">⭕ Color Rings Tab:</strong><br>
+            <span style="opacity: 0.9;">Manage active colors in each ring (2-mix, 3-mix, 4-mix). Use hex codes to search and summon specific colors.</span>
+        </div>
+        
+        <div style="margin-bottom: ${sectionMargin};">
+            <strong style="color: #6bff6b;">🏆 Achievements Tab:</strong><br>
+            <span style="opacity: 0.9;">Track your progress and view global completion stats for all achievement tiers.</span>
+        </div>
+        
+        <div style="margin-bottom: ${bottomMargin};">
+            <strong style="color: #6bff6b;">⚙️ Settings Tab:</strong><br>
+            <span style="opacity: 0.9;">Customize audio preferences and volume controls.</span>
+        </div>
+        
+        <div style="padding-top: ${bottomPadding}; border-top: 1px solid rgba(255, 215, 0, 0.3); font-size: ${tipFontSize};">
+            <strong style="color: #ffd700;">💡 Pro Tip:</strong><br>
+            <span style="opacity: 0.85;">Copy hex codes from Color Grid, then paste in Color Rings filters to quickly find and summon specific colors. The color's mix arity (2, 3, or 4) determines which ring to search!</span>
+        </div>
+    `;
+    infoIconContainer.appendChild(tooltip);
+    // Hover events
+    infoIconContainer.addEventListener('mouseenter', () => {
+        infoIconContainer.style.background = 'rgba(255, 215, 0, 0.3)';
+        infoIconContainer.style.borderColor = '#ffd700';
+        infoIconContainer.style.transform = 'scale(1.1)';
+        tooltip.style.opacity = '1';
+        tooltip.style.transform = 'translateY(0)';
+    });
+    infoIconContainer.addEventListener('mouseleave', () => {
+        infoIconContainer.style.background = 'rgba(74, 74, 122, 0.8)';
+        infoIconContainer.style.borderColor = 'rgba(255, 215, 0, 0.6)';
+        infoIconContainer.style.transform = 'scale(1)';
+        tooltip.style.opacity = '0';
+        tooltip.style.transform = 'translateY(-10px)';
+    });
+    
+    // Add resize listener to reposition on orientation change
+    const repositionIcon = () => {
+        const isMobile = window.innerWidth <= 768;
+        infoIconContainer.style.top = isMobile ? '65px' : '30px';
+        infoIconContainer.style.left = isMobile ? '10px' : '340px';
+        infoIconContainer.style.transform = 'none';
+        infoIconContainer.style.width = isMobile ? '24px' : '28px';
+        infoIconContainer.style.height = isMobile ? '24px' : '28px';
+        infoIconContainer.style.fontSize = isMobile ? '14px' : '16px';
+    };
+    window.addEventListener('resize', repositionIcon);
+    // Add to encyclopedia
+    this.fullscreenEncyclopedia.appendChild(infoIconContainer);
+    this.encyclopediaInfoIcon = infoIconContainer;
   }
   showAchievement(message) {
     audioManager.playSound('Achievement', { category: 'achievement' });
@@ -1095,7 +1334,7 @@ populateRingsManagementTab() {
           unsummonButton.textContent = 'Unsummon';
           unsummonButton.title = `Remove ${orb.colorData.name} from this ring`;
           unsummonButton.addEventListener('click', () => {
-            audioManager.playSound('RemoveColor');
+            audioManager.playSound('RemoveColor', { category: 'achievement' });
             if (this.game && typeof this.game.handleUnsummonOrbRequest === 'function') {
               this.game.handleUnsummonOrbRequest(orb);
             }
@@ -1225,7 +1464,7 @@ populateRingsManagementTab() {
       summonButton.title = `Summon ${colorData.name} to this ring`;
       summonButton.dataset.orbHex = colorData.hex;
       summonButton.addEventListener('click', () => {
-        audioManager.playSound('AddColor');
+        audioManager.playSound('AddColor', { category: 'achievement' });
         if (this.game && typeof this.game.handleSummonOrbRequest === 'function') {
           this.game.handleSummonOrbRequest(colorData, mixArity);
         }
@@ -1286,16 +1525,36 @@ populateRingsManagementTab() {
       nextButton.dataset.totalPages = totalPages;
     }
   }
-  async populateAchievementsTab() {
+  async populateAchievementsTab(forceRefresh = false, preserveScrollPosition = false) {
     if (!this.achievementsListContainer || !this.game || !this.game.challengeManager) {
       if (this.achievementsListContainer) this.achievementsListContainer.innerHTML = '<p>Achievements system not ready.</p>';
       return;
     }
-    this.achievementsListContainer.innerHTML = '<p class="loading-message">Loading achievements...</p>'; // Loading state
+    
+    // Save scroll position if requested
+    let scrollPosition = 0;
+    if (preserveScrollPosition) {
+      const encyclopediaContent = document.getElementById('encyclopediaContent');
+      if (encyclopediaContent) {
+        scrollPosition = encyclopediaContent.scrollTop;
+      }
+    }
+    
+    if (!preserveScrollPosition) {
+      this.achievementsListContainer.innerHTML = '<p class="loading-message">Loading achievements...</p>';
+    }
+    
     try {
-
-      await this.game.challengeManager.fetchTotalPlayerCount(); 
-      const achievementsData = await this.game.challengeManager.fetchAllAchievementData();
+      // Fetch global stats only if needed, but ALWAYS use latest local progress
+      let achievementsData;
+      if (forceRefresh || !this.game.challengeManager.achievementsWithFullStats || this.game.challengeManager.achievementsWithFullStats.length === 0) {
+        // Fetch global stats from database
+        await this.game.challengeManager.fetchTotalPlayerCount(); 
+        achievementsData = await this.game.challengeManager.fetchAllAchievementData();
+      } else {
+        // Use cached global stats but with LATEST local progress
+        achievementsData = this.game.challengeManager.getAchievementsWithProgress();
+      }
       const totalPlayers = this.game.challengeManager.totalPlayerCount;
       
       this.achievementsListContainer.innerHTML = ''; 
@@ -1308,6 +1567,138 @@ populateRingsManagementTab() {
       achievementsData.forEach(ach => {
         const cardElement = document.createElement('div');
         cardElement.className = 'achievement-card';
+        
+        // Special handling for category achievements
+        if (ach.type === 'category' && ach.subAchievements) {
+          cardElement.classList.add('achievement-category-card');
+          // Add data attribute for category-specific styling
+          cardElement.setAttribute('data-category', ach.id);
+          
+          const cardHeader = document.createElement('div');
+          cardHeader.className = 'achievement-card-header category-header';
+          const nameEl = document.createElement('h3');
+          
+          // Add category icon if available
+          if (ach.icon) {
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'category-icon';
+            iconSpan.textContent = ach.icon;
+            nameEl.appendChild(iconSpan);
+          }
+          
+          const nameText = document.createTextNode(ach.name);
+          nameEl.appendChild(nameText);
+          cardHeader.appendChild(nameEl);
+          
+          // Add click handler for collapse/expand toggle
+          cardHeader.addEventListener('click', () => {
+            cardElement.classList.toggle('collapsed');
+            audioManager.playSound('click1');
+          });
+          
+          cardElement.appendChild(cardHeader);
+          
+          const cardBody = document.createElement('div');
+          cardBody.className = 'achievement-card-body';
+          const descriptionEl = document.createElement('p');
+          descriptionEl.className = 'achievement-description';
+          descriptionEl.textContent = ach.description;
+          cardBody.appendChild(descriptionEl);
+          
+          // Create sub-achievements list
+          const subAchievementsContainer = document.createElement('div');
+          subAchievementsContainer.className = 'sub-achievements-container';
+          
+          ach.subAchievements.forEach(subAch => {
+            const subAchElement = document.createElement('div');
+            subAchElement.className = 'sub-achievement';
+            
+            const subAchHeader = document.createElement('div');
+            subAchHeader.className = 'sub-achievement-header';
+            subAchHeader.textContent = subAch.name;
+            subAchElement.appendChild(subAchHeader);
+            
+            const subAchTiers = document.createElement('div');
+            subAchTiers.className = 'achievement-tiers sub-achievement-tiers';
+            
+            // Get the merged sub-achievement data with global stats if available
+            const mergedSubAch = ach.subAchievements.find(sa => sa.id === subAch.id);
+            const tiersToUse = mergedSubAch && mergedSubAch.tiers ? mergedSubAch.tiers : subAch.tiers;
+            
+            const currentTierIndex = mergedSubAch ? mergedSubAch.player_current_tier_index : -1;
+            const progressCount = mergedSubAch ? mergedSubAch.player_progress_count : 0;
+            
+            tiersToUse.forEach((tier, index) => {
+              const tierDiv = document.createElement('div');
+              tierDiv.className = 'achievement-tier';
+              
+              if (currentTierIndex >= index) {
+                tierDiv.classList.add('completed');
+              }
+              
+              const tierIcon = document.createElement('span');
+              tierIcon.className = 'tier-icon';
+              tierIcon.textContent = tier.icon;
+              
+              const tierName = document.createElement('span');
+              tierName.className = 'tier-name';
+              tierName.textContent = tier.tierName;
+              
+              const tierProgressText = document.createElement('span');
+              tierProgressText.className = 'tier-progress-text';
+              
+              if (currentTierIndex >= index) {
+                tierProgressText.textContent = ` (${tier.requirement}/${tier.requirement} - Complete!)`;
+              } else if (currentTierIndex === index - 1) {
+                tierProgressText.textContent = ` (${Math.min(progressCount, tier.requirement)}/${tier.requirement})`;
+              } else {
+                tierProgressText.textContent = ` (0/${tier.requirement})`;
+              }
+              
+              tierDiv.appendChild(tierIcon);
+              tierDiv.appendChild(tierName);
+              tierDiv.appendChild(tierProgressText);
+              
+              // Add global stats tooltip for sub-achievement tiers
+              const tierStatsTooltip = document.createElement('div');
+              tierStatsTooltip.className = 'tier-stats-tooltip';
+              const globalCompletions = tier.global_completion_count !== undefined ? tier.global_completion_count : 0;
+              
+              let tooltipText = `Achieved by ${globalCompletions} players globally.`;
+              if (totalPlayers !== null && totalPlayers > 0 && globalCompletions !== 'N/A') {
+                const percentage = (globalCompletions / totalPlayers) * 100;
+                tooltipText = `Achieved by ${globalCompletions} (${percentage.toFixed(1)}%) of players globally.`;
+                
+                // Add rare styling if < 1% completion
+                if (percentage < 1.0 && percentage > 0) {
+                  if (tierDiv.classList.contains('completed')) {
+                    tierDiv.classList.add('rare-achievement-tier');
+                  } else {
+                    tierDiv.classList.add('undiscovered-rare-achievement-tier');
+                  }
+                }
+              } else if (globalCompletions === 'N/A') {
+                tooltipText = `Global stats unavailable.`;
+              } else if (totalPlayers === 0) {
+                tooltipText = `Achieved by ${globalCompletions} players globally (0% - no total players count).`;
+              }
+              tierStatsTooltip.textContent = tooltipText;
+              tierDiv.appendChild(tierStatsTooltip);
+              
+              subAchTiers.appendChild(tierDiv);
+            });
+            
+            subAchElement.appendChild(subAchTiers);
+            subAchievementsContainer.appendChild(subAchElement);
+          });
+          
+          cardBody.appendChild(subAchievementsContainer);
+          cardElement.appendChild(cardBody);
+          listElement.appendChild(cardElement);
+          return; // Skip regular processing
+        }
+        
+        // Regular achievement processing (non-category)
         const cardHeader = document.createElement('div');
         cardHeader.className = 'achievement-card-header';
         const nameEl = document.createElement('h3');
@@ -1385,8 +1776,28 @@ populateRingsManagementTab() {
         listElement.appendChild(cardElement);
       });
       this.achievementsListContainer.appendChild(listElement);
+      
+      // Restore scroll position if requested
+      if (preserveScrollPosition) {
+        requestAnimationFrame(() => {
+          const encyclopediaContent = document.getElementById('encyclopediaContent');
+          if (encyclopediaContent) {
+            encyclopediaContent.scrollTop = scrollPosition;
+          }
+        });
+      }
     } catch (error) {
       this.achievementsListContainer.innerHTML = '<p class="error-message">Could not load achievements. Please try again later.</p>';
+    }
+  }
+  
+  // New method to refresh achievements display when progress changes
+  refreshAchievementsIfVisible() {
+    // Only refresh if the achievements tab is currently active/visible
+    if (this.achievementsTabIsActive) {
+      console.log('[UIManager] Refreshing achievements tab with latest progress...');
+      // Use false for forceRefresh (use cached global stats) and true for preserveScrollPosition
+      this.populateAchievementsTab(false, true);
     }
   }
   setupBattleModeButtonListener() {
@@ -1434,6 +1845,45 @@ populateRingsManagementTab() {
     if (this.battleModeScreen) {
       this.battleModeScreen.style.display = show ? 'flex' : 'none'; 
       if (show) {
+        // Initialize 3D battle world
+        if (!this.battleWorld && this.battleModeCanvasContainer) {
+          try {
+            this.battleWorld = new BattleWorld(this.battleModeCanvasContainer);
+            
+            // Setup click handler for orb selection
+            this._battleClickHandler = (e) => {
+              const clickedOrb = this.battleWorld.getClickedOrb(e);
+              
+              if (clickedOrb && clickedOrb.userData.orbData) {
+                const isPlayerOne = clickedOrb.userData.isPlayerOne;
+                const canInteract = (isPlayerOne && this.localPlayerIsOne) || (!isPlayerOne && !this.localPlayerIsOne);
+                
+                if (canInteract) {
+                  // Call the appropriate handler directly
+                  if (isPlayerOne) {
+                    this.handlePlayerOneBattleOrbClick(clickedOrb.userData.orbData);
+                  } else {
+                    this.handlePlayerTwoBattleOrbClick(clickedOrb.userData.orbData);
+                  }
+                }
+              }
+            };
+            
+            // Attach click handler using BattleWorld's method
+            this.battleWorld.attachClickHandler(this._battleClickHandler);
+            
+            // Handle window resize
+            this._battleResizeHandler = () => {
+              if (this.battleWorld) {
+                this.battleWorld.handleResize();
+              }
+            };
+            window.addEventListener('resize', this._battleResizeHandler);
+          } catch (error) {
+            console.error('Failed to initialize BattleWorld:', error);
+          }
+        }
+        
         this._initializeAndBindPlayerMixButtons();
 
         if (this.fullscreenEncyclopedia && this.fullscreenEncyclopedia.style.display !== 'none') {
@@ -1450,6 +1900,8 @@ populateRingsManagementTab() {
 
         const playerOneLabelEl = document.getElementById('playerOneBattleLabel');
         const playerTwoLabelEl = document.getElementById('playerTwoBattleLabel');
+        const playerOneArea = document.getElementById('playerOneBattleArea');
+        const playerTwoArea = document.getElementById('playerTwoBattleArea');
         
         if (this.localPlayerIsOne !== null) { 
             if (playerOneLabelEl) {
@@ -1462,9 +1914,21 @@ populateRingsManagementTab() {
                 if (!this.localPlayerIsOne) playerTwoLabelEl.classList.add('local-player-label');
                 else playerTwoLabelEl.classList.remove('local-player-label');
             }
+            
+            // Hide opponent's UI panel
+            if (playerOneArea) {
+              playerOneArea.style.display = this.localPlayerIsOne ? 'flex' : 'none';
+            }
+            if (playerTwoArea) {
+              playerTwoArea.style.display = !this.localPlayerIsOne ? 'flex' : 'none';
+            }
         } else { 
             if (playerOneLabelEl) playerOneLabelEl.textContent = "Player 1";
             if (playerTwoLabelEl) playerTwoLabelEl.textContent = "Player 2";
+            
+            // Show both in practice mode
+            if (playerOneArea) playerOneArea.style.display = 'flex';
+            if (playerTwoArea) playerTwoArea.style.display = 'flex';
         }
 
         
@@ -1473,14 +1937,18 @@ populateRingsManagementTab() {
                 this.game.prepareForBattle(this.currentBattleSessionData); 
             }
             
-            this.playerOneAvailableBattleOrbs = []; 
+            this.playerOneAvailableBattleOrbs = [];
+            this.playerOneRing2Orbs = []; // Mixed colors ring
+            this.playerOneRing3Orbs = []; // Additional mixed colors ring
             this.initializePlayerOneBattleOrbs();
             this.playerOneBattleSelection = []; 
             this.updatePlayerOneSelectedOrbsDisplay(); 
             this.clearPlayerOneMixedColorDisplay(); 
             this.updatePlayerOneBattleScoreDisplay(Infinity);
             
-            this.playerTwoAvailableBattleOrbs = []; 
+            this.playerTwoAvailableBattleOrbs = [];
+            this.playerTwoRing2Orbs = []; // Mixed colors ring
+            this.playerTwoRing3Orbs = []; // Additional mixed colors ring
             this.initializePlayerTwoBattleOrbs();
             this.playerTwoBattleSelection = [];
             this.updatePlayerTwoSelectedOrbsDisplay();
@@ -1503,6 +1971,26 @@ populateRingsManagementTab() {
             }
         }
       } else { 
+        // Hide opponent notification
+        if (this.opponentNotification) {
+          this.opponentNotification.classList.remove('show');
+        }
+        if (this.opponentNotificationTimeout) {
+          clearTimeout(this.opponentNotificationTimeout);
+          this.opponentNotificationTimeout = null;
+        }
+        
+        // Cleanup 3D battle world
+        if (this.battleWorld) {
+          this.battleWorld.dispose(); // This now handles click handler removal too
+          this.battleWorld = null;
+          this._battleClickHandler = null;
+        }
+        if (this._battleResizeHandler) {
+          window.removeEventListener('resize', this._battleResizeHandler);
+          this._battleResizeHandler = null;
+        }
+        
         this.currentBattleSessionData = null;
         this.localPlayerIsOne = null; // Reset flag
         if (this.gameArea) {
@@ -1510,10 +1998,14 @@ populateRingsManagementTab() {
            this.gameArea.style.pointerEvents = ''; 
         }
          this.stopBattleTimer();
-         this.playerOneBattleSelection = []; 
+         this.playerOneBattleSelection = [];
+         this.playerOneRing2Orbs = [];
+         this.playerOneRing3Orbs = [];
          if (this.playerOneBattleOrbsContainer) this.playerOneBattleOrbsContainer.innerHTML = ''; 
          this.updatePlayerOneSelectedOrbsDisplay(); 
          this.playerTwoBattleSelection = [];
+         this.playerTwoRing2Orbs = [];
+         this.playerTwoRing3Orbs = [];
          if (this.playerTwoBattleOrbsContainer) this.playerTwoBattleOrbsContainer.innerHTML = '';
          this.updatePlayerTwoSelectedOrbsDisplay();
          this.clearPlayerTwoMixedColorDisplay();
@@ -1551,18 +2043,27 @@ populateRingsManagementTab() {
   }
 
   displaySpecificTargetColor(targetColor) {
-    if (!this.targetBattleColorDisplay || !this.targetBattleColorInfo || !targetColor || !this.game || !this.game.colorSystem) {
-        if (this.targetBattleColorDisplay) this.targetBattleColorDisplay.style.backgroundColor = '#333';
-        if (this.targetBattleColorInfo) this.targetBattleColorInfo.textContent = 'Target color not set.';
+    if (!targetColor || !this.game || !this.game.colorSystem) {
         return null;
     }
-    this.targetBattleColorDisplay.style.backgroundColor = targetColor.hex;
-    this.targetBattleColorDisplay.textContent = ''; 
-
-    this.targetBattleColorInfo.innerHTML = `
-        <strong>${targetColor.name}</strong><br>
-        Match this specific color!
-    `;
+    
+    // Display in 3D world
+    if (this.battleWorld) {
+      this.battleWorld.setTargetColor(targetColor.hex);
+    }
+    
+    // Keep original DOM display as fallback (hidden by CSS)
+    if (this.targetBattleColorDisplay) {
+      this.targetBattleColorDisplay.style.backgroundColor = targetColor.hex;
+      this.targetBattleColorDisplay.textContent = ''; 
+    }
+    
+    if (this.targetBattleColorInfo) {
+      this.targetBattleColorInfo.innerHTML = `
+          <strong>${targetColor.name}</strong><br>
+          Match this specific color!
+      `;
+    }
     
     this.currentGameBattleTargetColor = targetColor;
     return targetColor; 
@@ -1600,6 +2101,17 @@ populateRingsManagementTab() {
     this.renderPlayerOneBattleOrbs();
   }
   renderPlayerOneBattleOrbs() {
+    // Render in 3D world instead of DOM
+    if (this.battleWorld && this.playerOneAvailableBattleOrbs) {
+      // Pass full color data objects, not just hex and name
+      const ring1Orbs = this.playerOneAvailableBattleOrbs.map(orbSetup => orbSetup.colorData);
+      const ring2Orbs = (this.playerOneRing2Orbs || []).map(orbSetup => orbSetup.colorData);
+      const ring3Orbs = (this.playerOneRing3Orbs || []).map(orbSetup => orbSetup.colorData);
+      
+      this.battleWorld.renderPlayerOrbs(ring1Orbs, true, ring2Orbs, ring3Orbs);
+    }
+    
+    // Keep original DOM rendering as fallback (hidden by CSS)
     if (!this.playerOneBattleOrbsContainer) return;
     this.playerOneBattleOrbsContainer.innerHTML = '';
     this.playerOneAvailableBattleOrbs.forEach(orbSetup => {
@@ -1647,7 +2159,19 @@ populateRingsManagementTab() {
         this.playerOneMixButton.disabled = !canMix;
     }
   }
-  updatePlayerOneSelectedOrbsDisplay() {
+  updatePlayerOneSelectedOrbsDisplay(skipClear = false) {
+    // Update 3D selection display
+    if (this.battleWorld && !skipClear) {
+      // Clear all 3D selections first
+      this.battleWorld.clearSelection(true);
+      
+      // Select new orbs in 3D based on current selection
+      this.playerOneBattleSelection.forEach(orbData => {
+        this.battleWorld.selectOrb(orbData.hex, true);
+      });
+    }
+    
+    // Update DOM placeholders
     if (!this.playerOneSelectedOrbsContainer) return;
     const placeholders = this.playerOneSelectedOrbsContainer.querySelectorAll('.orb-placeholder');
     
@@ -1665,7 +2189,6 @@ populateRingsManagementTab() {
             orbSwatchEl.title = selectedOrbData.name; 
             placeholder.appendChild(orbSwatchEl);
         }
-
     });
   }
   handlePlayerOneMixAttempt() {
@@ -1682,23 +2205,52 @@ populateRingsManagementTab() {
     const mixedColor = this.game.colorSystem.mixColors(this.playerOneBattleSelection);
     this.displayPlayerOneMixedColor(mixedColor);
     if (mixedColor) {
-        if (!this.playerOneAvailableBattleOrbs.some(orb => orb.colorData.hex === mixedColor.hex)) {
-            this.playerOneAvailableBattleOrbs.push({
-                colorData: mixedColor,
-            });
+        // Check if color already exists in any ring
+        const existsInRing1 = this.playerOneAvailableBattleOrbs.some(orb => orb.colorData.hex === mixedColor.hex);
+        const existsInRing2 = (this.playerOneRing2Orbs || []).some(orb => orb.colorData.hex === mixedColor.hex);
+        const existsInRing3 = (this.playerOneRing3Orbs || []).some(orb => orb.colorData.hex === mixedColor.hex);
+        
+        if (!existsInRing1 && !existsInRing2 && !existsInRing3) {
+            // Add to ring 2 if it has space, otherwise ring 3
+            if ((this.playerOneRing2Orbs || []).length < 15) {
+                if (!this.playerOneRing2Orbs) this.playerOneRing2Orbs = [];
+                this.playerOneRing2Orbs.push({ colorData: mixedColor });
+            } else if ((this.playerOneRing3Orbs || []).length < 25) {
+                if (!this.playerOneRing3Orbs) this.playerOneRing3Orbs = [];
+                this.playerOneRing3Orbs.push({ colorData: mixedColor });
+            }
             this.renderPlayerOneBattleOrbs(); 
         }
     }
     if (this.game && typeof this.game.handlePlayerOneBattleMixResult === 'function') {
       this.game.handlePlayerOneBattleMixResult(mixedColor, this.currentGameBattleTargetColor);
     }
+    
+    // Clear 3D world selection FIRST before clearing array
+    if (this.battleWorld) {
+      this.battleWorld.clearSelection(true);
+    }
+    
+    // Then clear selection array and update DOM (skip 3D clear since we just did it)
     this.playerOneBattleSelection = [];
-    this.updatePlayerOneSelectedOrbsDisplay();
+    this.updatePlayerOneSelectedOrbsDisplay(true); // skipClear = true
+    
     if (this.playerOneMixButton) {
         this.playerOneMixButton.disabled = true; 
     }
 }
   displayPlayerOneMixedColor(colorData, customMessage = null) {
+    // Show in 3D world
+    if (this.battleWorld && colorData && !customMessage) {
+      this.battleWorld.showMixedColor(colorData.hex, true);
+    }
+    
+    // If this is opponent's mix, show notification
+    if (colorData && !customMessage && this.localPlayerIsOne === false) {
+      this.showOpponentNotification(colorData, this.playerOneBattleScoreDisplay?.textContent || '---');
+    }
+    
+    // Update DOM display
     if (!this.playerOneColorDisplay || !this.playerOneColorResultInfo) return;
     if (customMessage) {
         this.playerOneColorDisplay.style.backgroundColor = '#555'; 
@@ -1722,6 +2274,7 @@ populateRingsManagementTab() {
     }
   }
   clearPlayerOneMixedColorDisplay() {
+    // Clear DOM display
     if (this.playerOneColorDisplay) {
         this.playerOneColorDisplay.style.backgroundColor = '#3a3a5a'; 
         this.playerOneColorDisplay.textContent = '?';
@@ -1766,6 +2319,17 @@ populateRingsManagementTab() {
     this.renderPlayerTwoBattleOrbs();
   }
   renderPlayerTwoBattleOrbs() {
+    // Render in 3D world instead of DOM
+    if (this.battleWorld && this.playerTwoAvailableBattleOrbs) {
+      // Pass full color data objects, not just hex and name
+      const ring1Orbs = this.playerTwoAvailableBattleOrbs.map(orbSetup => orbSetup.colorData);
+      const ring2Orbs = (this.playerTwoRing2Orbs || []).map(orbSetup => orbSetup.colorData);
+      const ring3Orbs = (this.playerTwoRing3Orbs || []).map(orbSetup => orbSetup.colorData);
+      
+      this.battleWorld.renderPlayerOrbs(ring1Orbs, false, ring2Orbs, ring3Orbs);
+    }
+    
+    // Keep original DOM rendering as fallback (hidden by CSS)
     if (!this.playerTwoBattleOrbsContainer) return;
     this.playerTwoBattleOrbsContainer.innerHTML = '';
     this.playerTwoAvailableBattleOrbs.forEach(orbSetup => {
@@ -1811,7 +2375,19 @@ populateRingsManagementTab() {
         this.playerTwoMixButton.disabled = !canMix;
     }
   }
-  updatePlayerTwoSelectedOrbsDisplay() {
+  updatePlayerTwoSelectedOrbsDisplay(skipClear = false) {
+    // Update 3D selection display
+    if (this.battleWorld && !skipClear) {
+      // Clear all 3D selections first
+      this.battleWorld.clearSelection(false);
+      
+      // Select new orbs in 3D based on current selection
+      this.playerTwoBattleSelection.forEach(orbData => {
+        this.battleWorld.selectOrb(orbData.hex, false);
+      });
+    }
+    
+    // Update DOM placeholders
     if (!this.playerTwoSelectedOrbsContainer) return;
     const placeholders = this.playerTwoSelectedOrbsContainer.querySelectorAll('.orb-placeholder');
     placeholders.forEach((placeholder, index) => {
@@ -1842,21 +2418,52 @@ populateRingsManagementTab() {
     const mixedColor = this.game.colorSystem.mixColors(this.playerTwoBattleSelection);
     this.displayPlayerTwoMixedColor(mixedColor);
     if (mixedColor) {
-        if (!this.playerTwoAvailableBattleOrbs.some(orb => orb.colorData.hex === mixedColor.hex)) {
-            this.playerTwoAvailableBattleOrbs.push({ colorData: mixedColor });
+        // Check if color already exists in any ring
+        const existsInRing1 = this.playerTwoAvailableBattleOrbs.some(orb => orb.colorData.hex === mixedColor.hex);
+        const existsInRing2 = (this.playerTwoRing2Orbs || []).some(orb => orb.colorData.hex === mixedColor.hex);
+        const existsInRing3 = (this.playerTwoRing3Orbs || []).some(orb => orb.colorData.hex === mixedColor.hex);
+        
+        if (!existsInRing1 && !existsInRing2 && !existsInRing3) {
+            // Add to ring 2 if it has space, otherwise ring 3
+            if ((this.playerTwoRing2Orbs || []).length < 15) {
+                if (!this.playerTwoRing2Orbs) this.playerTwoRing2Orbs = [];
+                this.playerTwoRing2Orbs.push({ colorData: mixedColor });
+            } else if ((this.playerTwoRing3Orbs || []).length < 25) {
+                if (!this.playerTwoRing3Orbs) this.playerTwoRing3Orbs = [];
+                this.playerTwoRing3Orbs.push({ colorData: mixedColor });
+            }
             this.renderPlayerTwoBattleOrbs();
         }
     }
     if (this.game && typeof this.game.handlePlayerTwoBattleMixResult === 'function') {
       this.game.handlePlayerTwoBattleMixResult(mixedColor, this.currentGameBattleTargetColor);
     }
+    
+    // Clear 3D world selection FIRST before clearing array
+    if (this.battleWorld) {
+      this.battleWorld.clearSelection(false);
+    }
+    
+    // Then clear selection array and update DOM (skip 3D clear since we just did it)
     this.playerTwoBattleSelection = [];
-    this.updatePlayerTwoSelectedOrbsDisplay();
+    this.updatePlayerTwoSelectedOrbsDisplay(true); // skipClear = true
+    
     if (this.playerTwoMixButton) {
         this.playerTwoMixButton.disabled = true;
     }
 }
   displayPlayerTwoMixedColor(colorData, customMessage = null) {
+    // Show in 3D world
+    if (this.battleWorld && colorData && !customMessage) {
+      this.battleWorld.showMixedColor(colorData.hex, false);
+    }
+    
+    // If this is opponent's mix, show notification
+    if (colorData && !customMessage && this.localPlayerIsOne === true) {
+      this.showOpponentNotification(colorData, this.playerTwoBattleScoreDisplay?.textContent || '---');
+    }
+    
+    // Update DOM display
     if (!this.playerTwoColorDisplay || !this.playerTwoColorResultInfo) return;
     if (customMessage) {
         this.playerTwoColorDisplay.style.backgroundColor = '#555';
@@ -1886,6 +2493,63 @@ populateRingsManagementTab() {
     }
     if (this.playerTwoColorResultInfo) {
         this.playerTwoColorResultInfo.innerHTML = 'Your mixed color will appear here.';
+    }
+  }
+  
+  showOpponentNotification(colorData, score) {
+    if (!this.opponentNotification || !colorData) return;
+    
+    // Clear any existing timeout
+    if (this.opponentNotificationTimeout) {
+      clearTimeout(this.opponentNotificationTimeout);
+    }
+    
+    // Update notification content
+    if (this.opponentColorSwatch) {
+      this.opponentColorSwatch.style.backgroundColor = colorData.hex;
+    }
+    if (this.opponentColorName) {
+      this.opponentColorName.textContent = colorData.name;
+    }
+    if (this.opponentColorDetails && colorData.rgb) {
+      this.opponentColorDetails.textContent = `RGB: (${colorData.rgb.join(', ')})`;
+    }
+    if (this.opponentScoreValue) {
+      this.opponentScoreValue.textContent = score;
+    }
+    
+    // Show notification
+    this.opponentNotification.classList.add('show');
+    
+    // Hide after 4 seconds
+    this.opponentNotificationTimeout = setTimeout(() => {
+      if (this.opponentNotification) {
+        this.opponentNotification.classList.remove('show');
+      }
+    }, 4000);
+  }
+  
+  updateBattleComparisonOrbs() {
+    if (!this.battleWorld || !this.game) return;
+    
+    // Get best attempts from game
+    const p1Best = this.game.playerOneBestAttempt;
+    const p2Best = this.game.playerTwoBestAttempt;
+    
+    // Determine which colors to show based on local player
+    let yourBestColor = null;
+    let opponentBestColor = null;
+    
+    if (this.localPlayerIsOne === true) {
+      // Local player is P1
+      yourBestColor = p1Best?.colorData?.hex;
+      opponentBestColor = p2Best?.colorData?.hex;
+      this.battleWorld.updateBestAttempt(yourBestColor, opponentBestColor, true);
+    } else if (this.localPlayerIsOne === false) {
+      // Local player is P2
+      yourBestColor = p2Best?.colorData?.hex;
+      opponentBestColor = p1Best?.colorData?.hex;
+      this.battleWorld.updateBestAttempt(yourBestColor, opponentBestColor, false);
     }
   }
   updatePlayerTwoBattleScoreDisplay(score) {
@@ -2236,6 +2900,13 @@ populateRingsManagementTab() {
         this.battleModeActionButton.textContent = "Forfeit Match";
         this.battleModeActionButton.disabled = false;
     }
+    
+    // Zoom camera to local player's area after a brief overview
+    if (this.battleWorld && this.localPlayerIsOne !== null) {
+      setTimeout(() => {
+        this.battleWorld.zoomToPlayer(this.localPlayerIsOne);
+      }, 2000); // 2 second delay to show overview first
+    }
   }
   handleBattleActionClick() {
     if (!this.game || !this.currentBattleSessionData) {
@@ -2330,7 +3001,7 @@ populateRingsManagementTab() {
     }
     if (this.muteAchievementsButton) {
       this.muteAchievementsButton.addEventListener('click', () => {
-        audioManager.toggleAchievementMute();
+        audioManager.toggleAchievementSounds();
         this._updateAudioUI();
       });
     }

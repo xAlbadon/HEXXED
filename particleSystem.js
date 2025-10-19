@@ -7,36 +7,31 @@ export class ParticleSystem {
     this.particles = [];
   }
 
-  createBurst(position, color, particleCount = 50, spread = 1.5) {
+  createBurst(position, colorData, particleCount = 50, spread = 1.5) {
     const particleMaterial = new THREE.PointsMaterial({
-      color: color.hex,
+      color: colorData.hex,
       size: 0.1,
       transparent: true,
       opacity: 1,
       blending: THREE.AdditiveBlending,
-      depthWrite: false, // Prevents particles from writing to depth buffer for better blending
+      depthWrite: false,
     });
-
     const geometry = new THREE.BufferGeometry();
     const vertices = [];
-
     for (let i = 0; i < particleCount; i++) {
-      vertices.push(0, 0, 0); // Start all particles at the burst position
+      vertices.push(0, 0, 0);
     }
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-
     const points = new THREE.Points(geometry, particleMaterial);
     points.position.copy(position);
     this.scene.add(points);
-
     const particleData = {
       points,
       velocities: [],
-      lifespan: 1, // seconds
+      lifespan: 1.5, // slightly longer lifespan
       age: 0,
     };
-
-    // Animate each particle
+    // Animate each particle's velocity and animate the material's opacity
     for (let i = 0; i < particleCount; i++) {
       const velocity = new THREE.Vector3(
         (Math.random() - 0.5) * spread * 2,
@@ -45,6 +40,12 @@ export class ParticleSystem {
       );
       particleData.velocities.push(velocity);
     }
+    
+    // Use TWEEN for a smooth fade-out
+    new TWEEN.Tween(particleMaterial)
+      .to({ opacity: 0 }, particleData.lifespan * 1000)
+      .easing(TWEEN.Easing.Quadratic.Out)
+      .start();
     this.particles.push(particleData);
   }
 
@@ -64,15 +65,17 @@ export class ParticleSystem {
       }
 
       const positions = pData.points.geometry.attributes.position;
+      const gravity = -0.5; // A gentle downward pull
       for (let j = 0; j < positions.count; j++) {
+        // Apply gravity to vertical velocity
+        pData.velocities[j].y += gravity * deltaTime;
+        // Update positions
         positions.setX(j, positions.getX(j) + pData.velocities[j].x * deltaTime);
         positions.setY(j, positions.getY(j) + pData.velocities[j].y * deltaTime);
         positions.setZ(j, positions.getZ(j) + pData.velocities[j].z * deltaTime);
       }
       positions.needsUpdate = true;
-
-      // Fade out
-      pData.points.material.opacity = 1 - (pData.age / pData.lifespan);
+      // Opacity is now handled by TWEEN, so no manual update is needed here.
     }
   }
 }
