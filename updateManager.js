@@ -19,6 +19,12 @@ class UpdateManager {
         } else {
             console.log('[UpdateManager] Not in Electron environment or preload script failed. Skipping update checks.');
             this.updateStateKnown = true; // No updates to check, so state is "known"
+            // Notify UIManager immediately that there are no updates to check
+            // Use a tiny delay to ensure UIManager is fully initialized
+            setTimeout(() => {
+                console.log('[UpdateManager] Notifying UIManager (web environment, no updates to check)');
+                this.uiManager.onUpdateCheckComplete();
+            }, 10);
         }
     }
 
@@ -64,6 +70,9 @@ class UpdateManager {
                 if (this.showingUpdateUI) {
                     this.uiManager.finishUpdateCheck();
                 }
+                // Notify UIManager to start intro anyway
+                console.log('[UpdateManager] Notifying UIManager that update check is complete (timeout)');
+                this.uiManager.onUpdateCheckComplete();
             }
         }, 5000); // Reduced from 10s to 5s
     }
@@ -97,6 +106,9 @@ class UpdateManager {
         if (this.showingUpdateUI) {
             this.uiManager.finishUpdateCheck();
         }
+        // Notify UIManager that we're done checking and it's safe to start intro
+        console.log('[UpdateManager] Notifying UIManager that update check is complete');
+        this.uiManager.onUpdateCheckComplete();
     }
 
     onUpdateDownloaded(info) {
@@ -122,6 +134,9 @@ class UpdateManager {
         if (this.showingUpdateUI) {
             this.uiManager.finishUpdateCheck();
         }
+        // Notify UIManager that we're done checking (even though it errored)
+        console.log('[UpdateManager] Notifying UIManager that update check is complete (with error)');
+        this.uiManager.onUpdateCheckComplete();
     }
 
     onUpdateProgress(progressObj) {

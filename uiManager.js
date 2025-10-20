@@ -170,66 +170,97 @@ export class UIManager {
     this.previousSelectedOrbsCount = 0;
     this.achievementsTabIsActive = false; // Track if achievements tab is currently visible
     this.lastActiveEncyclopediaTab = 'colorGridTab'; // Remember last viewed tab
+    this.introSequenceStarted = false; // Track if we've started the intro
     
-    // Initialize intro sequence
-    this.initIntroSequence();
+    // Don't initialize intro sequence yet - wait for updateManager to be set
+    // But set a safety timeout in case update manager never responds
+    this.introSafetyTimeout = setTimeout(() => {
+      if (!this.introSequenceStarted) {
+        console.warn('[UIManager] Safety timeout: Starting intro sequence after 2s wait');
+        this.initIntroSequence();
+      }
+    }, 2000);
   }
   
   initIntroSequence() {
-    // Wait longer to ensure updateManager has time to determine if there's an update
-    setTimeout(() => {
-      // Check if update manager is blocking UI
-      if (this.updateManager && this.updateManager.isBlockingUI()) {
-        console.log('[UIManager] Update in progress, skipping intro sequence');
-        return; // Don't show intro or title screen if update is blocking
-      }
-      
-      console.log('[UIManager] No update blocking, starting intro sequence');
-      
-      // Hide title screen initially
-      if (this.titleScreen) {
-        this.titleScreen.style.opacity = '0';
-        this.titleScreen.style.transform = 'scale(0.5)';
-      }
-      
-      // Create and play intro sequence
-      if (typeof IntroSequence !== 'undefined') {
-        const intro = new IntroSequence();
-        intro.init(() => {
-          // Show title screen with bouncing scale animation while bubbles fade
-          if (this.titleScreen) {
-            // Use CSS animation for the bounce effect
-            this.titleScreen.style.transition = 'opacity 1.2s ease-out';
-            this.titleScreen.style.animation = 'titleBounceIn 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-            this.titleScreen.style.opacity = '1';
-            this.titleScreen.style.transform = 'scale(1)';
-            
-            // Clean up animation property after it completes
-            setTimeout(() => {
-              if (this.titleScreen) {
-                this.titleScreen.style.animation = '';
-              }
-            }, 1200);
-          }
-        });
-      } else {
-        // Fallback if intro script doesn't load - just show title screen
-        console.warn('IntroSequence not available, showing title screen immediately');
+    // Only run intro once
+    if (this.introSequenceStarted) {
+      console.log('[UIManager] Intro sequence already started, skipping');
+      return;
+    }
+    
+    // Check if update manager is blocking UI
+    if (this.updateManager && this.updateManager.isBlockingUI()) {
+      console.log('[UIManager] Update in progress, skipping intro sequence');
+      return; // Don't show intro or title screen if update is blocking
+    }
+    
+    console.log('[UIManager] Starting intro sequence');
+    this.introSequenceStarted = true;
+    
+    // Hide title screen initially
+    if (this.titleScreen) {
+      this.titleScreen.style.opacity = '0';
+      this.titleScreen.style.transform = 'scale(0.5)';
+    }
+    
+    // Create and play intro sequence
+    if (typeof IntroSequence !== 'undefined') {
+      const intro = new IntroSequence();
+      intro.init(() => {
+        // Show title screen with bouncing scale animation while bubbles fade
         if (this.titleScreen) {
+          // Use CSS animation for the bounce effect
+          this.titleScreen.style.transition = 'opacity 1.2s ease-out';
+          this.titleScreen.style.animation = 'titleBounceIn 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
           this.titleScreen.style.opacity = '1';
           this.titleScreen.style.transform = 'scale(1)';
+          
+          // Clean up animation property after it completes
+          setTimeout(() => {
+            if (this.titleScreen) {
+              this.titleScreen.style.animation = '';
+            }
+          }, 1200);
         }
+      });
+    } else {
+      // Fallback if intro script doesn't load - just show title screen
+      console.warn('IntroSequence not available, showing title screen immediately');
+      if (this.titleScreen) {
+        this.titleScreen.style.opacity = '1';
+        this.titleScreen.style.transform = 'scale(1)';
       }
-    }, 600); // Increased from 100ms to 600ms to give update manager time to respond
+    }
   }
+  
 setUpdateManager(updateManager) {
     this.updateManager = updateManager;
+    console.log('[UIManager] setUpdateManager called');
+    
     if (this.updateManager && this.updateManager.isBlockingUI()) {
         console.log('[UIManager] Update is blocking UI, hiding title screen');
         this.hideTitleScreen();
-    } else if (!this.updateManager || !this.updateManager.isBlockingUI()) {
-        // If update manager is set but not blocking, ensure intro can proceed
-        console.log('[UIManager] No update blocking, intro sequence should be allowed');
+    } else if (this.updateManager && this.updateManager.updateStateKnown) {
+        // Update check already complete (non-Electron or very fast response)
+        console.log('[UIManager] Update state already known, starting intro immediately');
+        this.initIntroSequence();
+    } else {
+        console.log('[UIManager] Update manager set, waiting for update check to complete');
+        // Wait for onUpdateCheckComplete callback from updateManager
+    }
+  }
+  
+  onUpdateCheckComplete() {
+    console.log('[UIManager] Update check complete, starting intro sequence');
+    // Clear safety timeout since we're starting intro properly
+    if (this.introSafetyTimeout) {
+      clearTimeout(this.introSafetyTimeout);
+      this.introSafetyTimeout = null;
+    }
+    // Start intro immediately when update check finishes
+    if (!this.introSequenceStarted) {
+      this.initIntroSequence();
     }
   }
 #calculateLuminance(rgb) {
