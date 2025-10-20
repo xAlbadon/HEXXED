@@ -176,13 +176,15 @@ export class UIManager {
   }
   
   initIntroSequence() {
-    // Small delay to ensure updateManager is properly initialized
+    // Wait longer to ensure updateManager has time to determine if there's an update
     setTimeout(() => {
       // Check if update manager is blocking UI
       if (this.updateManager && this.updateManager.isBlockingUI()) {
         console.log('[UIManager] Update in progress, skipping intro sequence');
         return; // Don't show intro or title screen if update is blocking
       }
+      
+      console.log('[UIManager] No update blocking, starting intro sequence');
       
       // Hide title screen initially
       if (this.titleScreen) {
@@ -218,7 +220,7 @@ export class UIManager {
           this.titleScreen.style.transform = 'scale(1)';
         }
       }
-    }, 100); // Short delay to ensure updateManager state is ready
+    }, 600); // Increased from 100ms to 600ms to give update manager time to respond
   }
 setUpdateManager(updateManager) {
     this.updateManager = updateManager;

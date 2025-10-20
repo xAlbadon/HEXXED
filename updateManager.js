@@ -6,6 +6,7 @@ class UpdateManager {
         this.updateStateKnown = false;
         this.updateInProgress = false;
         this.listenerCleanupFns = [];
+        this.showingUpdateUI = false; // Track if we're showing update UI
         console.log('[UpdateManager] Initializing...');
 
         if (window.electron) {
@@ -14,7 +15,7 @@ class UpdateManager {
             // Signal to the main process that the renderer is ready for update info
             console.log("[UpdateManager] Sending 'renderer-ready-for-updates' to main process.");
             window.electron.send('renderer-ready-for-updates');
-            this.showUpdateScreen(); // Show screen initially
+            // Don't show update screen immediately - wait to see if we actually need it
         } else {
             console.log('[UpdateManager] Not in Electron environment or preload script failed. Skipping update checks.');
             this.updateStateKnown = true; // No updates to check, so state is "known"
@@ -22,7 +23,7 @@ class UpdateManager {
     }
 
     setupElectronListeners() {
-        console.log('[UpdateManager] Setting up event listeners and 10s timeout.');
+        console.log('[UpdateManager] Setting up event listeners and fast timeout.');
         
         // Define handlers with 'this' bound correctly
         this.handleUpdateAvailable = this.onUpdateAvailable.bind(this);
@@ -45,52 +46,82 @@ class UpdateManager {
             }
         });
 
+        // Delay showing the update UI briefly - if we get a response quickly, great!
+        // This prevents flickering the "checking" screen when there's no update
+        this.initialDelayTimeout = setTimeout(() => {
+            if (!this.updateStateKnown) {
+                console.log('[UpdateManager] 500ms passed, still checking. Showing update UI.');
+                this.showingUpdateUI = true;
+                this.uiManager.showCheckingForUpdate();
+            }
+        }, 500);
+
         // Set a timeout to hide the update screen if no response is received
         this.updateCheckTimeout = setTimeout(() => {
             if (!this.updateStateKnown) {
-                console.warn('[UpdateManager] Timeout: No update status received from main process within 10s. Hiding check screen.');
+                console.warn('[UpdateManager] Timeout: No update status received from main process within 5s. Assuming no update.');
                 this.updateStateKnown = true;
-                this.uiManager.finishUpdateCheck();
+                if (this.showingUpdateUI) {
+                    this.uiManager.finishUpdateCheck();
+                }
             }
-        }, 10000);
+        }, 5000); // Reduced from 10s to 5s
     }
     showUpdateScreen() {
-        console.log("[UpdateManager] Sending 'renderer-ready-for-updates' to main process.");
-        window.electron.send('renderer-ready-for-updates');
-        console.log('[UpdateManager] Calling uiManager.showCheckingForUpdate().');
-        this.uiManager.showCheckingForUpdate(); // This should make the screen visible and start animations.
+        if (!this.showingUpdateUI) {
+            console.log('[UpdateManager] Showing update screen.');
+            this.showingUpdateUI = true;
+            this.uiManager.showCheckingForUpdate();
+        }
     }
     onUpdateAvailable(info) {
         console.log('[UpdateManager] Received onUpdateAvailable event:', info);
         this.updateStateKnown = true;
         this.updateInProgress = true;
-        this.uiManager.showUpdateAvailable(info.version);
+        clearTimeout(this.initialDelayTimeout);
         clearTimeout(this.updateCheckTimeout);
+        // Make sure UI is showing before displaying update info
+        if (!this.showingUpdateUI) {
+            this.showUpdateScreen();
+        }
+        this.uiManager.showUpdateAvailable(info.version);
     }
 
     onUpdateNotAvailable() {
         console.log('[UpdateManager] Received onUpdateNotAvailable event.');
         this.updateStateKnown = true;
         this.updateInProgress = false;
-        this.uiManager.finishUpdateCheck();
+        clearTimeout(this.initialDelayTimeout);
         clearTimeout(this.updateCheckTimeout);
+        // Only hide UI if we actually showed it
+        if (this.showingUpdateUI) {
+            this.uiManager.finishUpdateCheck();
+        }
     }
 
     onUpdateDownloaded(info) {
         console.log('[UpdateManager] Received onUpdateDownloaded event:', info);
         this.updateStateKnown = true;
         this.updateInProgress = false; // Download is finished
-        this.uiManager.showUpdateReady(info.version);
+        clearTimeout(this.initialDelayTimeout);
         clearTimeout(this.updateCheckTimeout);
+        // Make sure UI is showing
+        if (!this.showingUpdateUI) {
+            this.showUpdateScreen();
+        }
+        this.uiManager.showUpdateReady(info.version);
     }
 
     onUpdateError(err) {
         console.error('[UpdateManager] Received onUpdateError event:', err);
         this.updateStateKnown = true;
         this.updateInProgress = false;
-        // Instead of showing a specific error, just hide the update UI as the check is complete.
-        this.uiManager.finishUpdateCheck();
+        clearTimeout(this.initialDelayTimeout);
         clearTimeout(this.updateCheckTimeout);
+        // Only hide UI if we actually showed it
+        if (this.showingUpdateUI) {
+            this.uiManager.finishUpdateCheck();
+        }
     }
 
     onUpdateProgress(progressObj) {
@@ -100,10 +131,9 @@ class UpdateManager {
     }
     
     isBlockingUI() {
-        // The UI should be blocked if we are actively checking for an update and haven't heard back,
-        // or if an update download/install process is explicitly happening.
-        const isBlocking = !this.updateStateKnown || this.updateInProgress;
-        console.log(`[UpdateManager] isBlockingUI check. Is blocking: ${isBlocking} (updateStateKnown: ${this.updateStateKnown}, updateInProgress: ${this.updateInProgress})`);
+        // Only block if we're actually showing update UI or if an update is in progress
+        const isBlocking = this.showingUpdateUI && (!this.updateStateKnown || this.updateInProgress);
+        console.log(`[UpdateManager] isBlockingUI check. Is blocking: ${isBlocking} (showingUpdateUI: ${this.showingUpdateUI}, updateStateKnown: ${this.updateStateKnown}, updateInProgress: ${this.updateInProgress})`);
         return isBlocking;
     }
 
@@ -113,6 +143,7 @@ class UpdateManager {
             // Call all the cleanup functions returned by the listeners
             this.listenerCleanupFns.forEach(cleanup => cleanup());
             this.listenerCleanupFns = []; // Clear the array
+            clearTimeout(this.initialDelayTimeout);
             clearTimeout(this.updateCheckTimeout);
         }
     }
