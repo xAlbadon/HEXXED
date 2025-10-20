@@ -1,11 +1,12 @@
 {
   "name": "#HEXXED",
-  "revisionLabel": "Saved package.json changes",
-  "description": "Remixed from Rosebud AI Universal Project",
+  "revisionLabel": "Fix Electron preload and audio loading errors",
+  "description": "HEXXED, a game about color mixing",
   "mode": "Universal",
-  "exportDate": "2025-10-18T15:31:59.632Z",
-  "assetCount": 18,
+  "exportDate": "2025-10-20T04:08:04.199Z",
+  "assetCount": 19,
   "assetTypes": [
-    "png"
+    "png",
+    "jpg"
   ]
 }

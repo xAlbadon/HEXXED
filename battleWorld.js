@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import * as TWEEN from 'tween.js';
 
 export class BattleWorld {
-  constructor(container) {
+  constructor(container, colorSystem = null) {
     this.container = container;
     this.clock = new THREE.Clock();
+    this.colorSystem = colorSystem || (window.game && window.game.colorSystem);
     
     // Store orb meshes for interaction
     this.playerOneOrbs = new Map(); // hex -> mesh
@@ -81,23 +82,40 @@ export class BattleWorld {
     this.camera.position.set(0, 20, 25);
     this.camera.lookAt(0, 0, 0);
     
-    // Store camera states (adjusted for larger ring area)
+    // Check if mobile for adjusted camera positions
+    const isMobile = window.innerWidth <= 768;
+    
+    // Store camera states (adjusted for larger ring area, with mobile-specific zoom out)
     this.cameraStates = {
       overview: { position: { x: 0, y: 20, z: 25 }, lookAt: { x: 0, y: 0, z: 0 } },
-      playerOne: { position: { x: -10, y: 18, z: 14 }, lookAt: { x: -10, y: 1, z: 0 } },
-      playerTwo: { position: { x: 10, y: 18, z: 14 }, lookAt: { x: 10, y: 1, z: 0 } }
+      playerOne: { 
+        position: { 
+          x: -10, 
+          y: isMobile ? 20 : 18, // Higher on mobile
+          z: isMobile ? 17 : 14  // Further back on mobile
+        }, 
+        lookAt: { x: -10, y: 1, z: 0 } 
+      },
+      playerTwo: { 
+        position: { 
+          x: 10, 
+          y: isMobile ? 20 : 18, // Higher on mobile
+          z: isMobile ? 17 : 14  // Further back on mobile
+        }, 
+        lookAt: { x: 10, y: 1, z: 0 } 
+      }
     };
     
     this.currentCameraTarget = { x: 0, y: 0, z: 0 };
   }
 
   initLighting() {
-    // Ambient light
-    const ambientLight = new THREE.AmbientLight(0x3a2a60, 0.3);
+    // Brighter ambient light to preserve orb colors
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     this.scene.add(ambientLight);
 
-    // Main directional light
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    // Stronger main directional light
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
     directionalLight.position.set(0, 20, 10);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
@@ -110,27 +128,26 @@ export class BattleWorld {
     directionalLight.shadow.camera.bottom = -30;
     this.scene.add(directionalLight);
 
-    // Player 1 area light (left side) - red glow
-    const player1Light = new THREE.PointLight(0xff6b6b, 1.5, 15);
+    // Subtle player area lights - reduced intensity to avoid color contamination
+    const player1Light = new THREE.PointLight(0xff6b6b, 0.3, 15);
     player1Light.position.set(-10, 5, 0);
     this.scene.add(player1Light);
 
-    // Player 2 area light (right side) - red glow
-    const player2Light = new THREE.PointLight(0xff6b6b, 1.5, 15);
+    const player2Light = new THREE.PointLight(0xff6b6b, 0.3, 15);
     player2Light.position.set(10, 5, 0);
     this.scene.add(player2Light);
 
-    // Center target light - gold glow
-    this.targetLight = new THREE.PointLight(0xffda77, 2, 12);
+    // Center target light - reduced to avoid affecting orb colors
+    this.targetLight = new THREE.PointLight(0xffda77, 0.5, 12);
     this.targetLight.position.set(0, 5, 0);
     this.scene.add(this.targetLight);
 
-    // Animated accent lights
-    const accentLight1 = new THREE.PointLight(0x8a2be2, 0.6, 20);
+    // Subtle accent lights for atmosphere only
+    const accentLight1 = new THREE.PointLight(0x8a2be2, 0.2, 20);
     accentLight1.position.set(-8, 3, -8);
     this.scene.add(accentLight1);
 
-    const accentLight2 = new THREE.PointLight(0xff00ff, 0.6, 20);
+    const accentLight2 = new THREE.PointLight(0xff00ff, 0.2, 20);
     accentLight2.position.set(8, 3, -8);
     this.scene.add(accentLight2);
 
@@ -337,7 +354,11 @@ export class BattleWorld {
 
   // Create orb for player area
   createPlayerOrb(color, position, isPlayerOne = true, orbData = null) {
-    const geometry = new THREE.SphereGeometry(0.5, 32, 32);
+    // Larger orbs on mobile for easier clicking
+    const isMobile = window.innerWidth <= 768;
+    const orbSize = isMobile ? 0.7 : 0.5;
+    
+    const geometry = new THREE.SphereGeometry(orbSize, 32, 32);
     const material = new THREE.MeshStandardMaterial({
       color: color,
       emissive: color,
@@ -357,8 +378,9 @@ export class BattleWorld {
     orb.userData.originalY = position.y;
     orb.userData.orbData = orbData;
 
-    // Add glow
-    const glowGeometry = new THREE.SphereGeometry(0.6, 32, 32);
+    // Add glow (scaled with orb size)
+    const glowSize = orbSize * 1.2;
+    const glowGeometry = new THREE.SphereGeometry(glowSize, 32, 32);
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: color,
       transparent: true,
@@ -682,19 +704,34 @@ export class BattleWorld {
       return;
     }
     
-    // Calculate preview color by averaging selected colors
-    let r = 0, g = 0, b = 0;
-    selectedArray.forEach(mesh => {
-      const color = new THREE.Color(mesh.userData.color);
-      r += color.r;
-      g += color.g;
-      b += color.b;
-    });
-    r /= selectedArray.length;
-    g /= selectedArray.length;
-    b /= selectedArray.length;
+    // Use the actual color mixing logic from colorSystem
+    const colorDataArray = selectedArray.map(mesh => mesh.userData.orbData);
     
-    const previewColor = new THREE.Color(r, g, b);
+    // Make sure we have a colorSystem reference
+    if (!this.colorSystem) {
+      this.colorSystem = window.game && window.game.colorSystem;
+    }
+    
+    if (!this.colorSystem) {
+      console.error('[BattleWorld] colorSystem not available for preview calculation');
+      const previewColor = new THREE.Color(0x808080);
+      previewOrb.material.color.copy(previewColor);
+      previewOrb.material.emissive.copy(previewColor).multiplyScalar(0.5);
+      previewOrb.material.opacity = 0.5;
+      return;
+    }
+    
+    const mixedResult = this.colorSystem.mixColors(colorDataArray);
+    
+    let previewColor;
+    if (mixedResult && mixedResult.hex) {
+      // Use the proper mixed color
+      previewColor = new THREE.Color(mixedResult.hex);
+    } else {
+      // Fallback to gray if mix is invalid
+      previewColor = new THREE.Color(0x808080);
+    }
+    
     previewOrb.material.color.copy(previewColor);
     previewOrb.material.emissive.copy(previewColor).multiplyScalar(0.5);
     previewOrb.material.opacity = 0.9;
@@ -985,6 +1022,13 @@ export class BattleWorld {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
+    
+    // Update camera states for mobile/desktop
+    const isMobile = window.innerWidth <= 768;
+    this.cameraStates.playerOne.position.y = isMobile ? 20 : 18;
+    this.cameraStates.playerOne.position.z = isMobile ? 17 : 14;
+    this.cameraStates.playerTwo.position.y = isMobile ? 20 : 18;
+    this.cameraStates.playerTwo.position.z = isMobile ? 17 : 14;
   }
 
   dispose() {

@@ -65,13 +65,12 @@ class ChromaLabGame {
   // Called after successful login/signup
   async completeInitialization() {
     // Play background music
-    // Note: In Electron, paths are relative to the project root.
-    // Ensure 'assets/music/Chromatic_Cascade.mp3' exists.
+    // Pass just the track name, let audioManager handle the full path
     if (audioManager.currentTrackPath) {
         audioManager.playBackgroundMusic(audioManager.currentTrackPath);
     } else {
-        // If no track is saved in localStorage, play the default and save it.
-        audioManager.playBackgroundMusic('./assets/music/Chromatic_Cascade.mp3');
+        // If no track is saved in localStorage, play the default (just track name)
+        audioManager.playBackgroundMusic('Chromatic_Cascade', 'mp3');
     }
     
     // Initialize core systems
@@ -1647,37 +1646,87 @@ class ChromaLabGame {
   }
 }
 ChromaLabGame.prototype._selectRandomBattleTargetColor = function() {
-    const discoveredColors = this.colorSystem.getDiscoveredColors();
-    let potentialTargets = discoveredColors.filter(c => c.mixArity >= 2);
-    if (potentialTargets.length === 0) {
-        // Fallback: any non-primary, non-shading, non-modifier from discovered
-        potentialTargets = discoveredColors.filter(
-            c => !c.isPrimary &&
-                 !(c.hex === '#000000' || c.hex === '#FFFFFF' || (c.isShadingColor !== undefined && c.isShadingColor)) &&
-                 (c.isSaturationModifier === undefined || !c.isSaturationModifier)
-        );
+    // Generate a completely random achievable color using the color mixing system
+    // This creates fair, unpredictable targets that both players can theoretically make
+    
+    // 30% chance: Use pure HSL generation for maximum variety
+    if (Math.random() > 0.7) {
+        // Generate random HSL values that are achievable through mixing
+        const h = Math.floor(Math.random() * 360); // Any hue
+        const s = 0.4 + Math.random() * 0.6; // 40-100% saturation (avoid too dull)
+        const l = 0.3 + Math.random() * 0.5; // 30-80% lightness (avoid too dark/bright)
+        
+        const [r, g, b] = this.colorSystem.hslToRgb(h, s, l);
+        const hex = this.colorSystem.rgbToHex(r, g, b);
+        const name = this.colorSystem.generateColorName(r, g, b);
+        
+        console.log(`[Battle] Generated random HSL target: ${name} (${hex}) [H:${h} S:${Math.round(s*100)}% L:${Math.round(l*100)}%]`);
+        
+        return {
+            name: name,
+            hex: hex,
+            rgb: [r, g, b],
+            hsl: { h, s, l },
+            mixArity: 2, // Assume 2-color mix complexity
+            isRandomlyGenerated: true
+        };
     }
     
-    if (potentialTargets.length === 0) {
-        // Broader Fallback: any discovered color not red, yellow, blue
-        const primaryChromaticHexes = ['#FF0000', '#FFFF00', '#0000FF'];
-        potentialTargets = discoveredColors.filter(c => !primaryChromaticHexes.includes(c.hex) && c.hex !== '#000000' && c.hex !== '#FFFFFF');
+    // 70% chance: Use actual color mixing for more realistic targets
+    const baseColors = this.colorSystem.getDiscoveredColors().filter(c => 
+        c.isPrimary || c.hex === '#000000' || c.hex === '#FFFFFF'
+    );
+    
+    if (baseColors.length < 2) {
+        console.warn("[Battle] Not enough base colors for random generation, using fallback.");
+        return this.colorSystem.getColorByHex('#FF8C42') || { 
+            name: "Orange", hex: "#FF8C42", rgb: [255, 140, 66], mixArity: 2 
+        };
     }
-    if (potentialTargets.length === 0 && discoveredColors.length > 0) {
-        // Last resort: pick any discovered color if all filters failed
-        potentialTargets = [...discoveredColors.filter(c => c.hex !== '#000000' && c.hex !== '#FFFFFF' && c.hex !== '#A0A0A0' && c.hex !== '#606060' && !c.isPrimary)]; // Try to avoid basic primaries
-        if(potentialTargets.length === 0) potentialTargets = [...discoveredColors]; // Absolute last resort
+    
+    // Randomly decide how many colors to mix (2-4 for good variety)
+    const numColors = Math.random() > 0.6 ? 2 : (Math.random() > 0.5 ? 3 : 4);
+    
+    // Randomly select colors to mix
+    const colorArray = [];
+    const usedIndices = new Set();
+    
+    for (let i = 0; i < numColors && i < baseColors.length; i++) {
+        let randomIndex;
+        let attempts = 0;
+        do {
+            randomIndex = Math.floor(Math.random() * baseColors.length);
+            attempts++;
+        } while (usedIndices.has(randomIndex) && attempts < baseColors.length * 2);
+        
+        if (!usedIndices.has(randomIndex)) {
+            usedIndices.add(randomIndex);
+            colorArray.push(baseColors[randomIndex]);
+        }
     }
-    if (potentialTargets.length > 0) {
-        const randomIndex = Math.floor(Math.random() * potentialTargets.length);
-        return potentialTargets[randomIndex];
-    } else {
-        console.warn("[Battle] No suitable random target colors found from discovered. Using a default color.");
-        // Attempt to get a default from ColorSystem if possible, otherwise hardcode
-        let defaultTarget = this.colorSystem.getColorByHex('#808080'); // Grey
-        if (!defaultTarget) defaultTarget = { name: "Target Grey", hex: "#808080", rgb: [128,128,128], mixArity: 2}; // Fallback definition
-        return defaultTarget;
+    
+    // 40% chance to add a shading color (black/white) for more variety
+    if (Math.random() > 0.6 && colorArray.length < 4) {
+        const shadingColor = Math.random() > 0.5 ? 
+            this.colorSystem.getColorByHex('#FFFFFF') : 
+            this.colorSystem.getColorByHex('#000000');
+        if (shadingColor) colorArray.push(shadingColor);
     }
+    
+    // Use the actual color mixing system to generate the target
+    const mixedResult = this.colorSystem.mixColors(colorArray);
+    
+    if (mixedResult && mixedResult.hex) {
+        console.log(`[Battle] Generated mixed target: ${mixedResult.name} (${mixedResult.hex}) from:`, 
+            colorArray.map(c => c.name).join(' + '));
+        return mixedResult;
+    }
+    
+    // Fallback if mixing somehow fails
+    console.warn("[Battle] Random color generation failed, using preset color.");
+    return this.colorSystem.getColorByHex('#FF8C42') || { 
+        name: "Orange", hex: "#FF8C42", rgb: [255, 140, 66], mixArity: 2 
+    };
 };
 // Start the game application logic (shows title screen)
 const game = new ChromaLabGame();

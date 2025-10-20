@@ -38,6 +38,12 @@ class AudioManager {
         // Detect if running in Electron environment
         this.isElectron = typeof window !== 'undefined' && window.electron !== undefined;
         
+        // In Electron, we need to construct proper file paths
+        if (this.isElectron) {
+            // Get the app path - this will work both in dev and production
+            this.electronBasePath = window.location.href.replace(/[^/]*$/, '');
+        }
+        
         this.loadSettings();
         // After loading settings, if a track is defined, play it.
         if (this.currentTrackPath && !this.backgroundMusic) {
@@ -78,7 +84,11 @@ class AudioManager {
         }
         const track = localStorage.getItem('audioTrack');
         if (track && track !== 'null') { // Ensure we don't load 'null' as a track
-            this.playBackgroundMusic(track);
+            // Extract just the track name if it's a full path (for backward compatibility)
+            const trackName = track.includes('/') 
+                ? track.split('/').pop().replace(/\.(mp3|wav)$/i, '') 
+                : track.replace(/\.(mp3|wav)$/i, '');
+            this.playBackgroundMusic(trackName);
         }
         const achievementSoundsMuted = localStorage.getItem('achievementSoundsMuted');
         if (achievementSoundsMuted !== null) {
@@ -98,7 +108,8 @@ class AudioManager {
             return;
         }
         
-        const trackName = trackPath.split('/').pop().replace(`.${extension}`, '');
+        // Extract just the track name (remove any path and extension)
+        const trackName = trackPath.split('/').pop().replace(/\.(mp3|wav)$/i, '');
         const fullTrackName = `${trackName}.${extension}`;
         
         if (this.backgroundMusic && this.backgroundMusic.src.endsWith(fullTrackName)) {
@@ -108,13 +119,14 @@ class AudioManager {
         if (this.backgroundMusic) {
             this.backgroundMusic.pause();
         }
-        this.currentTrackPath = trackPath;
+        // Store just the track name for consistency
+        this.currentTrackPath = trackName;
         
         // Determine the audio path based on environment
         let fullPath;
         if (this.isElectron) {
-            // Use local file path for Electron
-            fullPath = `./assets/music/${fullTrackName}`;
+            // Use proper file URL for Electron (works in both dev and packaged app)
+            fullPath = `${this.electronBasePath}assets/music/${fullTrackName}`;
         } else {
             // Use asset URL for web environment
             fullPath = this.assetUrls.music[trackName] || `./assets/music/${fullTrackName}`;
@@ -194,8 +206,8 @@ class AudioManager {
         // Determine the audio path based on environment
         let soundPath;
         if (this.isElectron) {
-            // Use local file path for Electron
-            soundPath = `./assets/sounds/${baseSoundName}.${extension}`;
+            // Use proper file URL for Electron (works in both dev and packaged app)
+            soundPath = `${this.electronBasePath}assets/sounds/${baseSoundName}.${extension}`;
         } else {
             // Use asset URL for web environment
             soundPath = this.assetUrls.sounds[baseSoundName] || `./assets/sounds/${baseSoundName}.${extension}`;

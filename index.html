@@ -17,6 +17,7 @@
         }
       }
     </script>
+    <script src="./introSequence.js"></script>
     <style>
       #titleParticlesCanvas {
         position: fixed;
@@ -75,16 +76,24 @@
         z-index: 200; /* Above game area */
         width: 100%;
         max-width: 450px; /* Control max width */
-        transition: box-shadow 0.5s ease-in-out; /* Smooth transition for shadow */
+        transition: box-shadow 0.5s ease-in-out; /* Smooth transitions */
         display: flex; /* Ensure it's visible by default and manages children as flex items */
         flex-direction: column; /* Stack children vertically */
         align-items: center; /* Center children horizontally */
         justify-content: center; /* Center children vertically if titleScreen has a fixed height or takes more space */
+        opacity: 0; /* Start hidden for intro */
+        transform: scale(0.5); /* Start much smaller for dramatic entrance */
 }
 #titleScreen:hover { /* Optional: enhance glow on hover */
     box-shadow: 0 12px 35px rgba(0,0,0,0.6), 
-                0 0 25px rgba(171, 112, 255, 0.45), 
-                0 0 40px rgba(0, 200, 255, 0.3);
+                0 0 35px rgba(171, 112, 255, 0.7), 
+                0 0 60px rgba(0, 200, 255, 0.5),
+                0 0 80px rgba(255, 0, 255, 0.3);
+}
+/* Only apply hover transform after animation completes */
+#titleScreen:not([style*="animation"]):hover {
+    transform: scale(1.02);
+    transition: transform 0.3s ease, box-shadow 0.5s ease-in-out;
 }
 @keyframes rainbowText {
         0% { color: #ff0000; } /* Red */
@@ -99,23 +108,37 @@
       font-size: 3.5em; /* Slightly larger */
       font-weight: bold;
       margin-bottom: 15px;
-      background: linear-gradient(90deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+      background: linear-gradient(90deg, #ff00ff, #00ffff, #ffff00, #00ff88, #ff0088, #ff00ff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      background-size: 200% 200%;
-      animation: gradientShift 5s ease infinite, subtlePulse 2s infinite alternate;
-      text-shadow: 0 0 5px rgba(255,255,255,0.3), 
-                   0 0 10px rgba(255,105,180,0.5), /* Hot pink glow */
-                   0 0 15px rgba(0,255,255,0.4); /* Cyan glow */
+      background-size: 300% 300%;
+      animation: flowingGradient 8s ease infinite, floatText 3s ease-in-out infinite, glowPulse 2s ease-in-out infinite;
+      filter: drop-shadow(0 0 20px rgba(255,0,255,0.6)) 
+              drop-shadow(0 0 40px rgba(0,255,255,0.4))
+              drop-shadow(0 0 60px rgba(255,255,0,0.3));
+      transform-origin: center;
+      letter-spacing: 0.1em;
     }
-    @keyframes gradientShift {
+    @keyframes flowingGradient {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
     }
-    @keyframes subtlePulse {
-        from { opacity: 0.9; }
-        to { opacity: 1; }
+    @keyframes floatText {
+        0%, 100% { transform: translateY(0px) scale(1); }
+        50% { transform: translateY(-10px) scale(1.02); }
+    }
+    @keyframes glowPulse {
+        0%, 100% { 
+          filter: drop-shadow(0 0 20px rgba(255,0,255,0.6)) 
+                  drop-shadow(0 0 40px rgba(0,255,255,0.4))
+                  drop-shadow(0 0 60px rgba(255,255,0,0.3));
+        }
+        50% { 
+          filter: drop-shadow(0 0 30px rgba(255,0,255,0.9)) 
+                  drop-shadow(0 0 60px rgba(0,255,255,0.7))
+                  drop-shadow(0 0 90px rgba(255,255,0,0.5));
+        }
     }
     #titleScreen p {
       font-family: 'Luckiest Guy', cursive;
@@ -126,8 +149,29 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-size: 400% 400%;
-      animation: gradientShift 12s ease infinite alternate; /* Slower and alternating animation */
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Adjusted shadow for Luckiest Guy */
+      animation: flowingGradient 10s ease infinite, subtleFloat 4s ease-in-out infinite;
+      filter: drop-shadow(0 0 10px rgba(255,126,95,0.5))
+              drop-shadow(0 0 20px rgba(134,168,231,0.4));
+    }
+    @keyframes subtleFloat {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-5px); }
+    }
+    @keyframes titleBounceIn {
+        0% {
+            transform: scale(0.5);
+            opacity: 0;
+        }
+        60% {
+            transform: scale(1.15);
+            opacity: 1;
+        }
+        80% {
+            transform: scale(0.95);
+        }
+        100% {
+            transform: scale(1);
+        }
     }
     .authForm input {
         display: block;
@@ -139,14 +183,16 @@
     background: rgba(255, 255, 255, 0.1);
     color: white;
     font-size: 1em;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transitions */
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease; /* Smooth transitions */
     box-shadow: 0 0 5px rgba(255,255,255,0.1); /* Initial subtle glow */
 }
 .authForm input:focus {
     outline: none;
     border-color: #87CEFA; 
-    box-shadow: 0 0 10px rgba(135, 206, 250, 0.7), 
-                0 0 5px rgba(255, 105, 180, 0.4); 
+    box-shadow: 0 0 15px rgba(135, 206, 250, 0.8), 
+                0 0 10px rgba(255, 105, 180, 0.5),
+                0 0 20px rgba(171, 112, 255, 0.3);
+    transform: translateY(-2px);
 }
 .authForm input::placeholder {
     color: #bbb;
@@ -168,20 +214,32 @@
     #loginButton {
       background: linear-gradient(135deg, #6dd5ed, #2193b0); /* Blue-cyan gradient */
       box-shadow: 0 4px 15px rgba(33, 147, 176, 0.4);
+      animation: buttonGlow 3s ease-in-out infinite;
     }
     #loginButton:hover {
-      transform: translateY(-3px) scale(1.03);
-      box-shadow: 0 6px 20px rgba(33, 147, 176, 0.5);
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 8px 25px rgba(33, 147, 176, 0.7);
       background: linear-gradient(135deg, #79e0f5, #27a8c7); /* Lighter hover */
+      animation: none;
     }
     #signupButton {
       background: linear-gradient(135deg, #ff9a9e, #fecfef); /* Pink-lilac gradient */
       box-shadow: 0 4px 15px rgba(254, 207, 239, 0.4);
+      animation: buttonGlow 3s ease-in-out infinite 0.5s;
     }
     #signupButton:hover {
-      transform: translateY(-3px) scale(1.03);
-      box-shadow: 0 6px 20px rgba(254, 207, 239, 0.5);
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 8px 25px rgba(254, 207, 239, 0.7);
       background: linear-gradient(135deg, #ffacad, #fde3f7); /* Lighter hover */
+      animation: none;
+    }
+    @keyframes buttonGlow {
+      0%, 100% {
+        box-shadow: 0 4px 15px rgba(33, 147, 176, 0.4);
+      }
+      50% {
+        box-shadow: 0 6px 20px rgba(33, 147, 176, 0.6);
+      }
     }
     #authMessage {
         margin-top: 15px;
@@ -1741,6 +1799,70 @@
         font-size: 1.2em;
         margin-top: 8px;
       }
+      #battleColorTracker {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(10, 0, 20, 0.85);
+        backdrop-filter: blur(15px);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        padding: 15px;
+        z-index: 10;
+        min-width: 200px;
+        box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .battle-tracker-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+      }
+      .battle-tracker-label {
+        color: #ffda77;
+        font-size: 0.85em;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        text-shadow: 0 0 5px rgba(255, 218, 119, 0.5);
+      }
+      .battle-tracker-swatch {
+        width: 80px;
+        height: 80px;
+        border-radius: 12px;
+        border: 3px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.3), 
+                    inset 0 0 15px rgba(0, 0, 0, 0.3);
+        background: #808080;
+        transition: all 0.3s ease;
+      }
+      .battle-tracker-name {
+        color: #e0e0e0;
+        font-size: 0.9em;
+        text-align: center;
+        font-weight: bold;
+        max-width: 180px;
+        word-wrap: break-word;
+      }
+      .battle-tracker-score {
+        color: #87CEFA;
+        font-size: 0.85em;
+        font-weight: bold;
+        font-family: 'Courier New', monospace;
+      }
+      .battle-tracker-divider {
+        height: 2px;
+        background: linear-gradient(90deg, 
+          transparent, 
+          rgba(255, 255, 255, 0.2) 20%, 
+          rgba(255, 255, 255, 0.2) 80%, 
+          transparent
+        );
+        margin: 5px 0;
+      }
       #battleModeHeader {
         position: absolute;
         top: 20px;
@@ -2096,48 +2218,136 @@
         }
       }
       @media (max-width: 768px) {
+        #battleColorTracker {
+          top: 5px;
+          left: 5px;
+          right: 5px;
+          min-width: unset;
+          width: calc(100% - 10px);
+          padding: 6px 8px;
+          gap: 8px;
+          flex-direction: row;
+          justify-content: space-around;
+        }
+        .battle-tracker-section {
+          flex-direction: row;
+          gap: 6px;
+          align-items: center;
+          flex: 1;
+        }
+        .battle-tracker-swatch {
+          width: 36px;
+          height: 36px;
+          flex-shrink: 0;
+        }
+        .battle-tracker-label {
+          display: none; /* Hide labels on mobile to save space */
+        }
+        .battle-tracker-name {
+          font-size: 0.65em;
+          max-width: unset;
+          text-align: left;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+          line-height: 1.2;
+        }
+        .battle-tracker-name::before {
+          content: attr(data-label);
+          font-size: 0.85em;
+          color: #ffda77;
+          text-transform: uppercase;
+          font-weight: bold;
+        }
+        .battle-tracker-score {
+          font-size: 0.65em;
+        }
+        .battle-tracker-divider {
+          width: 2px;
+          height: 36px;
+          margin: 0 4px;
+        }
         #battleModeHeader {
-          top: 10px;
-          padding: 12px 20px;
+          top: 65px; /* Position below the horizontal color tracker with more clearance */
+          padding: 8px 12px;
           max-width: 90%;
         }
         #battleModeTimerDisplay {
-          font-size: 1.8em;
+          font-size: 1.4em;
+          min-width: 80px;
         }
         .battle-action-button {
-          padding: 10px 18px;
-          font-size: 0.9em;
-          min-width: 130px;
-          margin-left: 10px;
+          padding: 8px 14px;
+          font-size: 0.8em;
+          min-width: 110px;
+          margin-left: 8px;
         }
         #battleModeContentPlaceholder {
           flex-direction: column;
           align-items: center;
-          gap: 15px;
-          padding: 15px;
-          max-height: 50%;
+          gap: 6px;
+          padding: 6px;
+          max-height: 28%;
+          bottom: 5px;
         }
         .playerBattleArea {
           flex-basis: auto;
           width: 100%;
-          max-width: 90%;
+          max-width: 95%;
           min-width: unset;
-          padding: 15px;
+          padding: 6px 8px;
+          background: rgba(10, 0, 20, 0.7); /* More transparent on mobile */
         }
         .playerBattleTitle {
-          font-size: 1em;
+          font-size: 0.85em;
+          margin-bottom: 2px;
+        }
+        .playerBattleScore {
+          display: none; /* Hide score on mobile to save space */
+        }
+        .playerBattleColorResultInfo {
+          min-height: 30px;
+          font-size: 0.7em;
+          padding: 5px;
+          line-height: 1.2;
+        }
+        .playerBattleMixingZone {
+          padding: 6px;
+          gap: 5px;
+        }
+        .playerBattleMixingZone h4 {
+          display: none; /* Hide section headers on mobile */
+        }
+        .playerBattleSelectedOrbs {
+          min-height: 30px;
+          padding: 5px;
+          gap: 5px;
         }
         .battleMixButton {
-          font-size: 0.95em;
-          padding: 12px 28px;
+          font-size: 0.8em;
+          padding: 7px 18px;
         }
         .orb-placeholder {
-          width: 35px;
-          height: 35px;
+          width: 28px;
+          height: 28px;
+        }
+        .orb-placeholder::after {
+          font-size: 0.9em;
         }
         .selected-battle-orb {
-          width: 30px;
-          height: 30px;
+          width: 24px;
+          height: 24px;
+        }
+        .player-ready-button {
+          margin-top: 2px;
+          padding: 5px 12px;
+          font-size: 0.8em;
+        }
+        .player-ready-status {
+          font-size: 0.75em;
+          margin-top: 2px;
+          min-height: 0.9em;
         }
         #opponentNotification {
           right: 10px;
@@ -2371,8 +2581,8 @@
         color: #e0e0e0;
         font-size: 0.9em;
         box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-        pointer-events: auto; /* Make individual notifications clickable if needed */
-        animation: slideInRight 0.4s ease-out, fadeOut 0.5s ease-in-out 4.5s forwards;
+        pointer-events: none; /* Changed from auto - notifications no longer block clicks */
+        animation: slideInRight 0.4s ease-out, fadeOut 0.5s ease-in-out 2.5s forwards; /* Faster fade (2.5s instead of 4.5s) */
         width: 100%;
         box-sizing: border-box;
       }
@@ -2418,6 +2628,37 @@
       }
       #sideNotificationContainer > .side-notification:not(:last-child) {
         margin-bottom: 10px; /* This is handled by the parent's gap property, but as a fallback */
+      }
+      
+      /* Mobile notification adjustments */
+      @media (max-width: 768px) {
+        #sideNotificationContainer {
+          top: 120px; /* Below timer/forfeit in battle mode */
+          left: 50%;
+          right: auto;
+          transform: translateX(-50%);
+          width: 90%;
+          max-width: 280px;
+          align-items: center;
+        }
+        .side-notification {
+          font-size: 0.75em;
+          padding: 8px 12px;
+          text-align: center;
+          background: linear-gradient(135deg, rgba(30, 10, 60, 0.6), rgba(15, 5, 30, 0.65)); /* More transparent */
+          animation: slideInTop 0.3s ease-out, fadeOut 0.4s ease-in-out 1.5s forwards; /* Much faster on mobile */
+          pointer-events: none; /* Ensure no blocking on mobile */
+        }
+        @keyframes slideInTop {
+          from {
+            transform: translateY(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 0.9;
+          }
+        }
       }
     </style>
   </head>
@@ -2747,6 +2988,21 @@
         <div id="battleModeHeader">
           <div id="battleModeTimerDisplay">00:00</div>
           <button id="battleModeActionButton" class="battle-action-button">Cancel Match</button>
+        </div>
+        <!-- Color Tracking Panel (Top Left) -->
+        <div id="battleColorTracker">
+          <div class="battle-tracker-section">
+            <div class="battle-tracker-label">Target Color</div>
+            <div class="battle-tracker-swatch" id="battleTrackerTargetSwatch"></div>
+            <div class="battle-tracker-name" id="battleTrackerTargetName">-</div>
+          </div>
+          <div class="battle-tracker-divider"></div>
+          <div class="battle-tracker-section">
+            <div class="battle-tracker-label">Your Best</div>
+            <div class="battle-tracker-swatch" id="battleTrackerBestSwatch"></div>
+            <div class="battle-tracker-name" id="battleTrackerBestName">No attempt</div>
+            <div class="battle-tracker-score" id="battleTrackerBestScore">-</div>
+          </div>
         </div>
         <div id="opponentNotification">
           <h3>🎨 Opponent Mixed Color</h3>

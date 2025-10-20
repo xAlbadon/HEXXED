@@ -12,7 +12,9 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false, // Important for security: keeps Node.js features out of your web content
       contextIsolation: true, // Important for security: isolates Electron APIs from your web content
-      devTools: true // Enable DevTools, can be turned off for production
+      devTools: true, // Enable DevTools, can be turned off for production
+      webSecurity: true, // Keep security on but allow local file access
+      allowRunningInsecureContent: false
     }
   });
 

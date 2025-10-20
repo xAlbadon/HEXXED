@@ -170,11 +170,64 @@ export class UIManager {
     this.previousSelectedOrbsCount = 0;
     this.achievementsTabIsActive = false; // Track if achievements tab is currently visible
     this.lastActiveEncyclopediaTab = 'colorGridTab'; // Remember last viewed tab
+    
+    // Initialize intro sequence
+    this.initIntroSequence();
+  }
+  
+  initIntroSequence() {
+    // Small delay to ensure updateManager is properly initialized
+    setTimeout(() => {
+      // Check if update manager is blocking UI
+      if (this.updateManager && this.updateManager.isBlockingUI()) {
+        console.log('[UIManager] Update in progress, skipping intro sequence');
+        return; // Don't show intro or title screen if update is blocking
+      }
+      
+      // Hide title screen initially
+      if (this.titleScreen) {
+        this.titleScreen.style.opacity = '0';
+        this.titleScreen.style.transform = 'scale(0.5)';
+      }
+      
+      // Create and play intro sequence
+      if (typeof IntroSequence !== 'undefined') {
+        const intro = new IntroSequence();
+        intro.init(() => {
+          // Show title screen with bouncing scale animation while bubbles fade
+          if (this.titleScreen) {
+            // Use CSS animation for the bounce effect
+            this.titleScreen.style.transition = 'opacity 1.2s ease-out';
+            this.titleScreen.style.animation = 'titleBounceIn 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+            this.titleScreen.style.opacity = '1';
+            this.titleScreen.style.transform = 'scale(1)';
+            
+            // Clean up animation property after it completes
+            setTimeout(() => {
+              if (this.titleScreen) {
+                this.titleScreen.style.animation = '';
+              }
+            }, 1200);
+          }
+        });
+      } else {
+        // Fallback if intro script doesn't load - just show title screen
+        console.warn('IntroSequence not available, showing title screen immediately');
+        if (this.titleScreen) {
+          this.titleScreen.style.opacity = '1';
+          this.titleScreen.style.transform = 'scale(1)';
+        }
+      }
+    }, 100); // Short delay to ensure updateManager state is ready
   }
 setUpdateManager(updateManager) {
     this.updateManager = updateManager;
     if (this.updateManager && this.updateManager.isBlockingUI()) {
+        console.log('[UIManager] Update is blocking UI, hiding title screen');
         this.hideTitleScreen();
+    } else if (!this.updateManager || !this.updateManager.isBlockingUI()) {
+        // If update manager is set but not blocking, ensure intro can proceed
+        console.log('[UIManager] No update blocking, intro sequence should be allowed');
     }
   }
 #calculateLuminance(rgb) {
@@ -1848,7 +1901,9 @@ populateRingsManagementTab() {
         // Initialize 3D battle world
         if (!this.battleWorld && this.battleModeCanvasContainer) {
           try {
-            this.battleWorld = new BattleWorld(this.battleModeCanvasContainer);
+            // Pass colorSystem to BattleWorld
+            const colorSystem = this.game && this.game.colorSystem;
+            this.battleWorld = new BattleWorld(this.battleModeCanvasContainer, colorSystem);
             
             // Setup click handler for orb selection
             this._battleClickHandler = (e) => {
@@ -1954,6 +2009,9 @@ populateRingsManagementTab() {
             this.updatePlayerTwoSelectedOrbsDisplay();
             this.clearPlayerTwoMixedColorDisplay();
             this.updatePlayerTwoBattleScoreDisplay(Infinity);
+            
+            // Reset color tracker
+            this.updateBattleColorTracker(null);
 
             if (this.playerOneMixButton) {
                 this.playerOneMixButton.disabled = this.localPlayerIsOne ? true : true; // Initially true, enabled by orb selection
@@ -2050,6 +2108,17 @@ populateRingsManagementTab() {
     // Display in 3D world
     if (this.battleWorld) {
       this.battleWorld.setTargetColor(targetColor.hex);
+    }
+    
+    // Update color tracker panel
+    const trackerTargetSwatch = document.getElementById('battleTrackerTargetSwatch');
+    const trackerTargetName = document.getElementById('battleTrackerTargetName');
+    if (trackerTargetSwatch) {
+      trackerTargetSwatch.style.backgroundColor = targetColor.hex;
+    }
+    if (trackerTargetName) {
+      trackerTargetName.textContent = targetColor.name || 'Target';
+      trackerTargetName.setAttribute('data-label', 'Target');
     }
     
     // Keep original DOM display as fallback (hidden by CSS)
@@ -2289,6 +2358,47 @@ populateRingsManagementTab() {
         this.playerOneBattleScoreDisplay.textContent = "---";
       } else {
         this.playerOneBattleScoreDisplay.textContent = score.toFixed(2);
+      }
+    }
+    
+    // Update color tracker if this is the local player
+    if (this.localPlayerIsOne && this.game && this.game.playerOneBestAttempt) {
+      this.updateBattleColorTracker(this.game.playerOneBestAttempt);
+    }
+  }
+  
+  updateBattleColorTracker(bestAttempt) {
+    const trackerBestSwatch = document.getElementById('battleTrackerBestSwatch');
+    const trackerBestName = document.getElementById('battleTrackerBestName');
+    const trackerBestScore = document.getElementById('battleTrackerBestScore');
+    
+    if (bestAttempt && bestAttempt.colorData) {
+      if (trackerBestSwatch) {
+        trackerBestSwatch.style.backgroundColor = bestAttempt.colorData.hex;
+      }
+      if (trackerBestName) {
+        trackerBestName.textContent = bestAttempt.colorData.name || 'Mixed Color';
+        trackerBestName.setAttribute('data-label', 'Best');
+      }
+      if (trackerBestScore) {
+        const diff = bestAttempt.difference;
+        if (diff !== undefined && diff !== Infinity) {
+          trackerBestScore.textContent = `Δ ${diff.toFixed(2)}`;
+        } else {
+          trackerBestScore.textContent = '-';
+        }
+      }
+    } else {
+      // Reset to defaults
+      if (trackerBestSwatch) {
+        trackerBestSwatch.style.backgroundColor = '#808080';
+      }
+      if (trackerBestName) {
+        trackerBestName.textContent = 'No attempt';
+        trackerBestName.setAttribute('data-label', 'Best');
+      }
+      if (trackerBestScore) {
+        trackerBestScore.textContent = '-';
       }
     }
   }
@@ -2559,6 +2669,11 @@ populateRingsManagementTab() {
       } else {
         this.playerTwoBattleScoreDisplay.textContent = score.toFixed(2);
       }
+    }
+    
+    // Update color tracker if this is the local player
+    if (!this.localPlayerIsOne && this.game && this.game.playerTwoBestAttempt) {
+      this.updateBattleColorTracker(this.game.playerTwoBestAttempt);
     }
   }
   setupBattleResultsListeners() {
