@@ -1657,6 +1657,8 @@ populateRingsManagementTab() {
         // Special handling for category achievements
         if (ach.type === 'category' && ach.subAchievements) {
           cardElement.classList.add('achievement-category-card');
+          // Start collapsed by default to save space
+          cardElement.classList.add('collapsed');
           // Add data attribute for category-specific styling
           cardElement.setAttribute('data-category', ach.id);
           

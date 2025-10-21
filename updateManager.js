@@ -60,7 +60,7 @@ class UpdateManager {
                 this.showingUpdateUI = true;
                 this.uiManager.showCheckingForUpdate();
             }
-        }, 1000);
+        }, 1800);
 
         // Set a timeout to hide the update screen if no response is received
         this.updateCheckTimeout = setTimeout(() => {
