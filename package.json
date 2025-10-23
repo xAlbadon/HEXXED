@@ -57,7 +57,7 @@
       "particleSystem.js",
       "supabaseClient.js",
       "uiManager.js",
-      "userSettingsManager"
+      "userSettingsManager",
       "export-metadata",
       "updateManager.js",
       "*.css",
