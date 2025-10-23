@@ -1,6 +1,6 @@
 {
   "name": "hexxed",
-  "version": "1.3.6",
+  "version": "1.3.7",
   "description": "#HEXXED Game - Color Mixing Laboratory",
   "main": "electron-main.js",
   "scripts": {
@@ -47,6 +47,7 @@
       "audioManager.js",
       "battleWorld.js",
       "titleParticles.js",
+      "titleScreenAudio.js",
       "introSequence.js",
       "challengeManager.js",
       "colorOrbs.js",
@@ -56,8 +57,9 @@
       "linePreviewSystem.js",
       "particleSystem.js",
       "supabaseClient.js",
+      "stylesManager.js",
       "uiManager.js",
-      "userSettingsManager",
+      "userSettingsManager.js",
       "export-metadata",
       "updateManager.js",
       "*.css",
