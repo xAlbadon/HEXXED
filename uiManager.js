@@ -1,6 +1,9 @@
 import { Leaderboard } from './leaderboard.js';
 import audioManager from './audioManager.js';
+import titleScreenAudio from './titleScreenAudio.js';
 import { BattleWorld } from './battleWorld.js';
+import { StylesManager } from './stylesManager.js';
+import { supabase } from './supabaseClient.js';
 
 export class UIManager {
   constructor(gameInstance, loginCallback, signupCallback, updateManager) {
@@ -25,8 +28,27 @@ export class UIManager {
     this.closeEncyclopediaButton = document.getElementById('closeEncyclopediaButton');
     this.leaderboardToggleButton = document.getElementById('leaderboardToggleButton'); // New button
     this.battleModeButton = document.getElementById('battleModeButton'); 
+    this.battleModeModal = document.getElementById('battleModeModal');
+    this.closeBattleModeModal = document.getElementById('closeBattleModeModal');
+    this.quickplayButton = document.getElementById('quickplayButton');
+    this.privateLobbyButton = document.getElementById('privateLobbyButton');
+    this.privateMatchModal = document.getElementById('privateMatchModal');
+    this.closePrivateMatchModal = document.getElementById('closePrivateMatchModal');
+    this.hostGameButton = document.getElementById('hostGameButton');
+    this.joinGameButton = document.getElementById('joinGameButton');
+    this.hostGameCode = document.getElementById('hostGameCode');
+    this.copyCodeBtn = document.getElementById('copyCodeBtn');
+    this.joinGameCodeInput = document.getElementById('joinGameCodeInput');
+    this.hostStatusMessage = document.getElementById('hostStatusMessage');
+    this.joinStatusMessage = document.getElementById('joinStatusMessage');
+    this.privateMatchWaiting = document.getElementById('privateMatchWaiting');
+    this.privateWaitingCode = document.getElementById('privateWaitingCode');
+    this.copyCodeBtnWaiting = document.getElementById('copyCodeBtnWaiting');
+    this.cancelPrivateMatchBtn = document.getElementById('cancelPrivateMatchBtn');
     this.battleModeScreen = document.getElementById('battleModeScreen');
     this.battleModeCanvasContainer = document.getElementById('battleModeCanvas');
+    this.currentPrivateGameCode = null;
+    this.currentPrivateMatchId = null;
 
     this.battleModeActionButton = document.getElementById('battleModeActionButton'); 
     this.battleModeTimerDisplay = document.getElementById('battleModeTimerDisplay');
@@ -76,6 +98,7 @@ export class UIManager {
 
     this.lobbyScreen = document.getElementById('lobbyScreen');
     this.lobbyStatusMessage = document.getElementById('lobbyStatusMessage');
+    this.lobbySessionId = document.getElementById('lobbySessionId');
     this.cancelLobbyButton = document.getElementById('cancelLobbyButton');
 
     this.encyclopediaTabsContainer = document.getElementById('encyclopediaTabs');
@@ -134,7 +157,6 @@ export class UIManager {
     this.musicVolumeSlider = document.getElementById('musicVolumeSlider');
     this.musicVolumeValue = document.getElementById('musicVolumeValue');
     this.musicTrackSelector = document.getElementById('musicTrackSelector');
-    this.muteAchievementsButton = document.getElementById('muteAchievementsButton');
     this.achievementVolumeSlider = document.getElementById('achievementVolumeSlider');
     this.achievementVolumeValue = document.getElementById('achievementVolumeValue');
     this.updateScreen = document.getElementById('updateScreen'); // The main container
@@ -171,6 +193,9 @@ export class UIManager {
     this.achievementsTabIsActive = false; // Track if achievements tab is currently visible
     this.lastActiveEncyclopediaTab = 'colorGridTab'; // Remember last viewed tab
     this.introSequenceStarted = false; // Track if we've started the intro
+    
+    // Initialize StylesManager
+    this.stylesManager = null; // Will be initialized after game is ready
     
     // Don't initialize intro sequence yet - wait for updateManager to be set
     // But set a safety timeout in case update manager never responds
@@ -223,6 +248,9 @@ export class UIManager {
             }
           }, 1200);
         }
+        
+        // Start title screen audio after intro completes
+        this.setupTitleScreenAudio();
       });
     } else {
       // Fallback if intro script doesn't load - just show title screen
@@ -231,7 +259,42 @@ export class UIManager {
         this.titleScreen.style.opacity = '1';
         this.titleScreen.style.transform = 'scale(1)';
       }
+      
+      // Start title screen audio
+      this.setupTitleScreenAudio();
     }
+  }
+  
+  /**
+   * Setup title screen audio and hover effects
+   */
+  setupTitleScreenAudio() {
+    // Start ambient music
+    titleScreenAudio.startAmbientMusic();
+    
+    // Attach hover sounds to buttons and inputs
+    const interactiveElements = [
+      this.loginButton,
+      this.signupButton,
+      this.usernameInput,
+      this.passwordInput
+    ];
+    
+    titleScreenAudio.attachHoverSounds(interactiveElements);
+    titleScreenAudio.attachClickSounds([this.loginButton, this.signupButton]);
+    
+    // Try to start music on any user interaction if autoplay was blocked
+    const startOnInteraction = () => {
+      titleScreenAudio.tryStartOnInteraction();
+      // Remove listener after first interaction
+      document.removeEventListener('click', startOnInteraction);
+      document.removeEventListener('keydown', startOnInteraction);
+    };
+    
+    document.addEventListener('click', startOnInteraction);
+    document.addEventListener('keydown', startOnInteraction);
+    
+    console.log('[UIManager] Title screen audio setup complete');
   }
   
 setUpdateManager(updateManager) {
@@ -438,6 +501,9 @@ setUpdateManager(updateManager) {
       this.achievementsTabIsActive = true;
       // Fetch fresh global stats from database when opening the tab
       this.populateAchievementsTab(true);
+    } else if (tabId === 'stylesTab') {
+      // Initialize and render styles tab
+      this.populateStylesTab();
     } else {
       // Mark achievements tab as inactive when switching away
       if (this.achievementsTabIsActive) {
@@ -519,12 +585,29 @@ setUpdateManager(updateManager) {
   }
   showGameArea(currentPlayerUsername) {
     this.hideTitleScreen();
+    
+    // Stop title screen audio and clean up
+    titleScreenAudio.cleanup();
+    
     this.gameArea.style.display = 'block';
     this.gameArea.style.filter = 'none';
     this.gameArea.style.pointerEvents = '';
     this.createMixButton();
     if (this.gameLeaderboardPanelEl) {
         this.leaderboard = new Leaderboard(this.gameLeaderboardPanelEl, currentPlayerUsername);
+    }
+    
+    // Initialize styles manager (but don't apply yet - game world doesn't exist)
+    if (!this.stylesManager) {
+      this.stylesManager = new StylesManager(this.game);
+    }
+  }
+  
+  // Called after game initialization is complete
+  applyInitialStyles() {
+    if (this.stylesManager) {
+      console.log('[UIManager] Applying initial styles after game initialization');
+      this.stylesManager.applyStyles();
     }
   }
   createMixButton() {
@@ -1888,17 +1971,483 @@ populateRingsManagementTab() {
       this.populateAchievementsTab(false, true);
     }
   }
+  
+  // Populate the Styles tab
+  populateStylesTab() {
+    if (!this.stylesManager) {
+      this.stylesManager = new StylesManager(this.game);
+    }
+    this.stylesManager.render();
+  }
+  
+  // Refresh styles when new achievements are unlocked
+  refreshStylesIfVisible() {
+    if (this.stylesManager) {
+      const stylesTab = document.getElementById('stylesTab');
+      if (stylesTab && stylesTab.classList.contains('active')) {
+        this.stylesManager.render();
+      }
+    }
+  }
+  
   setupBattleModeButtonListener() {
+    // Battle Mode button now opens the modal
     if (this.battleModeButton) {
       this.battleModeButton.addEventListener('click', () => {
         audioManager.playSound('click1');
-        this.showLobbyScreen(true); 
+        this.showBattleModeModal(true);
       });
     }
+    
+    // Close modal button
+    if (this.closeBattleModeModal) {
+      this.closeBattleModeModal.addEventListener('click', () => {
+        audioManager.playSound('click1');
+        this.showBattleModeModal(false);
+      });
+    }
+    
+    // Quick Play button starts matchmaking
+    if (this.quickplayButton) {
+      this.quickplayButton.addEventListener('click', () => {
+        audioManager.playSound('click1');
+        this.showBattleModeModal(false);
+        this.showLobbyScreen(true);
+      });
+    }
+    
+    // Private Lobby button opens private match modal
+    if (this.privateLobbyButton) {
+      this.privateLobbyButton.addEventListener('click', () => {
+        audioManager.playSound('click1');
+        this.showBattleModeModal(false);
+        this.showPrivateMatchModal(true);
+      });
+    }
+    
+    // Click outside modal to close
+    if (this.battleModeModal) {
+      this.battleModeModal.addEventListener('click', (e) => {
+        if (e.target === this.battleModeModal) {
+          audioManager.playSound('click1');
+          this.showBattleModeModal(false);
+        }
+      });
+    }
+    
+    // ESC key to close modals
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (this.battleModeModal && this.battleModeModal.classList.contains('active')) {
+          audioManager.playSound('click1');
+          this.showBattleModeModal(false);
+        } else if (this.privateMatchModal && this.privateMatchModal.classList.contains('active')) {
+          audioManager.playSound('click1');
+          this.showPrivateMatchModal(false);
+        }
+      }
+    });
+    
+    // Private Match Modal handlers
+    this.setupPrivateMatchHandlers();
+    
     if (this.battleModeActionButton) {
         this.battleModeActionButton.addEventListener('click', () => this.handleBattleActionClick());
     }
-
+  }
+  
+  setupPrivateMatchHandlers() {
+    // Close private match modal
+    if (this.closePrivateMatchModal) {
+      this.closePrivateMatchModal.addEventListener('click', () => {
+        audioManager.playSound('click1');
+        this.showPrivateMatchModal(false);
+      });
+    }
+    
+    // Click outside to close
+    if (this.privateMatchModal) {
+      this.privateMatchModal.addEventListener('click', (e) => {
+        if (e.target === this.privateMatchModal) {
+          audioManager.playSound('click1');
+          this.showPrivateMatchModal(false);
+        }
+      });
+    }
+    
+    // Tab switching
+    const tabButtons = document.querySelectorAll('.private-match-tab-btn');
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        audioManager.playSound('click1');
+        const targetTab = btn.dataset.tab;
+        
+        // Update active tab button
+        tabButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Update active tab content
+        document.querySelectorAll('.private-match-tab-content').forEach(content => {
+          content.classList.remove('active');
+        });
+        document.getElementById(targetTab + 'Tab').classList.add('active');
+      });
+    });
+    
+    // Host game button
+    if (this.hostGameButton) {
+      this.hostGameButton.addEventListener('click', () => {
+        audioManager.playSound('click1');
+        this.createPrivateGame();
+      });
+    }
+    
+    // Copy code button
+    if (this.copyCodeBtn) {
+      this.copyCodeBtn.addEventListener('click', () => {
+        if (this.currentPrivateGameCode) {
+          navigator.clipboard.writeText(this.currentPrivateGameCode).then(() => {
+            audioManager.playSound('click1');
+            this.copyCodeBtn.textContent = '✓ Copied!';
+            setTimeout(() => {
+              this.copyCodeBtn.textContent = '📋 Copy Code';
+            }, 2000);
+          });
+        }
+      });
+    }
+    
+    // Join game button
+    if (this.joinGameButton) {
+      this.joinGameButton.addEventListener('click', () => {
+        audioManager.playSound('click1');
+        const code = this.joinGameCodeInput.value.trim().toUpperCase();
+        if (code.length === 6) {
+          this.joinPrivateGame(code);
+        } else {
+          this.setJoinStatus('Please enter a valid 6-character code', 'error');
+        }
+      });
+    }
+    
+    // Auto-uppercase join code input
+    if (this.joinGameCodeInput) {
+      this.joinGameCodeInput.addEventListener('input', (e) => {
+        e.target.value = e.target.value.toUpperCase();
+      });
+    }
+    
+    // Copy code button in waiting screen
+    if (this.copyCodeBtnWaiting) {
+      this.copyCodeBtnWaiting.addEventListener('click', () => {
+        if (this.currentPrivateGameCode) {
+          navigator.clipboard.writeText(this.currentPrivateGameCode).then(() => {
+            audioManager.playSound('click1');
+            this.copyCodeBtnWaiting.textContent = '✓ Copied!';
+            setTimeout(() => {
+              this.copyCodeBtnWaiting.textContent = '📋 Copy Code';
+            }, 2000);
+          });
+        }
+      });
+    }
+    
+    // Cancel private match button
+    if (this.cancelPrivateMatchBtn) {
+      this.cancelPrivateMatchBtn.addEventListener('click', () => {
+        audioManager.playSound('click1');
+        this.cancelPrivateMatch();
+      });
+    }
+  }
+  
+  showPrivateMatchWaitingUI(code) {
+    if (this.privateMatchWaiting) {
+      this.privateMatchWaiting.style.display = 'flex';
+      if (this.privateWaitingCode) {
+        this.privateWaitingCode.textContent = code;
+      }
+    }
+  }
+  
+  hidePrivateMatchWaitingUI() {
+    if (this.privateMatchWaiting) {
+      this.privateMatchWaiting.style.display = 'none';
+    }
+  }
+  
+  showBattleModeModal(show) {
+    if (this.battleModeModal) {
+      if (show) {
+        this.battleModeModal.classList.add('active');
+      } else {
+        this.battleModeModal.classList.remove('active');
+      }
+    }
+  }
+  
+  showPrivateMatchModal(show) {
+    if (this.privateMatchModal) {
+      if (show) {
+        this.privateMatchModal.classList.add('active');
+        // Reset state when opening
+        this.resetPrivateMatchModal();
+      } else {
+        this.privateMatchModal.classList.remove('active');
+        // Also cancel any pending private match when closing modal
+        if (this.currentPrivateMatchId) {
+          this.cancelPrivateMatch();
+        }
+      }
+    }
+  }
+  
+  resetPrivateMatchModal() {
+    // Cleanup subscriptions
+    if (this.privateMatchSubscription) {
+      this.privateMatchSubscription.unsubscribe();
+      this.privateMatchSubscription = null;
+    }
+    
+    // Reset host tab
+    this.currentPrivateGameCode = null;
+    this.currentPrivateMatchId = null;
+    if (this.hostGameCode) this.hostGameCode.textContent = '------';
+    if (this.copyCodeBtn) this.copyCodeBtn.disabled = true;
+    if (this.hostStatusMessage) this.hostStatusMessage.textContent = '';
+    
+    // Reset join tab
+    if (this.joinGameCodeInput) this.joinGameCodeInput.value = '';
+    if (this.joinStatusMessage) this.joinStatusMessage.textContent = '';
+    
+    // Hide waiting UI
+    this.hidePrivateMatchWaitingUI();
+  }
+  
+  generateGameCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing characters
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+  
+  async createPrivateGame() {
+    if (!this.game || !this.game.playerId) {
+      this.setHostStatus('Error: Not logged in', 'error');
+      return;
+    }
+    
+    this.setHostStatus('Creating private game...', 'info');
+    
+    try {
+      const gameCode = this.generateGameCode();
+      
+      // Store in database
+      const { data, error } = await supabase
+        .from('private_matches')
+        .insert({
+          code: gameCode,
+          host_player_id: this.game.playerId,
+          status: 'waiting',
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      this.currentPrivateGameCode = gameCode;
+      this.currentPrivateMatchId = data.id;
+      this.hostGameCode.textContent = gameCode;
+      this.copyCodeBtn.disabled = false;
+      
+      // Show the waiting UI
+      this.showPrivateMatchWaitingUI(gameCode);
+      
+      // Start listening for opponent
+      this.listenForPrivateMatchOpponent(gameCode);
+      
+    } catch (error) {
+      console.error('Error creating private game:', error);
+      this.setHostStatus('Failed to create game. Try again.', 'error');
+    }
+  }
+  
+  async joinPrivateGame(code) {
+    if (!this.game || !this.game.playerId) {
+      this.setJoinStatus('Error: Not logged in', 'error');
+      return;
+    }
+    
+    this.setJoinStatus('Looking for game...', 'info');
+    
+    try {
+      // Find the private match - simplified query to avoid 406 errors
+      const { data: matches, error: findError } = await supabase
+        .from('private_matches')
+        .select('*')
+        .eq('code', code)
+        .limit(1);
+      
+      if (findError) {
+        console.error('Error looking up private match:', findError);
+        this.setJoinStatus('Error looking up game. Please try again.', 'error');
+        return;
+      }
+      
+      if (!matches || matches.length === 0) {
+        this.setJoinStatus('Game not found. Check the code and try again.', 'error');
+        return;
+      }
+      
+      const match = matches[0];
+      
+      // Check if match is available
+      if (match.status === 'cancelled') {
+        this.setJoinStatus('This match was cancelled by the host.', 'error');
+        return;
+      }
+      
+      if (match.status !== 'waiting') {
+        this.setJoinStatus('Game not available. It may have already started.', 'error');
+        return;
+      }
+      
+      if (match.host_player_id === this.game.playerId) {
+        this.setJoinStatus('You cannot join your own game', 'error');
+        return;
+      }
+      
+      // Check if someone already joined
+      if (match.guest_player_id) {
+        this.setJoinStatus('Game was taken by another player. Try again.', 'error');
+        return;
+      }
+      
+      // Update match with joiner - use RPC or direct update
+      const { data: updateResult, error: updateError } = await supabase
+        .from('private_matches')
+        .update({
+          guest_player_id: this.game.playerId,
+          status: 'matched',
+          matched_at: new Date().toISOString()
+        })
+        .eq('id', match.id)
+        .eq('status', 'waiting') // Only update if still waiting
+        .is('guest_player_id', null) // Only if no guest yet
+        .select();
+      
+      if (updateError) {
+        console.error('Error updating private match:', updateError);
+        this.setJoinStatus('Failed to join game. Please try again.', 'error');
+        return;
+      }
+      
+      if (!updateResult || updateResult.length === 0) {
+        // Update returned no rows - match was taken or status changed
+        this.setJoinStatus('Game was taken by another player. Try again.', 'error');
+        return;
+      }
+      
+      this.setJoinStatus('Match found! Starting game...', 'success');
+      
+      // Close modal and start battle
+      setTimeout(() => {
+        this.showPrivateMatchModal(false);
+        // Trigger battle start with private match data
+        if (this.game && typeof this.game.handlePrivateMatchStart === 'function') {
+          this.game.handlePrivateMatchStart(match.host_player_id, false); // false = not host
+        }
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error joining private game:', error);
+      this.setJoinStatus('Failed to join game. Try again.', 'error');
+    }
+  }
+  
+  listenForPrivateMatchOpponent(code) {
+    // Subscribe to changes in the private match
+    const subscription = supabase
+      .channel(`private_match_${code}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'private_matches',
+        filter: `code=eq.${code}`
+      }, (payload) => {
+        if (payload.new.status === 'matched' && payload.new.guest_player_id) {
+          this.setHostStatus('Opponent found! Starting game...', 'success');
+          
+          // Unsubscribe
+          subscription.unsubscribe();
+          this.privateMatchSubscription = null;
+          
+          // Close modal and start battle
+          setTimeout(() => {
+            this.showPrivateMatchModal(false);
+            this.hidePrivateMatchWaitingUI();
+            // Trigger battle start with private match data
+            if (this.game && typeof this.game.handlePrivateMatchStart === 'function') {
+              this.game.handlePrivateMatchStart(payload.new.guest_player_id, true); // true = is host
+            }
+          }, 1000);
+        } else if (payload.new.status === 'cancelled') {
+          this.setHostStatus('Match was cancelled.', 'error');
+          subscription.unsubscribe();
+          this.privateMatchSubscription = null;
+          this.hidePrivateMatchWaitingUI();
+        }
+      })
+      .subscribe();
+    
+    // Store subscription for cleanup
+    this.privateMatchSubscription = subscription;
+  }
+  
+  async cancelPrivateMatch() {
+    if (!this.currentPrivateMatchId) return;
+    
+    try {
+      // Update the match status to cancelled
+      const { error } = await supabase
+        .from('private_matches')
+        .update({ status: 'cancelled' })
+        .eq('id', this.currentPrivateMatchId);
+      
+      if (error) throw error;
+      
+      // Cleanup
+      if (this.privateMatchSubscription) {
+        this.privateMatchSubscription.unsubscribe();
+        this.privateMatchSubscription = null;
+      }
+      
+      this.currentPrivateMatchId = null;
+      this.currentPrivateGameCode = null;
+      this.hidePrivateMatchWaitingUI();
+      this.setHostStatus('Match cancelled.', 'info');
+      
+    } catch (error) {
+      console.error('Error cancelling private match:', error);
+      this.setHostStatus('Failed to cancel match.', 'error');
+    }
+  }
+  
+  setHostStatus(message, type) {
+    if (this.hostStatusMessage) {
+      this.hostStatusMessage.textContent = message;
+      this.hostStatusMessage.className = `host-status-message ${type}`;
+    }
+  }
+  
+  setJoinStatus(message, type) {
+    if (this.joinStatusMessage) {
+      this.joinStatusMessage.textContent = message;
+      this.joinStatusMessage.className = `join-status-message ${type}`;
+    }
   }
   _initializeAndBindPlayerMixButtons() {
     if (this._playerMixButtonListenersAttached) {
@@ -2866,11 +3415,37 @@ populateRingsManagementTab() {
       }
     }
   }
-  updateLobbyStatus(message) {
+  updateLobbyStatus(message, sessionId = null) {
     if (this.lobbyStatusMessage) {
-      this.lobbyStatusMessage.textContent = message;
+      // Update the message with icon based on status
+      let icon = '🔍'; // Default searching icon
+      if (message.toLowerCase().includes('found') || message.toLowerCase().includes('joined')) {
+        icon = '✓';
+      } else if (message.toLowerCase().includes('creating') || message.toLowerCase().includes('created')) {
+        icon = '🎮';
+      } else if (message.toLowerCase().includes('waiting')) {
+        icon = '⏳';
+      } else if (message.toLowerCase().includes('starting')) {
+        icon = '🚀';
+      } else if (message.toLowerCase().includes('error') || message.toLowerCase().includes('failed')) {
+        icon = '⚠️';
+      } else if (message.toLowerCase().includes('cancelled')) {
+        icon = '✕';
+      }
+      
+      this.lobbyStatusMessage.innerHTML = `<span class="status-icon">${icon}</span> ${message}`;
     }
-    const spinner = this.lobbyScreen ? this.lobbyScreen.querySelector('.spinner') : null;
+    
+    // Update session ID display if provided
+    if (this.lobbySessionId) {
+      if (sessionId) {
+        this.lobbySessionId.textContent = sessionId.substring(0, 6).toUpperCase();
+      } else {
+        this.lobbySessionId.textContent = '------';
+      }
+    }
+    
+    const spinner = this.lobbyScreen ? this.lobbyScreen.querySelector('.lobby-spinner-container') : null;
     if (spinner) {
 
         if (message.toLowerCase().includes('found') || message.toLowerCase().includes('starting') || message.toLowerCase().includes('error') || message.toLowerCase().includes('failed')) {
@@ -3143,17 +3718,11 @@ populateRingsManagementTab() {
         });
     }
     if (this.musicTrackSelector) {
-        this.musicTrackSelector.addEventListener('change', () => {
+        this.musicTrackSelector.addEventListener('change', async () => {
             const newTrack = this.musicTrackSelector.value;
-            audioManager.playBackgroundMusic(newTrack);
+            await audioManager.playBackgroundMusic(newTrack);
             this._updateAudioUI();
         });
-    }
-    if (this.muteAchievementsButton) {
-      this.muteAchievementsButton.addEventListener('click', () => {
-        audioManager.toggleAchievementSounds();
-        this._updateAudioUI();
-      });
     }
     if (this.achievementVolumeSlider) {
         this.achievementVolumeSlider.addEventListener('input', () => {
@@ -3173,7 +3742,6 @@ populateRingsManagementTab() {
     const musicVolume = audioManager.getMusicVolume();
     const achievementVolume = audioManager.getAchievementVolume();
     const currentTrack = audioManager.getCurrentTrack();
-    const areAchievementSoundsMuted = audioManager.areAchievementSoundsMuted();
     this.muteButton.textContent = isMuted ? '🔇' : '🔊';
     this.muteButton.title = isMuted ? 'Unmute' : 'Mute';
     this.masterVolumeSlider.value = isMuted ? 0 : masterVolume;
@@ -3182,13 +3750,8 @@ populateRingsManagementTab() {
     this.sfxVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(sfxVolume * 100)}%`;
     this.musicVolumeSlider.value = isMuted ? 0 : musicVolume;
     this.musicVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(musicVolume * 100)}%`;
-    this.musicVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(musicVolume * 100)}%`;
-    this.achievementVolumeSlider.value = isMuted || areAchievementSoundsMuted ? 0 : achievementVolume;
-    this.achievementVolumeValue.textContent = isMuted || areAchievementSoundsMuted ? 'Muted' : `${Math.round(achievementVolume * 100)}%`;
-    if (this.muteAchievementsButton) {
-      this.muteAchievementsButton.textContent = areAchievementSoundsMuted ? 'Unmute Achievements' : 'Mute Achievements';
-      this.muteAchievementsButton.classList.toggle('toggled-on', areAchievementSoundsMuted);
-    }
+    this.achievementVolumeSlider.value = isMuted ? 0 : achievementVolume;
+    this.achievementVolumeValue.textContent = isMuted ? 'Muted' : `${Math.round(achievementVolume * 100)}%`;
     const musicTracks = ['Mixin_Melody', 'Chromatic_Cascade'];
 
     if (this.musicTrackSelector.options.length !== musicTracks.length) {

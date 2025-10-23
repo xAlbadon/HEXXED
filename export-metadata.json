@@ -1,10 +1,10 @@
 {
   "name": "#HEXXED",
-  "revisionLabel": "Fix Electron preload and audio loading errors",
+  "revisionLabel": "Saved package.json changes",
   "description": "HEXXED, a game about color mixing",
   "mode": "Universal",
-  "exportDate": "2025-10-20T04:08:04.199Z",
-  "assetCount": 19,
+  "exportDate": "2025-10-23T08:03:32.139Z",
+  "assetCount": 20,
   "assetTypes": [
     "png",
     "jpg"

@@ -10,6 +10,7 @@ import { LinePreviewSystem } from './linePreviewSystem.js'; // Added
 import { supabase } from './supabaseClient.js';
 import { UpdateManager } from './updateManager.js'; // Added for Electron updates
 import audioManager from './audioManager.js';
+import userSettingsManager from './userSettingsManager.js';
 class ChromaLabGame {
   constructor() {
     this.container = document.getElementById('gameContainer');
@@ -64,13 +65,17 @@ class ChromaLabGame {
   }
   // Called after successful login/signup
   async completeInitialization() {
-    // Play background music
-    // Pass just the track name, let audioManager handle the full path
-    if (audioManager.currentTrackPath) {
-        audioManager.playBackgroundMusic(audioManager.currentTrackPath);
-    } else {
-        // If no track is saved in localStorage, play the default (just track name)
-        audioManager.playBackgroundMusic('Chromatic_Cascade', 'mp3');
+    // Load user-specific settings from Supabase
+    console.log(`[ChromaLabGame] Loading settings for user: ${this.playerId}`);
+    await userSettingsManager.loadUserSettings(this.playerId);
+    
+    // Load audio settings for this user
+    await audioManager.loadUserSettings(this.playerId);
+    
+    // Play background music based on user settings (will be started by loadUserSettings)
+    // If no track was loaded, play the default
+    if (!audioManager.currentTrackPath) {
+        await audioManager.playBackgroundMusic('Chromatic_Cascade', 'mp3');
     }
     
     // Initialize core systems
@@ -95,7 +100,17 @@ class ChromaLabGame {
     await this.loadDiscoveredColors();
     await this.loadCompletedChallenges();
     
-    // Create initial color orbs
+    // Load user styles BEFORE creating orbs so they get proper sizing
+    if (this.uiManager && this.uiManager.stylesManager) {
+      await this.uiManager.stylesManager.loadUserStyles(this.playerId);
+      // Give orbManager reference to stylesManager so orbs can use it during creation
+      if (this.orbManager) {
+        this.orbManager.setStylesManager(this.uiManager.stylesManager);
+        console.log('[ChromaLabGame] StylesManager set on OrbManager, orbSize:', this.uiManager.stylesManager.currentStyles.orbSize);
+      }
+    }
+    
+    // Create initial color orbs (will now use loaded styles)
     this.createInitialOrbs();
     
     // Update encyclopedia UI (now targets the new page elements)
@@ -120,41 +135,57 @@ class ChromaLabGame {
   async handleLogin(username, password) {
     this.uiManager.setAuthMessage('Logging in...', false);
     try {
+      // Use maybeSingle() instead of single() to avoid errors when no match is found
       const { data, error } = await supabase
         .from('players')
         .select('id, username')
         .eq('username', username)
         .eq('password', password) // Plain text password check as requested
-        .single();
-      if (error && error.code !== 'PGRST116') { // PGRST116: "Searched for a single row, but found no rows" which is fine for login fail
-        throw error;
+        .maybeSingle();
+      
+      // Check for actual database errors (not "no rows found")
+      if (error) {
+        console.error('Login database error:', error);
+        this.uiManager.setAuthMessage(`Login failed: ${error.message}`, true);
+        return;
       }
+      
       if (data) {
         this.playerId = data.id;
         this.username = data.username;
         this.uiManager.setAuthMessage('Login successful!', false);
         this.uiManager.showGameArea(this.username);
+        
+        // Clear localStorage to ensure user-specific settings take precedence
+        this.clearLocalStorageSettings();
+        
         await this.completeInitialization();
       } else {
+        // No matching user found - this is expected for invalid credentials
         this.uiManager.setAuthMessage('Invalid username or password.', true);
       }
     } catch (error) {
-      console.error('Login error:', error);
+      // Only log unexpected errors
+      console.error('Unexpected login error:', error);
       this.uiManager.setAuthMessage(`Login failed: ${error.message}`, true);
     }
   }
   async handleSignup(username, password) {
     this.uiManager.setAuthMessage('Signing up...', false);
     try {
-      // Check if username already exists
+      // Check if username already exists - use maybeSingle() to avoid errors
       const { data: existingUser, error: fetchError } = await supabase
         .from('players')
         .select('username')
         .eq('username', username)
-        .single();
-      if (fetchError && fetchError.code !== 'PGRST116') { // Ignore "no rows found" error
-        throw fetchError;
+        .maybeSingle();
+      
+      if (fetchError) {
+        console.error('Signup check error:', fetchError);
+        this.uiManager.setAuthMessage(`Signup failed: ${fetchError.message}`, true);
+        return;
       }
+      
       if (existingUser) {
         this.uiManager.setAuthMessage('Username already taken. Please choose another.', true);
         return;
@@ -165,23 +196,100 @@ class ChromaLabGame {
         .insert([{ username, password }]) // Supabase will generate 'id' UUID
         .select('id, username')
         .single();
+      
       if (insertError) {
-        throw insertError;
+        console.error('Signup insert error:', insertError);
+        this.uiManager.setAuthMessage(`Signup failed: ${insertError.message}`, true);
+        return;
       }
+      
       if (newUser) {
         this.playerId = newUser.id;
         this.username = newUser.username;
         this.uiManager.setAuthMessage('Signup successful! Logging in...', false);
         this.uiManager.showGameArea(this.username);
+        
+        // Clear localStorage to ensure new account starts fresh
+        this.clearLocalStorageSettings();
+        
         await this.completeInitialization();
       } else {
         this.uiManager.setAuthMessage('Signup failed. Please try again.', true);
       }
     } catch (error) {
-      console.error('Signup error:', error);
+      // Only log unexpected errors
+      console.error('Unexpected signup error:', error);
       this.uiManager.setAuthMessage(`Signup failed: ${error.message}`, true);
     }
   }
+  
+  /**
+   * Clear old localStorage settings to prevent conflicts with user-specific settings
+   */
+  clearLocalStorageSettings() {
+    // Clear audio settings
+    localStorage.removeItem('audioMuted');
+    localStorage.removeItem('masterVolume');
+    localStorage.removeItem('musicVolume');
+    localStorage.removeItem('sfxVolume');
+    localStorage.removeItem('achievementVolume');
+    localStorage.removeItem('audioTrack');
+    localStorage.removeItem('achievementSoundsMuted');
+    
+    // Clear style settings
+    localStorage.removeItem('hexxedStyles');
+    
+    console.log('[ChromaLabGame] Cleared localStorage settings for fresh user account');
+  }
+  
+  /**
+   * Handle user logout
+   */
+  handleLogout() {
+    console.log('[ChromaLabGame] User logging out');
+    
+    // Clear user session
+    this.playerId = null;
+    this.username = null;
+    
+    // Reset audio manager to defaults
+    audioManager.resetToDefaults();
+    
+    // Reset styles manager to defaults
+    if (this.uiManager && this.uiManager.stylesManager) {
+      this.uiManager.stylesManager.resetToDefaults();
+    }
+    
+    // Clear user settings manager
+    userSettingsManager.clearUser();
+    
+    // Clear localStorage
+    this.clearLocalStorageSettings();
+    
+    // Reload page to show login screen
+    window.location.reload();
+  }
+  
+  // Handle private match start (host or join)
+  async handlePrivateMatchStart(opponentPlayerId, isHost) {
+    console.log(`[Private Match] Starting private match. IsHost: ${isHost}, Opponent: ${opponentPlayerId}`);
+    
+    // For now, create a battle session similar to quick play
+    // You can customize this to handle private matches differently
+    this.isLocalPlayerOne = isHost;
+    
+    // Start the battle similar to quick play
+    // The lobby screen will handle creating or joining the session
+    this.uiManager.showLobbyScreen(true);
+    this.uiManager.updateLobbyStatus(isHost ? 'Starting private match...' : 'Joining private match...');
+    
+    // The existing lobby logic should handle the rest
+    // In a full implementation, you might want to:
+    // 1. Create a private session in game_sessions with a flag
+    // 2. Pass the opponent_id directly instead of matchmaking
+    // 3. Skip the matchmaking wait and go straight to battle
+  }
+  
   createInitialOrbs() {
     // Filter for only primary colors for the initial setup
     const primaryColors = this.colorSystem.getDiscoveredColors().filter(c => c.isPrimary);
@@ -489,6 +597,10 @@ class ChromaLabGame {
     
     const newOrb = this.orbManager.createOrb(colorData, position, true); // Animate entry
     if (this.gameWorld && newOrb) {
+        // Apply current styles to the new orb
+        if (this.uiManager && this.uiManager.stylesManager) {
+          this.uiManager.stylesManager.applyStylesToOrb(newOrb);
+        }
         // Update camera zoom based on the new orb's ring radius
         this.gameWorld.updateCameraZoom(radius);
         // After the orb is created and added, recalculate the layout for its ring
@@ -782,6 +894,10 @@ class ChromaLabGame {
     );
     const newOrb = this.orbManager.createOrb(colorData, position, true); // Animate entry
     if (newOrb) {
+      // Apply current styles to the new orb
+      if (this.uiManager && this.uiManager.stylesManager) {
+        this.uiManager.stylesManager.applyStylesToOrb(newOrb);
+      }
       this.gameWorld.updateCameraZoom(radius);
       if (newOrb.colorData.mixArity >= 2) {
         this.orbManager.recalculateRingLayout(newOrb.colorData.mixArity);
@@ -1059,7 +1175,7 @@ class ChromaLabGame {
       if (findError) throw findError;
       if (openSessions && openSessions.length > 0) {
         const sessionToJoin = openSessions[0];
-        this.uiManager.updateLobbyStatus(`Found game ${sessionToJoin.id.substring(0,6)}... Attempting to join...`);
+        this.uiManager.updateLobbyStatus(`Found game! Attempting to join...`, sessionToJoin.id);
         console.log(`[Lobby] Attempting to join session: ${sessionToJoin.id} as player ${this.playerId}`);
         // Conditional update: only join if P2 slot is null and status is waiting
         const { data: updatedSession, error: joinError } = await supabase
@@ -1137,7 +1253,7 @@ class ChromaLabGame {
         // Store the generated target color locally immediately for P1.
         // P2 will get it from newSession data when they join and prepareForBattle.
         this.currentBattleTargetColor = targetColorForSession; 
-        this.uiManager.updateLobbyStatus(`Game created (ID: ${newSession.id.substring(0,6)}). Waiting for an opponent...`);
+        this.uiManager.updateLobbyStatus(`Game created. Waiting for an opponent...`, newSession.id);
         console.log(`[Lobby] New session created: ${this.currentSessionId}. Player ${this.playerId} is Player 1. Target: ${targetColorForSession.hex}`);
         this.#subscribeToSessionChanges(this.currentSessionId);
         // Start polling as a fallback for P1
@@ -1285,8 +1401,9 @@ class ChromaLabGame {
         .from('game_sessions')
         .select('*')
         .eq('id', this.currentSessionId)
-        .single();
-      if (error && error.code !== 'PGRST116') { // PGRST116 means session not found
+        .maybeSingle();
+      
+      if (error) {
         console.error('[Lobby Polling] Error fetching session state:', error);
         if (error.code === 'PGRST116' || error.message.includes("JSON object requested, multiple (or no) rows returned")) { // Session not found or other critical fetch error
           console.warn(`[Lobby Polling] Session ${this.currentSessionId} not found or invalid. Stopping poll and cleaning up.`);
@@ -1646,86 +1763,49 @@ class ChromaLabGame {
   }
 }
 ChromaLabGame.prototype._selectRandomBattleTargetColor = function() {
-    // Generate a completely random achievable color using the color mixing system
-    // This creates fair, unpredictable targets that both players can theoretically make
+    // Generate a truly random color using BOTH random RGB and random HSL
+    // This creates massive variety and makes each battle unique
     
-    // 30% chance: Use pure HSL generation for maximum variety
-    if (Math.random() > 0.7) {
-        // Generate random HSL values that are achievable through mixing
-        const h = Math.floor(Math.random() * 360); // Any hue
-        const s = 0.4 + Math.random() * 0.6; // 40-100% saturation (avoid too dull)
-        const l = 0.3 + Math.random() * 0.5; // 30-80% lightness (avoid too dark/bright)
-        
-        const [r, g, b] = this.colorSystem.hslToRgb(h, s, l);
-        const hex = this.colorSystem.rgbToHex(r, g, b);
-        const name = this.colorSystem.generateColorName(r, g, b);
-        
-        console.log(`[Battle] Generated random HSL target: ${name} (${hex}) [H:${h} S:${Math.round(s*100)}% L:${Math.round(l*100)}%]`);
-        
-        return {
-            name: name,
-            hex: hex,
-            rgb: [r, g, b],
-            hsl: { h, s, l },
-            mixArity: 2, // Assume 2-color mix complexity
-            isRandomlyGenerated: true
-        };
-    }
+    console.log('[Battle] Generating random target color using hybrid RGB/HSL method...');
     
-    // 70% chance: Use actual color mixing for more realistic targets
-    const baseColors = this.colorSystem.getDiscoveredColors().filter(c => 
-        c.isPrimary || c.hex === '#000000' || c.hex === '#FFFFFF'
-    );
+    // Method 1: Random RGB (0-255 for each channel)
+    const randomR = Math.floor(Math.random() * 256);
+    const randomG = Math.floor(Math.random() * 256);
+    const randomB = Math.floor(Math.random() * 256);
     
-    if (baseColors.length < 2) {
-        console.warn("[Battle] Not enough base colors for random generation, using fallback.");
-        return this.colorSystem.getColorByHex('#FF8C42') || { 
-            name: "Orange", hex: "#FF8C42", rgb: [255, 140, 66], mixArity: 2 
-        };
-    }
+    // Method 2: Random HSL with full spectrum
+    const randomH = Math.floor(Math.random() * 360); // Full hue range
+    const randomS = Math.random(); // Full saturation range 0-100%
+    const randomL = 0.2 + Math.random() * 0.6; // 20-80% lightness (avoid pure black/white)
     
-    // Randomly decide how many colors to mix (2-4 for good variety)
-    const numColors = Math.random() > 0.6 ? 2 : (Math.random() > 0.5 ? 3 : 4);
+    // Convert HSL to RGB
+    const [hslR, hslG, hslB] = this.colorSystem.hslToRgb(randomH, randomS, randomL);
     
-    // Randomly select colors to mix
-    const colorArray = [];
-    const usedIndices = new Set();
+    // Blend both methods for maximum randomness (50/50 mix)
+    const blendFactor = 0.5;
+    const finalR = Math.round(randomR * blendFactor + hslR * (1 - blendFactor));
+    const finalG = Math.round(randomG * blendFactor + hslG * (1 - blendFactor));
+    const finalB = Math.round(randomB * blendFactor + hslB * (1 - blendFactor));
     
-    for (let i = 0; i < numColors && i < baseColors.length; i++) {
-        let randomIndex;
-        let attempts = 0;
-        do {
-            randomIndex = Math.floor(Math.random() * baseColors.length);
-            attempts++;
-        } while (usedIndices.has(randomIndex) && attempts < baseColors.length * 2);
-        
-        if (!usedIndices.has(randomIndex)) {
-            usedIndices.add(randomIndex);
-            colorArray.push(baseColors[randomIndex]);
-        }
-    }
+    // Generate hex and name using the color system
+    const hex = this.colorSystem.rgbToHex(finalR, finalG, finalB);
+    const name = this.colorSystem.generateColorName(finalR, finalG, finalB);
+    const hsl = this.colorSystem.rgbToHsl(finalR, finalG, finalB);
     
-    // 40% chance to add a shading color (black/white) for more variety
-    if (Math.random() > 0.6 && colorArray.length < 4) {
-        const shadingColor = Math.random() > 0.5 ? 
-            this.colorSystem.getColorByHex('#FFFFFF') : 
-            this.colorSystem.getColorByHex('#000000');
-        if (shadingColor) colorArray.push(shadingColor);
-    }
+    console.log(`[Battle] Generated hybrid random target:`);
+    console.log(`  - RGB Method: [${randomR}, ${randomG}, ${randomB}]`);
+    console.log(`  - HSL Method: [${hslR}, ${hslG}, ${hslB}] from H:${randomH}° S:${Math.round(randomS*100)}% L:${Math.round(randomL*100)}%`);
+    console.log(`  - Final Blend: ${name} (${hex}) [${finalR}, ${finalG}, ${finalB}]`);
+    console.log(`  - Final HSL: H:${Math.round(hsl.h)}° S:${Math.round(hsl.s*100)}% L:${Math.round(hsl.l*100)}%`);
     
-    // Use the actual color mixing system to generate the target
-    const mixedResult = this.colorSystem.mixColors(colorArray);
-    
-    if (mixedResult && mixedResult.hex) {
-        console.log(`[Battle] Generated mixed target: ${mixedResult.name} (${mixedResult.hex}) from:`, 
-            colorArray.map(c => c.name).join(' + '));
-        return mixedResult;
-    }
-    
-    // Fallback if mixing somehow fails
-    console.warn("[Battle] Random color generation failed, using preset color.");
-    return this.colorSystem.getColorByHex('#FF8C42') || { 
-        name: "Orange", hex: "#FF8C42", rgb: [255, 140, 66], mixArity: 2 
+    return {
+        name: name,
+        hex: hex,
+        rgb: [finalR, finalG, finalB],
+        hsl: hsl,
+        mixArity: 2, // Assume 2-color mix complexity
+        isRandomlyGenerated: true,
+        generationMethod: 'hybrid-rgb-hsl'
     };
 };
 // Start the game application logic (shows title screen)

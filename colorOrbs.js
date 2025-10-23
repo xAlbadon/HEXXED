@@ -12,7 +12,12 @@ export class ColorOrbManager {
     this.textLabelFont = 'Bold 32px "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans", Arial, sans-serif'; // Thematic font
     this.textLabelScale = 0.035; // Slightly smaller scale for text labels
     this.tooltipsEnabled = true; // Control whether hover tooltips can be shown
+    this.stylesManager = null; // Will be set by game after initialization
     this.setupInteraction();
+  }
+  
+  setStylesManager(stylesManager) {
+    this.stylesManager = stylesManager;
   }
   setTooltipsEnabled(isEnabled) {
     this.tooltipsEnabled = isEnabled;
@@ -91,7 +96,8 @@ export class ColorOrbManager {
       animationOffset: Math.random() * Math.PI * 2,
       pulseSpeed: 1 + Math.random() * 0.5,
       complexityRings: [],
-      textLabel: null // Placeholder for the text label
+      textLabel: null, // Placeholder for the text label
+      baseScale: 1.0 // Initialize base scale for style calculations
     };
     // Store a reference to the orb object in the userData of its meshes for easy retrieval during raycasting
     mesh.userData.orb = orb;
@@ -138,6 +144,27 @@ export class ColorOrbManager {
     mesh.add(orb.textLabel); // Add as child of the orb mesh
     this.orbs.push(orb);
     this.scene.add(mesh);
+    
+    // Apply current styles if stylesManager is available
+    if (this.stylesManager && this.stylesManager.currentStyles) {
+      const styleMultiplier = this.stylesManager.getOrbSizeMultiplier();
+      const styledScale = orb.baseScale * styleMultiplier;
+      orb.originalScale = styledScale;
+      mesh.scale.setScalar(styledScale);
+      
+      // Apply glow visibility
+      if (glowMesh) {
+        glowMesh.visible = this.stylesManager.currentStyles.orbGlow;
+      }
+      
+      // Log for first few orbs during initial creation
+      if (this.orbs.length <= 7) {
+        console.log(`[ColorOrbManager] Created orb "${colorData.name}" with styled scale ${styledScale.toFixed(2)} (base: ${orb.baseScale}, multiplier: ${styleMultiplier})`);
+      }
+    } else if (this.orbs.length <= 7) {
+      console.warn(`[ColorOrbManager] Created orb "${colorData.name}" without styles (stylesManager not available)`);
+    }
+    
     if (animate) {
       this.animateOrbEntry(orb);
     }
@@ -154,8 +181,12 @@ export class ColorOrbManager {
       .easing(TWEEN.Easing.Bounce.Out)
       .start();
 
+    // Animate to the styled scale
+    const baseScale = orb.baseScale || 1.0;
+    const styleMultiplier = this.stylesManager ? this.stylesManager.getOrbSizeMultiplier() : 1.0;
+    const styledScale = baseScale * styleMultiplier;
     new TWEEN.Tween(orb.mesh.scale)
-      .to({ x: 1, y: 1, z: 1 }, 800)
+      .to({ x: styledScale, y: styledScale, z: styledScale }, 800)
       .easing(TWEEN.Easing.Back.Out)
       .start();
   }
@@ -165,9 +196,13 @@ export class ColorOrbManager {
     // if (orb.textLabel) { // Text labels on orbs are no longer shown on selection
     //   orb.textLabel.visible = true; 
     // }
-    // Scale up and add selection ring
+    // Scale up and add selection ring - use styled scale
+    const baseScale = orb.baseScale || 1.0;
+    const styleMultiplier = this.stylesManager ? this.stylesManager.getOrbSizeMultiplier() : 1.0;
+    const styledScale = baseScale * styleMultiplier;
+    const selectedScale = styledScale * 1.3; // Scale up by 30%
     new TWEEN.Tween(orb.mesh.scale)
-      .to({ x: 1.3, y: 1.3, z: 1.3 }, 200)
+      .to({ x: selectedScale, y: selectedScale, z: selectedScale }, 200)
       .easing(TWEEN.Easing.Quadratic.Out)
       .start();
 
@@ -189,9 +224,12 @@ export class ColorOrbManager {
     if (orb.textLabel) {
       orb.textLabel.visible = false;
     }
-    // Scale back down
+    // Scale back down - restore to styled scale
+    const baseScale = orb.baseScale || 1.0;
+    const styleMultiplier = this.stylesManager ? this.stylesManager.getOrbSizeMultiplier() : 1.0;
+    const styledScale = baseScale * styleMultiplier;
     new TWEEN.Tween(orb.mesh.scale)
-      .to({ x: 1, y: 1, z: 1 }, 200)
+      .to({ x: styledScale, y: styledScale, z: styledScale }, 200)
       .easing(TWEEN.Easing.Quadratic.Out)
       .start();
 

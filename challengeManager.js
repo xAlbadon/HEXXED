@@ -1154,6 +1154,7 @@ export class ChallengeManager {
     // If any achievement was updated, trigger UI refresh if available
     if (achievementUpdatedOverall && window.game && window.game.uiManager) {
       window.game.uiManager.refreshAchievementsIfVisible();
+      window.game.uiManager.refreshStylesIfVisible();
     }
     
     return achievementUpdatedOverall; // Indicate if any achievement progress changed for UI update

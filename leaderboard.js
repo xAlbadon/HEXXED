@@ -31,15 +31,20 @@ export class Leaderboard {
     async fetchPlayerRank(username) {
         if (!username || !supabase) return null;
         try {
-            // First, get the player's score.
+            // First, get the player's score - use maybeSingle() to avoid errors for new players
             const { data: playerData, error: playerError } = await supabase
                 .from('player_color_counts')
                 .select('total_colors_discovered, players!inner(username)')
                 .eq('players.username', username)
-                .single();
-            if (playerError || !playerData) {
-                // This can happen if the player has 0 colors, so it's not a critical error.
-                console.log(`Could not fetch score for player ${username}, they may not have any discoveries yet.`);
+                .maybeSingle();
+            
+            if (playerError) {
+                console.error(`Error fetching score for player ${username}:`, playerError);
+                return null;
+            }
+            
+            if (!playerData) {
+                // New player with no discoveries yet - this is normal, not an error
                 return null;
             }
             const playerScore = playerData.total_colors_discovered;

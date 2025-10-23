@@ -36,7 +36,7 @@ export class GameWorld {
         throw e; // Re-throw to stop further game initialization
     }
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setClearColor(0x2d1b69, 1);
+    this.renderer.setClearColor(0x000000, 0); // Transparent background so body background shows through
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -102,11 +102,11 @@ export class GameWorld {
       transparent: true,
       opacity: 0.7
     });
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -2;
-    floor.receiveShadow = true;
-    this.scene.add(floor);
+    this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    this.floor.rotation.x = -Math.PI / 2;
+    this.floor.position.y = -2;
+    this.floor.receiveShadow = true;
+    this.scene.add(this.floor);
 
     // Add floating particles for atmosphere
     this.createFloatingParticles();
