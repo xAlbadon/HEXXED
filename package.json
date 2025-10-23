@@ -1,6 +1,6 @@
 {
   "name": "hexxed",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "description": "#HEXXED Game - Color Mixing Laboratory",
   "main": "electron-main.js",
   "scripts": {
@@ -57,6 +57,7 @@
       "particleSystem.js",
       "supabaseClient.js",
       "uiManager.js",
+      "userSettingsManager"
       "export-metadata",
       "updateManager.js",
       "*.css",
