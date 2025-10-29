@@ -1,12 +1,52 @@
 {
-  "name": "#HEXXED",
-  "revisionLabel": "Saved package.json changes",
-  "description": "HEXXED, a game about color mixing",
-  "mode": "Universal",
-  "exportDate": "2025-10-23T08:03:32.139Z",
-  "assetCount": 20,
-  "assetTypes": [
-    "png",
-    "jpg"
-  ]
+  "name": "Hexxed",
+  "description": "Collect a vast array of colors by mixing different color orbs using RGB based mixing instead of real life pigment mixing. Features battle mode, a strategic color-matching puzzle game where you connect orbs to discover new colors against another player in live timed battles. Also features achievements and fun customizable particle effects to go with a vibrant color discovery system. Master the art of color mixing across 330+ unique hues!",
+  "version": "1.3.8",
+  "entryPoint": "index.html",
+  "author": {
+    "name": "Albadon",
+    "email": ""
+  },
+  "tags": [
+    "puzzle",
+    "strategy",
+    "color-matching",
+    "three.js",
+    "multiplayer",
+    "achievements",
+    "game"
+  ],
+  "category": "game",
+  "thumbnail": "",
+  "screenshots": [],
+  "features": [
+    "330+ discoverable colors organized in families",
+    "Real-time multiplayer battle mode",
+    "Achievement system with progression tracking",
+    "Customizable visual styles and particle effects",
+    "Persistent user settings and progress",
+    "Leaderboard system",
+    "Challenge mode with private matches",
+    "Dynamic color mixing mechanics"
+  ],
+  "technologies": [
+    "Three.js",
+    "Supabase",
+    "Tween.js",
+    "ES6 Modules"
+  ],
+  "gameMode": {
+    "singlePlayer": true,
+    "multiPlayer": true,
+    "maxPlayers": 2
+  },
+  "platform": {
+    "web": true,
+    "mobile": true,
+    "desktop": true
+  },
+  "requirements": {
+    "webgl": true,
+    "minResolution": "800x600"
+  }
 }

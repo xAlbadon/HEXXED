@@ -118,7 +118,7 @@ export class ChallengeManager {
         name: 'Magenta Maestro',
         description: 'Master the creation of magenta in all its vibrant forms.',
         type: 'category',
-        icon: '🌸', // Magenta-specific icon
+        icon: '🍷', // Magenta-specific icon
         color: '#ff00ff', // Magenta theme color
         subAchievements: [
           {

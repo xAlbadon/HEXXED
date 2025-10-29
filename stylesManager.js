@@ -15,7 +15,11 @@ export class StylesManager {
       orbColor: '#ffffff',
       orbGlow: true,
       platformColor: '#1a0033',
-      platformOpacity: 0.8
+      platformOpacity: 0.8,
+      particleTheme: 'aurora',
+      particleAutoChange: true,
+      particleCount: 75,
+      particleColorShift: false
     };
     
     // Current active styles
@@ -25,8 +29,8 @@ export class StylesManager {
     this.styleCategories = [
       {
         id: 'background',
-        title: '🌌 Background',
-        icon: '🌌',
+        title: 'Background',
+        icon: '',
         options: [
           {
             id: 'backgroundType',
@@ -50,8 +54,8 @@ export class StylesManager {
       },
       {
         id: 'orbs',
-        title: '⭕ Orbs',
-        icon: '⭕',
+        title: 'Orbs',
+        icon: '',
         options: [
           {
             id: 'orbSize',
@@ -71,8 +75,8 @@ export class StylesManager {
       },
       {
         id: 'platform',
-        title: '🔷 Platform',
-        icon: '🔷',
+        title: 'Platform',
+        icon: '',
         options: [
           {
             id: 'platformColor',
@@ -87,6 +91,38 @@ export class StylesManager {
             max: 1.0,
             step: 0.1,
             unit: '%'
+          }
+        ]
+      },
+      {
+        id: 'particles',
+        title: 'Floating Particles',
+        icon: '✨',
+        options: [
+          {
+            id: 'particleTheme',
+            label: 'Color Theme',
+            type: 'select',
+            options: ['aurora', 'sunset', 'forest', 'twilight', 'golden', 'ocean', 'rainbow', 'monochrome']
+          },
+          {
+            id: 'particleAutoChange',
+            label: 'Auto Theme Change (every 30s)',
+            type: 'checkbox'
+          },
+          {
+            id: 'particleColorShift',
+            label: 'Subtle Color Shifting',
+            type: 'checkbox'
+          },
+          {
+            id: 'particleCount',
+            label: 'Particle Count',
+            type: 'slider',
+            min: 25,
+            max: 150,
+            step: 5,
+            unit: ''
           }
         ]
       }
@@ -310,7 +346,12 @@ export class StylesManager {
         option.options.forEach(opt => {
           const optEl = document.createElement('option');
           optEl.value = opt;
-          optEl.textContent = opt.charAt(0).toUpperCase() + opt.slice(1);
+          // Special formatting for particle themes
+          if (option.id === 'particleTheme' && window.COLOR_THEMES && window.COLOR_THEMES[opt]) {
+            optEl.textContent = window.COLOR_THEMES[opt].name;
+          } else {
+            optEl.textContent = opt.charAt(0).toUpperCase() + opt.slice(1).replace(/([A-Z])/g, ' $1');
+          }
           if (this.currentStyles[option.id] === opt) optEl.selected = true;
           select.appendChild(optEl);
         });
@@ -320,6 +361,29 @@ export class StylesManager {
           this.render();
         });
         controlEl.appendChild(select);
+        
+        // Add preview circle for particle themes
+        if (option.id === 'particleTheme' && window.COLOR_THEMES) {
+          const currentTheme = window.COLOR_THEMES[this.currentStyles.particleTheme];
+          if (currentTheme) {
+            const preview = document.createElement('div');
+            preview.className = 'particle-theme-preview';
+            const previewHue = currentTheme.hueStart + (currentTheme.hueRange / 2);
+            preview.style.background = `hsla(${previewHue}, ${currentTheme.saturation}%, ${currentTheme.lightness}%, 0.9)`;
+            preview.style.boxShadow = `0 0 15px hsla(${previewHue}, ${currentTheme.saturation}%, ${currentTheme.lightness}%, 0.6)`;
+            controlEl.appendChild(preview);
+            
+            // Update preview when selection changes
+            select.addEventListener('change', (e) => {
+              const newTheme = window.COLOR_THEMES[e.target.value];
+              if (newTheme) {
+                const newHue = newTheme.hueStart + (newTheme.hueRange / 2);
+                preview.style.background = `hsla(${newHue}, ${newTheme.saturation}%, ${newTheme.lightness}%, 0.9)`;
+                preview.style.boxShadow = `0 0 15px hsla(${newHue}, ${newTheme.saturation}%, ${newTheme.lightness}%, 0.6)`;
+              }
+            });
+          }
+        }
         break;
     }
     
@@ -432,6 +496,37 @@ export class StylesManager {
       }
     } else {
       console.warn('[StylesManager] Could not apply platform styles - floor not found');
+    }
+    
+    // Apply particle styles
+    if (window.particleSettings) {
+      const oldCount = window.particleSettings.particleCount;
+      const newCount = this.currentStyles.particleCount || 75;
+      
+      window.particleSettings.colorTheme = this.currentStyles.particleTheme || 'aurora';
+      window.particleSettings.autoThemeChange = this.currentStyles.particleAutoChange !== false;
+      window.particleSettings.colorShift = this.currentStyles.particleColorShift === true;
+      window.particleSettings.particleCount = newCount;
+      
+      // Save particle settings
+      if (window.saveParticleSettings) {
+        window.saveParticleSettings();
+      }
+      
+      // Restart auto-change timer with new settings
+      if (window.restartAutoThemeChange) {
+        window.restartAutoThemeChange();
+      }
+      
+      // If particle count changed, fully reinit
+      if (oldCount !== newCount && window.reinitParticles) {
+        window.reinitParticles();
+      } else if (window.reinitParticlesWithNewTheme) {
+        // Otherwise just update colors
+        window.reinitParticlesWithNewTheme();
+      }
+      
+      console.log('[StylesManager] Applied particle theme:', this.currentStyles.particleTheme, 'count:', newCount, 'auto-change:', window.particleSettings.autoThemeChange, 'color-shift:', window.particleSettings.colorShift);
     }
   }
 }

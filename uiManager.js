@@ -337,6 +337,26 @@ setUpdateManager(updateManager) {
     return lum / 255;
   }
   setupAuthEventListeners() {
+    // Add typing sounds to input fields
+    const addTypingSounds = (inputElement) => {
+      let lastValue = inputElement.value;
+      let lastInputTime = 0;
+      
+      // Use input event which works reliably on both mobile and desktop
+      inputElement.addEventListener('input', () => {
+        const now = Date.now();
+        // Debounce to prevent double firing (some browsers fire input multiple times)
+        if (now - lastInputTime > 30) {
+          audioManager.playRandomSelectSound();
+          lastInputTime = now;
+        }
+        lastValue = inputElement.value;
+      });
+    };
+    
+    addTypingSounds(this.usernameInput);
+    addTypingSounds(this.passwordInput);
+    
     this.loginButton.addEventListener('click', () => {
       audioManager.playSound('click1');
       const username = this.usernameInput.value.trim();

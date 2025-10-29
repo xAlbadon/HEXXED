@@ -83,6 +83,10 @@
         justify-content: center; /* Center children vertically if titleScreen has a fixed height or takes more space */
         opacity: 0; /* Start hidden for intro */
         transform: scale(0.5); /* Start much smaller for dramatic entrance */
+        user-select: none; /* Prevent text selection */
+        -webkit-user-select: none; /* Safari */
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* IE/Edge */
 }
 #titleScreen:hover { /* Optional: enhance glow on hover */
     box-shadow: 0 12px 35px rgba(0,0,0,0.6), 
@@ -118,6 +122,10 @@
               drop-shadow(0 0 60px rgba(255,255,0,0.3));
       transform-origin: center;
       letter-spacing: 0.1em;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
     }
     @keyframes flowingGradient {
         0% { background-position: 0% 50%; }
@@ -152,6 +160,10 @@
       animation: flowingGradient 10s ease infinite, subtleFloat 4s ease-in-out infinite;
       filter: drop-shadow(0 0 10px rgba(255,126,95,0.5))
               drop-shadow(0 0 20px rgba(134,168,231,0.4));
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
     }
     @keyframes subtleFloat {
         0%, 100% { transform: translateY(0px); }
@@ -215,6 +227,10 @@
       min-width: 130px; /* Slightly larger min-width */
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
     }
     #loginButton {
       background: linear-gradient(135deg, #6dd5ed, #2193b0); /* Blue-cyan gradient */
@@ -413,6 +429,7 @@
         display: none; /* Hidden by default */
         padding: 20px;
         overflow-y: auto;
+        overflow-x: hidden;
         box-sizing: border-box;
       }
       #fsEncyclopediaHeader {
@@ -422,11 +439,15 @@
         margin-bottom: 0; /* Remove bottom margin as tabs will be directly below */
         padding-bottom: 15px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        max-width: 100%;
+        overflow: hidden;
       }
       #encyclopediaTabs {
         display: flex;
+        flex-wrap: wrap;
         margin-bottom: 20px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        gap: 5px;
       }
       .encyclopediaTabButton {
         padding: 10px 20px;
@@ -437,6 +458,8 @@
         font-size: 1em;
         border-bottom: 3px solid transparent;
         transition: color 0.2s, border-bottom-color 0.2s;
+        white-space: nowrap;
+        flex-shrink: 0;
       }
       .encyclopediaTabButton:hover {
         color: white;
@@ -458,6 +481,11 @@
         text-shadow: 0 0 10px #ffda77, 0 0 5px #ff8c00;
         font-family: 'Georgia', serif; /* More thematic font */
         margin-left: 10px; /* Add some space if tabs are next to it, or adjust header structure */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex-shrink: 1;
+        min-width: 0;
       }
       #closeEncyclopediaButton {
         background: rgba(255, 255, 255, 0.1);
@@ -767,8 +795,18 @@
             line-height: 35px;
         }
         .encyclopediaTabButton {
-            padding: 8px 12px;
-            font-size: 0.9em;
+            padding: 8px 10px;
+            font-size: 0.8em;
+        }
+        #encyclopediaTabs {
+            gap: 3px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+        #encyclopediaTabs::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
         }
         #colorGrid {
           grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); 
@@ -1000,6 +1038,14 @@
         }
         #availableOrbsSortDropdown {
             width: 100%;
+        }
+        .encyclopediaTabButton {
+            padding: 6px 8px;
+            font-size: 0.75em;
+        }
+        #fsEncyclopediaTitle {
+            font-size: 1.3em;
+            margin-left: 5px;
         }
         /* #encyclopediaPanel styles removed */
       }
@@ -2087,6 +2133,17 @@
         color: #fff;
         font-size: 14px;
         text-align: center;
+      }
+      
+      .particle-theme-preview {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-left: 8px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        vertical-align: middle;
       }
       
       .style-preset-grid {
